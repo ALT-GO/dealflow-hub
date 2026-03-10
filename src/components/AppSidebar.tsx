@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, LogOut, Settings, Zap, UsersRound } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, LogOut, Settings, Zap, UsersRound, TrendingUp } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
