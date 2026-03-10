@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TasksChecklist } from '@/components/TasksChecklist';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { DynamicFields } from '@/components/DynamicFields';
+import { InlineEdit } from '@/components/InlineEdit';
 import { useCustomProperties, useCustomPropertyValues } from '@/hooks/useCustomProperties';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Globe, Phone, StickyNote, Activity, ListTodo,
-  ChevronDown, ChevronUp, Users, Briefcase, DollarSign, Clock, Layers,
+  Users, Briefcase, DollarSign, Clock, Layers,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -109,8 +110,26 @@ export default function CompanyDetail() {
   });
 
   const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['company', id] });
     queryClient.invalidateQueries({ queryKey: ['company-notes', id] });
     queryClient.invalidateQueries({ queryKey: ['company-activities', id] });
+  };
+
+  /** Inline edit a system property */
+  const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
+    if (!user || !id || newValue === oldValue) return;
+    const { error } = await supabase.from('companies').update({ [field]: newValue || null }).eq('id', id);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    // Log change to timeline
+    await supabase.from('activities').insert({
+      type: 'property_changed',
+      title: `Alterou "${label}"`,
+      description: `De "${oldValue || '(vazio)'}" para "${newValue || '(vazio)'}"`,
+      company_id: id,
+      created_by: user.id,
+    });
+    invalidateAll();
+    toast.success('Atualizado!');
   };
 
   const handleAddNote = async () => {
@@ -172,23 +191,23 @@ export default function CompanyDetail() {
                   <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
                     <div>
                       <p className="text-muted-foreground text-xs">Nome</p>
-                      <p className="font-medium text-foreground">{company.name}</p>
+                      <InlineEdit value={company.name} onSave={(v) => handleInlineEdit('name', 'Nome', company.name, v)} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Domínio</p>
-                      <p className="font-medium text-foreground flex items-center gap-1"><Globe className="h-3 w-3" />{company.domain || '-'}</p>
+                      <InlineEdit value={company.domain || ''} onSave={(v) => handleInlineEdit('domain', 'Domínio', company.domain || '', v)} icon={<Globe className="h-3 w-3 shrink-0 text-muted-foreground" />} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Telefone</p>
-                      <p className="font-medium text-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{company.phone || '-'}</p>
+                      <InlineEdit value={company.phone || ''} onSave={(v) => handleInlineEdit('phone', 'Telefone', company.phone || '', v)} icon={<Phone className="h-3 w-3 shrink-0 text-muted-foreground" />} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Setor</p>
-                      <p className="font-medium text-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{company.sector || '-'}</p>
+                      <InlineEdit value={company.sector || ''} onSave={(v) => handleInlineEdit('sector', 'Setor', company.sector || '', v)} icon={<Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Criado em</p>
-                      <p className="font-medium text-foreground">{new Date(company.created_at).toLocaleDateString('pt-BR')}</p>
+                      <p className="font-medium text-foreground text-sm">{new Date(company.created_at).toLocaleDateString('pt-BR')}</p>
                     </div>
                   </CardContent>
                 </AccordionContent>
@@ -304,9 +323,7 @@ export default function CompanyDetail() {
                     <Card key={n.id} className="border-border">
                       <CardContent className="p-4">
                         <div className="prose prose-sm max-w-none text-foreground text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: n.content }} />
-                        <p className="text-xs text-muted-foreground mt-3 border-t border-border pt-2">
-                          {new Date(n.created_at).toLocaleString('pt-BR')}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-3 border-t border-border pt-2">{new Date(n.created_at).toLocaleString('pt-BR')}</p>
                       </CardContent>
                     </Card>
                   ))}
