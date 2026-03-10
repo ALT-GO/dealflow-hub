@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TasksChecklist } from '@/components/TasksChecklist';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -275,7 +276,7 @@ export default function ContactDetail() {
             </TabsContent>
 
             <TabsContent value="tasks" className="mt-3">
-              <p className="text-center text-muted-foreground py-6 text-xs">Em breve — gerenciamento de tarefas</p>
+              <TasksChecklist contactId={id} />
             </TabsContent>
           </Tabs>
         </div>
@@ -313,6 +314,7 @@ export default function ContactDetail() {
               {deals.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Nenhum negócio</p>}
             </CardContent>
           </Card>
+          <TasksChecklist contactId={id} />
         </div>
       </div>
     </div>

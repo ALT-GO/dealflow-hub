@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TasksChecklist } from '@/components/TasksChecklist';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -291,7 +292,7 @@ export default function CompanyDetail() {
             </TabsContent>
 
             <TabsContent value="tasks" className="mt-3">
-              <p className="text-center text-muted-foreground py-6 text-xs">Em breve — gerenciamento de tarefas</p>
+              <TasksChecklist dealId={deals[0]?.id} contactId={contacts[0]?.id} />
             </TabsContent>
           </Tabs>
         </div>
@@ -333,6 +334,7 @@ export default function CompanyDetail() {
               {deals.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Nenhum negócio</p>}
             </CardContent>
           </Card>
+          <TasksChecklist contactId={contacts[0]?.id} />
         </div>
       </div>
     </div>

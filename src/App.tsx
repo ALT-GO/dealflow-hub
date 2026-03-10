@@ -12,6 +12,7 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
+import PropertiesSettings from "./pages/PropertiesSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ function ProtectedRoutes() {
         <Route path="/companies/:id" element={<CompanyDetail />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/contacts/:id" element={<ContactDetail />} />
+        <Route path="/settings/properties" element={<PropertiesSettings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
