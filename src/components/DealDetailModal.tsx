@@ -75,12 +75,18 @@ export function DealDetailModal({ deal, open, onOpenChange }: Props) {
               <TabsTrigger value="tasks" className="text-xs gap-1.5">
                 <ListTodo className="h-3.5 w-3.5" />Tarefas
               </TabsTrigger>
+              <TabsTrigger value="files" className="text-xs gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />Arquivos
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="comments" className="mt-3">
               <CommentBox entityType="deal" entityId={deal.id} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-3">
               <TasksChecklist dealId={deal.id} />
+            </TabsContent>
+            <TabsContent value="files" className="mt-3">
+              <FileManager entityType="deal" entityId={deal.id} />
             </TabsContent>
           </Tabs>
         </div>
