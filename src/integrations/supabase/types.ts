@@ -178,8 +178,10 @@ export type Database = {
           created_by: string | null
           email: string | null
           id: string
+          lead_source: string | null
           name: string
           role: string | null
+          status: string | null
           updated_at: string
         }
         Insert: {
@@ -188,8 +190,10 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          lead_source?: string | null
           name: string
           role?: string | null
+          status?: string | null
           updated_at?: string
         }
         Update: {
@@ -198,8 +202,10 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          lead_source?: string | null
           name?: string
           role?: string | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -292,6 +298,90 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      saved_views: {
+        Row: {
+          created_at: string
+          entity_type: string
+          filters: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          filters?: Json
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          filters?: Json
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string
+          completed: boolean
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          deal_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          completed?: boolean
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          deal_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          completed?: boolean
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          deal_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
