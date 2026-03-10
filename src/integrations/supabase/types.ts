@@ -341,6 +341,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           id: string
+          loss_reason: string | null
           name: string
           owner_id: string
           stage: string
@@ -353,6 +354,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           id?: string
+          loss_reason?: string | null
           name: string
           owner_id: string
           stage?: string
@@ -365,6 +367,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           id?: string
+          loss_reason?: string | null
           name?: string
           owner_id?: string
           stage?: string
