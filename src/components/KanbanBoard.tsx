@@ -226,7 +226,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                     key={deal.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, deal.id)}
-                    onClick={() => setSelectedDeal(deal)}
+                    onClick={() => navigate(`/deals/${deal.id}`)}
                     className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border-border"
                   >
                     <CardContent className="p-3 space-y-2.5">
