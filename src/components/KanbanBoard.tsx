@@ -18,6 +18,7 @@ type Deal = {
   value: number | null;
   stage: string;
   close_date: string | null;
+  updated_at: string;
   company_id: string;
   companies: { name: string } | null;
 };
