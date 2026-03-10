@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, DollarSign, Calendar, TrendingUp, Eye } from 'lucide-react';
+import { Building2, DollarSign, Calendar, TrendingUp } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
 import { notifyDealFollowers } from '@/components/DealFollowers';
-import { DealDetailModal } from '@/components/DealDetailModal';
 import { toast } from '@/components/ui/sonner';
 import confetti from 'canvas-confetti';
 import type { Filters } from '@/components/AdvancedFilters';
@@ -52,8 +52,8 @@ function fireConfetti() {
 export function KanbanBoard({ filters = {} }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', filters],
@@ -226,7 +226,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                     key={deal.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, deal.id)}
-                    onClick={() => setSelectedDeal(deal)}
+                    onClick={() => navigate(`/deals/${deal.id}`)}
                     className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border-border"
                   >
                     <CardContent className="p-3 space-y-2.5">
@@ -286,11 +286,6 @@ export function KanbanBoard({ filters = {} }: Props) {
         }}
       />
 
-      <DealDetailModal
-        deal={selectedDeal ? { ...selectedDeal, company_name: selectedDeal.companies?.name } : null}
-        open={!!selectedDeal}
-        onOpenChange={(o) => { if (!o) setSelectedDeal(null); }}
-      />
     </>
   );
 }

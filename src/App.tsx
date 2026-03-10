@@ -10,6 +10,7 @@ import { Layout } from "@/components/Layout";
 import Auth from "./pages/Auth";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
+import DealDetail from "./pages/DealDetail";
 import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import Contacts from "./pages/Contacts";
@@ -44,6 +45,7 @@ function ProtectedRoutes() {
     <Layout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/deals/:id" element={<DealDetail />} />
         <Route path="/companies" element={<Companies />} />
         <Route path="/companies/:id" element={<CompanyDetail />} />
         <Route path="/contacts" element={<Contacts />} />

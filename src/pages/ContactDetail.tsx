@@ -22,7 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Mail, Building2, Briefcase, StickyNote, Activity, ListTodo,
-  User, Clock, Layers, MessageCircle, Paperclip,
+  User, Clock, Layers, MessageCircle, Paperclip, Trash2,
 } from 'lucide-react';
 import { CommentBox } from '@/components/CommentBox';
 import { FileManager } from '@/components/FileManager';
@@ -40,13 +40,14 @@ const stageColors: Record<string, string> = {
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role: userRole } = useAuth();
   const queryClient = useQueryClient();
   const [noteContent, setNoteContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'meeting', title: '', description: '' });
   const [activitySaving, setActivitySaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const { data: customProps = [] } = useCustomProperties('contacts');
   const { data: customValues = {} } = useCustomPropertyValues(id);
@@ -162,13 +163,42 @@ export default function ContactDetail() {
 
   const company = contact.companies as { id: string; name: string; domain: string | null; sector: string | null } | null;
 
+  const handleDeleteContact = async () => {
+    if (!id) return;
+    const { error } = await supabase.from('contacts').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir contato'); return; }
+    toast.success('Contato excluído!');
+    navigate('/contacts');
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/contacts')}><ArrowLeft className="h-5 w-5" /></Button>
-        <div>
-          <h1 className="text-xl font-display font-bold text-foreground">{contact.name}</h1>
-          <p className="text-xs text-muted-foreground">Contato{company ? ` · ${company.name}` : ''}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/contacts')}><ArrowLeft className="h-5 w-5" /></Button>
+          <div>
+            <h1 className="text-xl font-display font-bold text-foreground">{contact.name}</h1>
+            <p className="text-xs text-muted-foreground">Contato{company ? ` · ${company.name}` : ''}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {(userRole === 'admin' || contact.created_by === user?.id) && (
+            <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1" />Excluir
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
+                <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir o contato "{contact.name}"?</p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setDeleteConfirm(false)}>Cancelar</Button>
+                  <Button variant="destructive" onClick={handleDeleteContact}>Excluir</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -363,7 +393,7 @@ export default function ContactDetail() {
             </CardHeader>
             <CardContent className="space-y-2">
               {deals.slice(0, 5).map((d) => (
-                <div key={d.id} className="p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <div key={d.id} className="p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors duration-200" onClick={() => navigate(`/deals/${d.id}`)}>
                   <p className="text-sm font-medium text-foreground">{d.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className={`text-[10px] ${stageColors[d.stage] || ''}`}>{stageLabels[d.stage] || d.stage}</Badge>
