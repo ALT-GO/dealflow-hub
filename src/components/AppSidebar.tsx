@@ -20,6 +20,7 @@ const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Empresas', url: '/companies', icon: Building2 },
   { title: 'Contatos', url: '/contacts', icon: Users },
+  { title: 'Performance', url: '/performance', icon: TrendingUp },
 ];
 
 const settingsItems = [

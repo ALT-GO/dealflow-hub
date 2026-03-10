@@ -44,6 +44,7 @@ function ProtectedRoutes() {
         <Route path="/settings/properties" element={<PropertiesSettings />} />
         <Route path="/settings/automations" element={<Automations />} />
         <Route path="/settings/team" element={<TeamManagement />} />
+        <Route path="/performance" element={<Performance />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
