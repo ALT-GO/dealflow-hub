@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Briefcase, ListTodo, StickyNote, PhoneCall, CalendarClock, Activity, RefreshCw,
+  Paperclip, Trash2,
 } from 'lucide-react';
 
 const typeConfig: Record<string, { icon: typeof Activity; label: string; color: string }> = {
@@ -13,6 +14,8 @@ const typeConfig: Record<string, { icon: typeof Activity; label: string; color: 
   call: { icon: PhoneCall, label: 'Chamada', color: 'bg-primary/10 text-primary' },
   note: { icon: StickyNote, label: 'Nota', color: 'bg-muted text-muted-foreground' },
   property_changed: { icon: RefreshCw, label: 'Alteração', color: 'bg-secondary text-secondary-foreground' },
+  file_uploaded: { icon: Paperclip, label: 'Arquivo', color: 'bg-primary/10 text-primary' },
+  file_deleted: { icon: Trash2, label: 'Arquivo', color: 'bg-destructive/10 text-destructive' },
 };
 
 interface ActivityEntry {
