@@ -1,0 +1,89 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DealFollowers } from '@/components/DealFollowers';
+import { CommentBox } from '@/components/CommentBox';
+import { TasksChecklist } from '@/components/TasksChecklist';
+import { Badge } from '@/components/ui/badge';
+import { Building2, DollarSign, Calendar, Eye, MessageCircle, ListTodo } from 'lucide-react';
+
+interface Deal {
+  id: string;
+  name: string;
+  value: number | null;
+  stage: string;
+  close_date: string | null;
+  company_name?: string;
+}
+
+interface Props {
+  deal: Deal | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const stageLabels: Record<string, string> = {
+  prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
+  negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido',
+};
+
+const formatCurrency = (val: number | null) =>
+  val != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val) : '-';
+
+export function DealDetailModal({ deal, open, onOpenChange }: Props) {
+  if (!deal) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-base">{deal.name}</DialogTitle>
+          <div className="flex items-center gap-2 mt-1">
+            {deal.company_name && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Building2 className="h-3 w-3" />{deal.company_name}
+              </span>
+            )}
+            <Badge variant="secondary" className="text-[10px]">{stageLabels[deal.stage] || deal.stage}</Badge>
+            <span className="text-xs font-semibold text-primary flex items-center gap-0.5">
+              <DollarSign className="h-3 w-3" />{formatCurrency(deal.value)}
+            </span>
+            {deal.close_date && (
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Calendar className="h-3 w-3" />{new Date(deal.close_date).toLocaleDateString('pt-BR')}
+              </span>
+            )}
+          </div>
+        </DialogHeader>
+
+        <div className="mt-2 space-y-4">
+          {/* Followers */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2">
+              <Eye className="h-3.5 w-3.5" />Seguidores
+            </p>
+            <DealFollowers dealId={deal.id} />
+          </div>
+
+          {/* Tabs: Comments + Tasks */}
+          <Tabs defaultValue="comments">
+            <TabsList>
+              <TabsTrigger value="comments" className="text-xs gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5" />Comentários
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="text-xs gap-1.5">
+                <ListTodo className="h-3.5 w-3.5" />Tarefas
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="comments" className="mt-3">
+              <CommentBox entityType="deal" entityId={deal.id} />
+            </TabsContent>
+            <TabsContent value="tasks" className="mt-3">
+              <TasksChecklist dealId={deal.id} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

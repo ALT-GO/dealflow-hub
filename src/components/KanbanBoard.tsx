@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, DollarSign, Calendar, TrendingUp } from 'lucide-react';
+import { Building2, DollarSign, Calendar, TrendingUp, Eye } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
+import { notifyDealFollowers } from '@/components/DealFollowers';
+import { DealDetailModal } from '@/components/DealDetailModal';
 import { toast } from '@/components/ui/sonner';
 import confetti from 'canvas-confetti';
 import type { Filters } from '@/components/AdvancedFilters';
@@ -51,6 +53,7 @@ export function KanbanBoard({ filters = {} }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', filters],
@@ -130,6 +133,8 @@ export function KanbanBoard({ filters = {} }: Props) {
   };
 
   const moveDeal = async (dealId: string, stage: string, lossReason?: string) => {
+    const deal = deals.find(d => d.id === dealId);
+    const oldStage = deal?.stage || '';
     const updateData: any = { stage };
     if (lossReason) updateData.loss_reason = lossReason;
     if (stage === 'fechado') updateData.loss_reason = null;
@@ -142,6 +147,20 @@ export function KanbanBoard({ filters = {} }: Props) {
       fireConfetti();
       toast('🎉 Negócio Fechado!', { description: 'Parabéns pela conquista!' });
     }
+
+    // Notify followers about stage change
+    const stageLabels: Record<string, string> = {
+      prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
+      negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido',
+    };
+    const myName = profiles.find(p => p.user_id === user?.id)?.full_name || 'Alguém';
+    await notifyDealFollowers(
+      dealId,
+      'deal_stage_changed',
+      `Negócio "${deal?.name}" mudou de estágio`,
+      `${myName} moveu de ${stageLabels[oldStage] || oldStage} → ${stageLabels[stage] || stage}`,
+      user?.id
+    );
   };
 
   const handleDrop = async (e: React.DragEvent, stage: string) => {
@@ -207,6 +226,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                     key={deal.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, deal.id)}
+                    onClick={() => setSelectedDeal(deal)}
                     className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border-border"
                   >
                     <CardContent className="p-3 space-y-2.5">
@@ -264,6 +284,12 @@ export function KanbanBoard({ filters = {} }: Props) {
             setLossModal(null);
           }
         }}
+      />
+
+      <DealDetailModal
+        deal={selectedDeal ? { ...selectedDeal, company_name: selectedDeal.companies?.name } : null}
+        open={!!selectedDeal}
+        onOpenChange={(o) => { if (!o) setSelectedDeal(null); }}
       />
     </>
   );
