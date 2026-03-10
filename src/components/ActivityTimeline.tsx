@@ -12,6 +12,7 @@ const typeConfig: Record<string, { icon: typeof Activity; label: string; color: 
   meeting: { icon: CalendarClock, label: 'Reunião', color: 'bg-primary/10 text-primary' },
   call: { icon: PhoneCall, label: 'Chamada', color: 'bg-primary/10 text-primary' },
   note: { icon: StickyNote, label: 'Nota', color: 'bg-muted text-muted-foreground' },
+  property_changed: { icon: RefreshCw, label: 'Alteração', color: 'bg-secondary text-secondary-foreground' },
 };
 
 interface ActivityEntry {
