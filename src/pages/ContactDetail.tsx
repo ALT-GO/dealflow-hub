@@ -314,6 +314,7 @@ export default function ContactDetail() {
               {deals.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Nenhum negócio</p>}
             </CardContent>
           </Card>
+          <TasksChecklist contactId={id} />
         </div>
       </div>
     </div>

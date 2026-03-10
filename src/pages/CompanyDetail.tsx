@@ -334,6 +334,7 @@ export default function CompanyDetail() {
               {deals.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Nenhum negócio</p>}
             </CardContent>
           </Card>
+          <TasksChecklist contactId={contacts[0]?.id} />
         </div>
       </div>
     </div>
