@@ -12,7 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
 import { useCustomProperties } from '@/hooks/useCustomProperties';
@@ -50,6 +52,10 @@ export default function Contacts() {
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
   const { data: customProps = [] } = useCustomProperties('contacts');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', role: '', lead_source: '', status: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', search, filters],
@@ -105,6 +111,29 @@ export default function Contacts() {
     setOpen(false);
     setForm({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
     setCustomValues({});
+  };
+
+  const handleEditContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    const { error } = await supabase.from('contacts').update({
+      name: editForm.name, email: editForm.email || null, role: editForm.role || null,
+      lead_source: editForm.lead_source || null, status: editForm.status || null,
+    }).eq('id', editForm.id);
+    setEditLoading(false);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Contato atualizado!');
+    queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    setEditOpen(false);
+  };
+
+  const handleDeleteContact = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from('contacts').delete().eq('id', deleteId);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Contato excluído!');
+    queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    setDeleteId(null);
   };
 
   return (
@@ -200,13 +229,14 @@ export default function Contacts() {
                 <TableHead>Empresa</TableHead>
                 <TableHead>Origem</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contacts.map((c) => {
                 const statusDef = CONTACT_STATUSES.find((s) => s.value === c.status);
                 return (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/contacts/${c.id}`)}>
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 group" onClick={() => navigate(`/contacts/${c.id}`)}>
                     <TableCell className="font-medium text-primary">{c.name}</TableCell>
                     <TableCell className="text-muted-foreground">{c.email || '-'}</TableCell>
                     <TableCell className="text-muted-foreground">{c.role || '-'}</TableCell>
@@ -219,18 +249,89 @@ export default function Contacts() {
                         <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setEditForm({ id: c.id, name: c.name, email: c.email || '', role: c.role || '', lead_source: c.lead_source || '', status: c.status || '' }); setEditOpen(true); }}>
+                            <Pencil className="h-4 w-4 mr-2" />Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(c.id)}>
+                            <Trash2 className="h-4 w-4 mr-2" />Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 );
               })}
               {contacts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum contato encontrado</TableCell>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum contato encontrado</TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Contato</DialogTitle></DialogHeader>
+          <form onSubmit={handleEditContact} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">E-mail</Label>
+              <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Cargo</Label>
+              <Input value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Origem do Lead</Label>
+              <Select value={editForm.lead_source} onValueChange={(v) => setEditForm({ ...editForm, lead_source: v })}>
+                <SelectTrigger><SelectValue placeholder="Origem" /></SelectTrigger>
+                <SelectContent>
+                  {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  {CONTACT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full" disabled={editLoading}>{editLoading ? 'Salvando...' : 'Salvar'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir contato?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é irreversível. Todos os dados relacionados serão perdidos.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteContact} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

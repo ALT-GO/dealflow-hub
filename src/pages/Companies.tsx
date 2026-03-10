@@ -10,7 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
 import { useCustomProperties } from '@/hooks/useCustomProperties';
@@ -28,6 +30,10 @@ export default function Companies() {
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
   const { data: customProps = [] } = useCustomProperties('companies');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ id: '', name: '', domain: '', sector: '', phone: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies', search, filters],
@@ -67,6 +73,28 @@ export default function Companies() {
     setOpen(false);
     setForm({ name: '', domain: '', sector: '', phone: '' });
     setCustomValues({});
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    const { error } = await supabase.from('companies').update({
+      name: editForm.name, domain: editForm.domain || null, sector: editForm.sector || null, phone: editForm.phone || null,
+    }).eq('id', editForm.id);
+    setEditLoading(false);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Empresa atualizada!');
+    queryClient.invalidateQueries({ queryKey: ['companies'] });
+    setEditOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from('companies').delete().eq('id', deleteId);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Empresa excluída!');
+    queryClient.invalidateQueries({ queryKey: ['companies'] });
+    setDeleteId(null);
   };
 
   return (
@@ -137,26 +165,84 @@ export default function Companies() {
                 <TableHead>Domínio</TableHead>
                 <TableHead>Setor</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {companies.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/companies/${c.id}`)}>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 group" onClick={() => navigate(`/companies/${c.id}`)}>
                   <TableCell className="font-medium text-primary">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.domain || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.sector || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.phone || '-'}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setEditForm({ id: c.id, name: c.name, domain: c.domain || '', sector: c.sector || '', phone: c.phone || '' }); setEditOpen(true); }}>
+                          <Pencil className="h-4 w-4 mr-2" />Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(c.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
               {companies.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Empresa</DialogTitle></DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Domínio</Label>
+              <Input value={editForm.domain} onChange={(e) => setEditForm({ ...editForm, domain: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Setor</Label>
+              <Input value={editForm.sector} onChange={(e) => setEditForm({ ...editForm, sector: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Telefone</Label>
+              <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            </div>
+            <Button type="submit" className="w-full" disabled={editLoading}>{editLoading ? 'Salvando...' : 'Salvar'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir empresa?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é irreversível. Todos os dados relacionados serão perdidos.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

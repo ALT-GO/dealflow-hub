@@ -78,15 +78,31 @@ export function ViewTabs({ entityType, activeTab, onTabChange, currentFilters }:
         <button className={tabClass(activeTab === 'all')} onClick={() => onTabChange('all', {})}>
           Todos
         </button>
-        <button className={tabClass(activeTab === 'mine')} onClick={() => onTabChange('mine', { ownerId: 'mine' })}>
+        <button className={`${tabClass(activeTab === 'mine')} group flex items-center gap-1.5`} onClick={() => onTabChange('mine', { ownerId: 'mine' })}>
           Meus registros
+          {activeTab === 'mine' && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onTabChange('all', {}); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
+            >
+              <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+            </span>
+          )}
         </button>
-        <button className={tabClass(activeTab === 'recent')} onClick={() => {
+        <button className={`${tabClass(activeTab === 'recent')} group flex items-center gap-1.5`} onClick={() => {
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           onTabChange('recent', { createdAfter: sevenDaysAgo.toISOString().split('T')[0] });
         }}>
           Criados recentemente
+          {activeTab === 'recent' && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onTabChange('all', {}); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
+            >
+              <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+            </span>
+          )}
         </button>
 
         {savedViews.map((v) => (
