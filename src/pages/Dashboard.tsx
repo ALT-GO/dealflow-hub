@@ -51,8 +51,8 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Visão geral do pipeline de vendas</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Negócios</h1>
+          <p className="text-muted-foreground text-sm">Pipeline de vendas e negócios em andamento</p>
         </div>
         <NewDealModal />
       </div>
