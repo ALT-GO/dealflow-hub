@@ -40,9 +40,8 @@ function ProtectedRoutes() {
         <Route path="/companies/:id" element={<CompanyDetail />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/contacts/:id" element={<ContactDetail />} />
-        <Route path="/settings/properties" element={<PropertiesSettings />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/settings/automations" element={<Automations />} />
-        <Route path="/settings/team" element={<TeamManagement />} />
         <Route path="/performance" element={<Performance />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

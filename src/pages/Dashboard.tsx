@@ -71,25 +71,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Circular Goal Progress */}
-      {goalTarget > 0 && (
-        <Card className="border-border">
-          <CardContent className="py-5 flex items-center gap-6">
-            <CircularProgress value={goalPercent} label="da sua meta mensal" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
-                Você atingiu <strong className="text-primary">{formatCurrency(myClosedValue)}</strong> de {formatCurrency(goalTarget)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {goalPercent >= 100
-                  ? '🎉 Meta batida! Continue assim!'
-                  : `Faltam ${formatCurrency(goalTarget - myClosedValue)} para bater a meta`}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div>
         <h2 className="text-lg font-display font-semibold text-foreground mb-4">Pipeline de Negócios</h2>
         <ViewTabs entityType="deals" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
