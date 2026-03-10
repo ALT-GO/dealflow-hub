@@ -296,6 +296,7 @@ export default function ContactDetail() {
               <TabsTrigger value="comments" className="text-xs gap-1.5"><MessageCircle className="h-3.5 w-3.5" />Comentários</TabsTrigger>
               <TabsTrigger value="notes" className="text-xs gap-1.5"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
               <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
+              <TabsTrigger value="files" className="text-xs gap-1.5"><Paperclip className="h-3.5 w-3.5" />Arquivos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline" className="mt-3">
