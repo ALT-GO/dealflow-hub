@@ -2,7 +2,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Briefcase, ListTodo, StickyNote, PhoneCall, CalendarClock, Activity,
+  Briefcase, ListTodo, StickyNote, PhoneCall, CalendarClock, Activity, RefreshCw,
 } from 'lucide-react';
 
 const typeConfig: Record<string, { icon: typeof Activity; label: string; color: string }> = {
