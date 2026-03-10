@@ -4,22 +4,43 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign } from 'lucide-react';
+import { CircularProgress } from '@/components/CircularProgress';
+import { LOSS_REASONS } from '@/components/LossReasonModal';
+import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, Cell,
+  BarChart, Bar, Cell, PieChart, Pie,
 } from 'recharts';
 
 const STAGE_PROBABILITIES: Record<string, number> = {
-  prospeccao: 10,
-  qualificacao: 30,
-  proposta: 50,
-  negociacao: 75,
-  fechado: 100,
+  prospeccao: 10, qualificacao: 30, proposta: 50, negociacao: 75, fechado: 100, perdido: 0,
 };
+
+const PIE_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--warning))',
+  'hsl(var(--destructive))',
+  'hsl(var(--accent))',
+  'hsl(var(--success))',
+  'hsl(var(--muted-foreground))',
+];
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-xs space-y-1">
+      {label && <p className="font-semibold text-foreground">Dia {label}</p>}
+      {payload.map((entry: any, i: number) => (
+        <p key={i} style={{ color: entry.color }}>
+          {entry.name}: <strong>{typeof entry.value === 'number' ? formatCurrency(entry.value) : entry.value}</strong>
+        </p>
+      ))}
+    </div>
+  );
+};
 
 export default function Performance() {
   const { user } = useAuth();
@@ -29,33 +50,27 @@ export default function Performance() {
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   const currentDay = now.getDate();
 
-  // All deals
   const { data: allDeals = [] } = useQuery({
     queryKey: ['perf-deals'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, owner_id, created_at, updated_at');
+        .select('id, name, value, stage, owner_id, created_at, updated_at, loss_reason');
       if (error) throw error;
       return data;
     },
   });
 
-  // Goals for current month
   const { data: goals = [] } = useQuery({
     queryKey: ['perf-goals', currentMonth, currentYear],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('sales_goals')
-        .select('*')
-        .eq('month', currentMonth)
-        .eq('year', currentYear);
+        .from('sales_goals').select('*').eq('month', currentMonth).eq('year', currentYear);
       if (error) throw error;
       return data;
     },
   });
 
-  // Profiles
   const { data: profiles = [] } = useQuery({
     queryKey: ['profiles-all'],
     queryFn: async () => {
@@ -64,17 +79,14 @@ export default function Performance() {
     },
   });
 
-  // Activities count per user (this month)
   const { data: activitiesCounts = [] } = useQuery({
     queryKey: ['perf-activities', currentMonth, currentYear],
     queryFn: async () => {
       const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
       const endOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${daysInMonth}T23:59:59`;
       const { data, error } = await supabase
-        .from('activities')
-        .select('created_by')
-        .gte('activity_date', startOfMonth)
-        .lte('activity_date', endOfMonth);
+        .from('activities').select('created_by')
+        .gte('activity_date', startOfMonth).lte('activity_date', endOfMonth);
       if (error) throw error;
       return data;
     },
@@ -86,21 +98,17 @@ export default function Performance() {
     return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
   };
 
-  // --- Deals closed this month ---
   const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-  const closedThisMonth = allDeals.filter(d =>
-    d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth
-  );
+  const closedThisMonth = allDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth);
   const closedValue = closedThisMonth.reduce((s, d) => s + (Number(d.value) || 0), 0);
 
-  // --- Burn-up chart data ---
   const totalGoalValue = goals.reduce((s, g: any) => s + (Number(g.target_value) || 0), 0);
+  const goalPercent = totalGoalValue > 0 ? (closedValue / totalGoalValue) * 100 : 0;
 
+  // Burn-up
   const burnUpData = [];
   let cumulative = 0;
   for (let day = 1; day <= daysInMonth; day++) {
-    const dayDate = new Date(currentYear, currentMonth - 1, day);
-    // Closed deals up to this day
     if (day <= currentDay) {
       const dayDeals = closedThisMonth.filter(d => {
         const closedDate = new Date(d.updated_at);
@@ -108,7 +116,6 @@ export default function Performance() {
       });
       cumulative = dayDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
     }
-
     burnUpData.push({
       day: `${day}`,
       ideal: totalGoalValue > 0 ? Math.round((totalGoalValue / daysInMonth) * day) : 0,
@@ -116,28 +123,20 @@ export default function Performance() {
     });
   }
 
-  // --- Leaderboard ---
+  // Leaderboard
   const ownerIds = [...new Set(allDeals.map(d => d.owner_id))];
   const leaderboard = ownerIds.map(ownerId => {
     const userDeals = allDeals.filter(d => d.owner_id === ownerId);
     const closedDeals = userDeals.filter(d => d.stage === 'fechado');
-    const closedValue = closedDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
+    const cv = closedDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
     const winRate = userDeals.length > 0 ? Math.round((closedDeals.length / userDeals.length) * 100) : 0;
     const userActivities = activitiesCounts.filter(a => a.created_by === ownerId).length;
     const profile = getProfile(ownerId);
-
-    return {
-      userId: ownerId,
-      name: profile?.full_name || 'Sem nome',
-      closedValue,
-      winRate,
-      activities: userActivities,
-      totalDeals: userDeals.length,
-    };
+    return { userId: ownerId, name: profile?.full_name || 'Sem nome', closedValue: cv, winRate, activities: userActivities, totalDeals: userDeals.length };
   }).sort((a, b) => b.closedValue - a.closedValue);
 
-  // --- Forecast ---
-  const pipelineDeals = allDeals.filter(d => d.stage !== 'fechado');
+  // Forecast
+  const pipelineDeals = allDeals.filter(d => d.stage !== 'fechado' && d.stage !== 'perdido');
   const weightedPipeline = pipelineDeals.reduce((s, d) => {
     const prob = STAGE_PROBABILITIES[d.stage] || 10;
     return s + (Number(d.value) || 0) * (prob / 100);
@@ -145,16 +144,25 @@ export default function Performance() {
   const forecast = closedValue + weightedPipeline;
   const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
 
-  // Bar chart data for leaderboard
+  // Loss analysis
+  const lostDeals = allDeals.filter(d => d.stage === 'perdido' && d.loss_reason);
+  const lossReasonCounts: Record<string, number> = {};
+  lostDeals.forEach(d => {
+    const r = d.loss_reason!;
+    lossReasonCounts[r] = (lossReasonCounts[r] || 0) + 1;
+  });
+  const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
+    const found = LOSS_REASONS.find(r => r.value === key);
+    return { name: found?.label || key, value: count };
+  }).sort((a, b) => b.value - a.value);
+
+  // Bar chart data
   const barData = leaderboard.slice(0, 8).map(l => ({
     name: l.name.split(' ')[0],
     valor: l.closedValue,
   }));
 
-  const MONTHS_PT = [
-    '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-  ];
+  const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
   return (
     <div className="space-y-6">
@@ -168,7 +176,7 @@ export default function Performance() {
         </div>
       </div>
 
-      {/* Top KPI cards */}
+      {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-5 pb-4">
@@ -196,7 +204,7 @@ export default function Performance() {
             </div>
           </CardContent>
         </Card>
-        <Card className={forecastVsGoal >= 100 ? 'border-emerald-500/30' : forecastVsGoal >= 70 ? 'border-primary/30' : 'border-yellow-500/30'}>
+        <Card className={forecastVsGoal >= 100 ? 'border-success/30' : forecastVsGoal >= 70 ? 'border-primary/30' : 'border-warning/30'}>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${forecastVsGoal >= 100 ? 'bg-success/10' : forecastVsGoal >= 70 ? 'bg-primary/10' : 'bg-warning/10'}`}>
@@ -225,7 +233,24 @@ export default function Performance() {
         </Card>
       </div>
 
-      {/* Burn-up chart */}
+      {/* Circular progress for team goal */}
+      {totalGoalValue > 0 && (
+        <Card>
+          <CardContent className="py-5 flex items-center gap-6">
+            <CircularProgress value={goalPercent} label="da meta da equipe" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                Equipe atingiu <strong className="text-primary">{formatCurrency(closedValue)}</strong> de {formatCurrency(totalGoalValue)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {goalPercent >= 100 ? '🎉 Meta batida!' : `Faltam ${formatCurrency(totalGoalValue - closedValue)}`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Burn-up */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -240,10 +265,7 @@ export default function Performance() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" interval={4} />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Line type="monotone" dataKey="ideal" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" name="Ritmo Ideal" dot={false} strokeWidth={1.5} />
                 <Line type="monotone" dataKey="realizado" stroke="hsl(var(--primary))" name="Realizado" dot={false} strokeWidth={2.5} connectNulls={false} />
@@ -270,17 +292,13 @@ export default function Performance() {
             {leaderboard.slice(0, 10).map((seller, idx) => (
               <div key={seller.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  idx === 0 ? 'bg-yellow-500/20 text-yellow-600' :
+                  idx === 0 ? 'bg-warning/20 text-warning' :
                   idx === 1 ? 'bg-muted text-muted-foreground' :
-                  idx === 2 ? 'bg-orange-500/20 text-orange-600' :
+                  idx === 2 ? 'bg-accent/20 text-accent-foreground' :
                   'bg-muted/50 text-muted-foreground'
-                }`}>
-                  {idx + 1}
-                </span>
+                }`}>{idx + 1}</span>
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                    {getInitials(seller.name)}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">{getInitials(seller.name)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{seller.name}</p>
@@ -313,10 +331,7 @@ export default function Performance() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="valor" radius={[6, 6, 0, 0]} name="Valor Fechado">
                     {barData.map((_, i) => (
                       <Cell key={i} fill={i === 0 ? 'hsl(var(--primary))' : `hsl(var(--primary) / ${0.7 - i * 0.06})`} />
@@ -330,6 +345,67 @@ export default function Performance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Loss Analysis Pie Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <PieIcon className="h-4 w-4 text-destructive" />
+            Análise de Perdas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lossData.length > 0 ? (
+            <div className="flex flex-col lg:flex-row items-center gap-6">
+              <ResponsiveContainer width={280} height={280}>
+                <PieChart>
+                  <Pie
+                    data={lossData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={110}
+                    paddingAngle={3}
+                    dataKey="value"
+                    nameKey="name"
+                    strokeWidth={0}
+                  >
+                    {lossData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const p = payload[0];
+                      return (
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-xs">
+                          <p className="font-semibold text-foreground">{p.name}</p>
+                          <p className="text-muted-foreground">{p.value} negócio{(p.value as number) > 1 ? 's' : ''} perdido{(p.value as number) > 1 ? 's' : ''}</p>
+                        </div>
+                      );
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2">
+                {lossData.map((item, i) => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="text-sm text-foreground">{item.name}</span>
+                    <Badge variant="secondary" className="text-[10px] ml-auto">{item.value}</Badge>
+                  </div>
+                ))}
+                <p className="text-[10px] text-muted-foreground pt-2">Total: {lostDeals.length} negócio{lostDeals.length > 1 ? 's' : ''} perdido{lostDeals.length > 1 ? 's' : ''}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+              Nenhum negócio perdido com motivo registrado
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
