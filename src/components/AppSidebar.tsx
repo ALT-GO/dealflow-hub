@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, LogOut, Settings, Zap, UsersRound } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, LogOut, Settings, Zap, UsersRound, TrendingUp } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +20,7 @@ const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Empresas', url: '/companies', icon: Building2 },
   { title: 'Contatos', url: '/contacts', icon: Users },
+  { title: 'Performance', url: '/performance', icon: TrendingUp },
 ];
 
 const settingsItems = [

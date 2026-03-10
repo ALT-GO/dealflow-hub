@@ -415,6 +415,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_goals: {
+        Row: {
+          created_at: string
+          id: string
+          month: number
+          target_deals_count: number
+          target_value: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          target_deals_count?: number
+          target_value?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          target_deals_count?: number
+          target_value?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       saved_views: {
         Row: {
           created_at: string

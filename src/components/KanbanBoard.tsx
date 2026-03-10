@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, DollarSign, Calendar } from 'lucide-react';
+import { Building2, DollarSign, Calendar, TrendingUp } from 'lucide-react';
 import type { Filters } from '@/components/AdvancedFilters';
 
 const STAGES = [
@@ -56,7 +56,54 @@ export function KanbanBoard({ filters = {} }: Props) {
     },
   });
 
-  // Fetch owner profiles for avatar initials
+  // Fetch ALL deals for probability calculation (not just filtered)
+  const { data: allDeals = [] } = useQuery({
+    queryKey: ['deals-all-for-probability'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('deals').select('stage');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Calculate win rate per stage: % of deals that reached 'fechado' from each stage
+  const stageProbability = (() => {
+    const totalClosed = allDeals.filter(d => d.stage === 'fechado').length;
+    const totalAll = allDeals.length;
+    if (totalAll === 0) return {} as Record<string, number>;
+
+    // Simple model: probability = (deals closed / total deals) * weight per stage position
+    const stageWeights: Record<string, number> = {
+      prospeccao: 0.1,
+      qualificacao: 0.3,
+      proposta: 0.5,
+      negociacao: 0.75,
+      fechado: 1.0,
+    };
+
+    // If we have history, use actual conversion rates
+    if (totalClosed > 0) {
+      const baseRate = totalClosed / totalAll;
+      const result: Record<string, number> = {};
+      for (const stage of STAGES) {
+        if (stage.key === 'fechado') {
+          result[stage.key] = 100;
+        } else {
+          // Scale probability based on stage weight and actual close rate
+          result[stage.key] = Math.round(Math.min(baseRate * (stageWeights[stage.key] / 0.1) * 100, 95));
+        }
+      }
+      return result;
+    }
+
+    // Fallback to weights
+    const result: Record<string, number> = {};
+    for (const stage of STAGES) {
+      result[stage.key] = Math.round(stageWeights[stage.key] * 100);
+    }
+    return result;
+  })();
+
   const ownerIds = [...new Set(deals.map((d) => d.owner_id))];
   const { data: profiles = [] } = useQuery({
     queryKey: ['profiles', ownerIds],
@@ -108,6 +155,7 @@ export function KanbanBoard({ filters = {} }: Props) {
       {STAGES.map((stage) => {
         const stageDeals = deals.filter((d) => d.stage === stage.key);
         const total = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+        const probability = stageProbability[stage.key];
 
         return (
           <div
@@ -124,6 +172,14 @@ export function KanbanBoard({ filters = {} }: Props) {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-1">{formatCurrency(total)}</p>
+              {probability !== undefined && (
+                <div className="flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    {probability}% probabilidade
+                  </span>
+                </div>
+              )}
             </div>
             <div className="space-y-2 min-h-[200px] bg-muted/30 rounded-b-xl p-2">
               {stageDeals.map((deal) => (
@@ -134,7 +190,6 @@ export function KanbanBoard({ filters = {} }: Props) {
                   className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border-border"
                 >
                   <CardContent className="p-3 space-y-2.5">
-                    {/* Header: Name + Health dot */}
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-bold text-sm text-card-foreground leading-tight">{deal.name}</p>
                       <span
@@ -142,14 +197,10 @@ export function KanbanBoard({ filters = {} }: Props) {
                         title={`Última atualização: ${new Date(deal.updated_at).toLocaleDateString('pt-BR')}`}
                       />
                     </div>
-
-                    {/* Company */}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Building2 className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{deal.companies?.name || '-'}</span>
                     </div>
-
-                    {/* Value + Date + Owner */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 text-xs">
                         <span className="flex items-center gap-1 font-semibold text-primary">
