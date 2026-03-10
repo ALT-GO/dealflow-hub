@@ -40,13 +40,14 @@ const stageColors: Record<string, string> = {
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role: userRole } = useAuth();
   const queryClient = useQueryClient();
   const [noteContent, setNoteContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'meeting', title: '', description: '' });
   const [activitySaving, setActivitySaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const { data: customProps = [] } = useCustomProperties('contacts');
   const { data: customValues = {} } = useCustomPropertyValues(id);
