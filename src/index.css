@@ -94,8 +94,20 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    @apply font-bold tracking-tight text-foreground;
+  }
+  h1 { @apply text-3xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+  p, span, label {
+    @apply leading-relaxed;
+  }
+  a, button {
+    @apply transition-all duration-200;
   }
 }
