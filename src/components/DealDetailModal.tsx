@@ -4,8 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DealFollowers } from '@/components/DealFollowers';
 import { CommentBox } from '@/components/CommentBox';
 import { TasksChecklist } from '@/components/TasksChecklist';
+import { FileManager } from '@/components/FileManager';
 import { Badge } from '@/components/ui/badge';
-import { Building2, DollarSign, Calendar, Eye, MessageCircle, ListTodo } from 'lucide-react';
+import { Building2, DollarSign, Calendar, Eye, MessageCircle, ListTodo, Paperclip } from 'lucide-react';
 
 interface Deal {
   id: string;
