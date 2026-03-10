@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send } from 'lucide-react';
+import { MessageCircle, Send, Reply, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { notifyDealFollowers } from '@/components/DealFollowers';
 
 interface Profile {
   user_id: string;
@@ -20,6 +21,7 @@ interface Comment {
   mentions: string[];
   created_by: string;
   created_at: string;
+  reply_to: string | null;
 }
 
 interface Props {
@@ -35,6 +37,7 @@ export function CommentBox({ entityType, entityId }: Props) {
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(-1);
   const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: profiles = [] } = useQuery<Profile[]>({
@@ -50,7 +53,7 @@ export function CommentBox({ entityType, entityId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('comments')
-        .select('id, content, mentions, created_by, created_at')
+        .select('id, content, mentions, created_by, created_at, reply_to')
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .order('created_at', { ascending: true });
@@ -60,6 +63,14 @@ export function CommentBox({ entityType, entityId }: Props) {
     enabled: !!entityId,
   });
 
+  // Group into threads: top-level + replies
+  const topLevel = comments.filter(c => !c.reply_to);
+  const repliesMap: Record<string, Comment[]> = {};
+  comments.filter(c => c.reply_to).forEach(c => {
+    if (!repliesMap[c.reply_to!]) repliesMap[c.reply_to!] = [];
+    repliesMap[c.reply_to!].push(c);
+  });
+
   const filteredProfiles = profiles.filter(p =>
     p.full_name && (!mentionQuery || p.full_name.toLowerCase().includes(mentionQuery.toLowerCase()))
   );
@@ -67,14 +78,11 @@ export function CommentBox({ entityType, entityId }: Props) {
   const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setContent(val);
-
     const cursorPos = e.target.selectionStart || 0;
     const textBeforeCursor = val.slice(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-
     if (lastAtIndex >= 0) {
       const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
-      // Only show if no space before @ (or start of string) and no newline after @
       if ((lastAtIndex === 0 || /\s/.test(val[lastAtIndex - 1])) && !/\s/.test(textAfterAt)) {
         setShowMentions(true);
         setMentionQuery(textAfterAt);
@@ -98,9 +106,7 @@ export function CommentBox({ entityType, entityId }: Props) {
   const extractMentionIds = (text: string): string[] => {
     const ids: string[] = [];
     profiles.forEach(p => {
-      if (p.full_name && text.includes(`@${p.full_name}`)) {
-        ids.push(p.user_id);
-      }
+      if (p.full_name && text.includes(`@${p.full_name}`)) ids.push(p.user_id);
     });
     return [...new Set(ids)];
   };
@@ -108,7 +114,6 @@ export function CommentBox({ entityType, entityId }: Props) {
   const handleSubmit = async () => {
     if (!content.trim() || !user) return;
     setSending(true);
-
     const mentionIds = extractMentionIds(content);
 
     const { error } = await supabase.from('comments').insert({
@@ -117,6 +122,7 @@ export function CommentBox({ entityType, entityId }: Props) {
       entity_id: entityId,
       mentions: mentionIds,
       created_by: user.id,
+      reply_to: replyTo?.id || null,
     } as any);
 
     if (error) {
@@ -125,11 +131,10 @@ export function CommentBox({ entityType, entityId }: Props) {
       return;
     }
 
-    // Create notifications for mentioned users
-    if (mentionIds.length > 0) {
-      const myName = profiles.find(p => p.user_id === user.id)?.full_name || 'Alguém';
-      const entityLabel = entityType === 'company' ? 'empresa' : entityType === 'contact' ? 'contato' : 'negócio';
+    const myName = profiles.find(p => p.user_id === user.id)?.full_name || 'Alguém';
 
+    // Notify mentioned users
+    if (mentionIds.length > 0) {
       const notifications = mentionIds
         .filter(id => id !== user.id)
         .map(userId => ({
@@ -140,13 +145,24 @@ export function CommentBox({ entityType, entityId }: Props) {
           entity_type: entityType,
           entity_id: entityId,
         }));
-
       if (notifications.length > 0) {
         await supabase.from('notifications').insert(notifications as any);
       }
     }
 
+    // Notify deal followers about new comment
+    if (entityType === 'deal') {
+      await notifyDealFollowers(
+        entityId,
+        'deal_comment',
+        `${myName} comentou no negócio`,
+        content.trim().slice(0, 120),
+        user.id
+      );
+    }
+
     setContent('');
+    setReplyTo(null);
     setSending(false);
     queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
   };
@@ -159,12 +175,10 @@ export function CommentBox({ entityType, entityId }: Props) {
 
   const getName = (userId: string) => profiles.find(p => p.user_id === userId)?.full_name || 'Usuário';
 
-  // Render content with highlighted @mentions
   const renderContent = (text: string) => {
     const parts: (string | JSX.Element)[] = [];
     let remaining = text;
     let key = 0;
-
     profiles.forEach(p => {
       if (!p.full_name) return;
       const mention = `@${p.full_name}`;
@@ -172,15 +186,52 @@ export function CommentBox({ entityType, entityId }: Props) {
         const idx = remaining.indexOf(mention);
         if (idx > 0) parts.push(remaining.slice(0, idx));
         parts.push(
-          <span key={key++} className="text-primary font-semibold bg-primary/10 rounded px-0.5">
-            {mention}
-          </span>
+          <span key={key++} className="text-primary font-semibold bg-primary/10 rounded px-0.5">{mention}</span>
         );
         remaining = remaining.slice(idx + mention.length);
       }
     });
     if (remaining) parts.push(remaining);
     return parts;
+  };
+
+  const renderComment = (c: Comment, isReply = false) => {
+    const isMe = c.created_by === user?.id;
+    return (
+      <div key={c.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''} ${isReply ? 'ml-8' : ''}`}>
+        <Avatar className="h-7 w-7 shrink-0">
+          <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+            {getInitials(c.created_by)}
+          </AvatarFallback>
+        </Avatar>
+        <div className={`max-w-[75%] ${isMe ? 'items-end' : ''}`}>
+          <div className={`rounded-2xl px-3 py-2 text-sm ${
+            isMe
+              ? 'bg-primary text-primary-foreground rounded-tr-sm'
+              : 'bg-secondary text-secondary-foreground rounded-tl-sm'
+          }`}>
+            {!isMe && (
+              <p className="text-[10px] font-semibold mb-0.5 opacity-80">{getName(c.created_by)}</p>
+            )}
+            <p className="whitespace-pre-wrap leading-relaxed">{renderContent(c.content)}</p>
+          </div>
+          <div className={`flex items-center gap-2 mt-0.5 ${isMe ? 'justify-end' : ''}`}>
+            <p className="text-[10px] text-muted-foreground">
+              {new Date(c.created_at).toLocaleString('pt-BR')}
+            </p>
+            {!isReply && (
+              <button
+                className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5"
+                onClick={() => { setReplyTo(c); textareaRef.current?.focus(); }}
+              >
+                <Reply className="h-3 w-3" />
+                Responder
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -190,41 +241,30 @@ export function CommentBox({ entityType, entityId }: Props) {
         Comentários Internos ({comments.length})
       </h3>
 
-      {/* Comments list */}
-      <ScrollArea className="max-h-[360px]">
+      <ScrollArea className="max-h-[400px]">
         <div className="space-y-2">
-          {comments.map((c) => {
-            const isMe = c.created_by === user?.id;
-            return (
-              <div key={c.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                <Avatar className="h-7 w-7 shrink-0">
-                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                    {getInitials(c.created_by)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className={`max-w-[80%] ${isMe ? 'items-end' : ''}`}>
-                  <div className={`rounded-2xl px-3 py-2 text-sm ${
-                    isMe
-                      ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                      : 'bg-secondary text-secondary-foreground rounded-tl-sm'
-                  }`}>
-                    {!isMe && (
-                      <p className="text-[10px] font-semibold mb-0.5 opacity-80">{getName(c.created_by)}</p>
-                    )}
-                    <p className="whitespace-pre-wrap leading-relaxed">{renderContent(c.content)}</p>
-                  </div>
-                  <p className={`text-[10px] text-muted-foreground mt-0.5 ${isMe ? 'text-right' : ''}`}>
-                    {new Date(c.created_at).toLocaleString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+          {topLevel.map((c) => (
+            <div key={c.id} className="space-y-1.5">
+              {renderComment(c)}
+              {repliesMap[c.id]?.map(reply => renderComment(reply, true))}
+            </div>
+          ))}
           {comments.length === 0 && !isLoading && (
             <p className="text-center text-muted-foreground py-4 text-xs">Nenhum comentário ainda</p>
           )}
         </div>
       </ScrollArea>
+
+      {/* Reply indicator */}
+      {replyTo && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+          <Reply className="h-3 w-3 shrink-0" />
+          <span className="truncate">Respondendo a <strong className="text-foreground">{getName(replyTo.created_by)}</strong>: {replyTo.content.slice(0, 60)}</span>
+          <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 ml-auto" onClick={() => setReplyTo(null)}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
       {/* Input with @mention */}
       <div className="relative">
@@ -251,7 +291,7 @@ export function CommentBox({ entityType, entityId }: Props) {
             ref={textareaRef}
             value={content}
             onChange={handleInput}
-            placeholder="Escreva um comentário... Use @ para mencionar"
+            placeholder={replyTo ? 'Escreva sua resposta...' : 'Escreva um comentário... Use @ para mencionar'}
             rows={2}
             className="resize-none flex-1 text-sm"
             onKeyDown={(e) => {
@@ -259,7 +299,10 @@ export function CommentBox({ entityType, entityId }: Props) {
                 e.preventDefault();
                 handleSubmit();
               }
-              if (e.key === 'Escape') setShowMentions(false);
+              if (e.key === 'Escape') {
+                setShowMentions(false);
+                if (replyTo) setReplyTo(null);
+              }
             }}
           />
           <Button
