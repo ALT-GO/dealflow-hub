@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +13,7 @@ import { Plus, Search } from 'lucide-react';
 
 export default function Companies() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -92,8 +94,8 @@ export default function Companies() {
             </TableHeader>
             <TableBody>
               {companies.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/companies/${c.id}`)}>
+                  <TableCell className="font-medium text-primary">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.domain || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.sector || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.phone || '-'}</TableCell>

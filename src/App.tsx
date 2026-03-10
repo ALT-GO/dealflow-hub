@@ -8,6 +8,7 @@ import { Layout } from "@/components/Layout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Companies from "./pages/Companies";
+import CompanyDetail from "./pages/CompanyDetail";
 import Contacts from "./pages/Contacts";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ function ProtectedRoutes() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/companies" element={<Companies />} />
+        <Route path="/companies/:id" element={<CompanyDetail />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
