@@ -22,8 +22,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Mail, Building2, Briefcase, StickyNote, Activity, ListTodo,
-  User, Clock, Layers,
+  User, Clock, Layers, MessageCircle,
 } from 'lucide-react';
+import { CommentBox } from '@/components/CommentBox';
 
 const stageLabels: Record<string, string> = {
   prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
