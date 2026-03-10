@@ -292,7 +292,7 @@ export default function CompanyDetail() {
             </TabsContent>
 
             <TabsContent value="tasks" className="mt-3">
-              <p className="text-center text-muted-foreground py-6 text-xs">Em breve — gerenciamento de tarefas</p>
+              <TasksChecklist dealId={deals[0]?.id} contactId={contacts[0]?.id} />
             </TabsContent>
           </Tabs>
         </div>

@@ -276,7 +276,7 @@ export default function ContactDetail() {
             </TabsContent>
 
             <TabsContent value="tasks" className="mt-3">
-              <p className="text-center text-muted-foreground py-6 text-xs">Em breve — gerenciamento de tarefas</p>
+              <TasksChecklist contactId={id} />
             </TabsContent>
           </Tabs>
         </div>
