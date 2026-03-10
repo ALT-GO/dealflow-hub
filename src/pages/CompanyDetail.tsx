@@ -171,13 +171,42 @@ export default function CompanyDetail() {
 
   const totalPipeline = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
+  const handleDeleteCompany = async () => {
+    if (!id) return;
+    const { error } = await supabase.from('companies').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir empresa'); return; }
+    toast.success('Empresa excluída!');
+    navigate('/companies');
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/companies')}><ArrowLeft className="h-5 w-5" /></Button>
-        <div>
-          <h1 className="text-xl font-display font-bold text-foreground">{company.name}</h1>
-          <p className="text-xs text-muted-foreground">Empresa</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/companies')}><ArrowLeft className="h-5 w-5" /></Button>
+          <div>
+            <h1 className="text-xl font-display font-bold text-foreground">{company.name}</h1>
+            <p className="text-xs text-muted-foreground">Empresa</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {(userRole === 'admin' || company.created_by === user?.id) && (
+            <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1" />Excluir
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
+                <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir a empresa "{company.name}"? Todos os contatos e negócios vinculados podem ser afetados.</p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setDeleteConfirm(false)}>Cancelar</Button>
+                  <Button variant="destructive" onClick={handleDeleteCompany}>Excluir</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 

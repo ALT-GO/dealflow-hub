@@ -163,13 +163,42 @@ export default function ContactDetail() {
 
   const company = contact.companies as { id: string; name: string; domain: string | null; sector: string | null } | null;
 
+  const handleDeleteContact = async () => {
+    if (!id) return;
+    const { error } = await supabase.from('contacts').delete().eq('id', id);
+    if (error) { toast.error('Erro ao excluir contato'); return; }
+    toast.success('Contato excluído!');
+    navigate('/contacts');
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/contacts')}><ArrowLeft className="h-5 w-5" /></Button>
-        <div>
-          <h1 className="text-xl font-display font-bold text-foreground">{contact.name}</h1>
-          <p className="text-xs text-muted-foreground">Contato{company ? ` · ${company.name}` : ''}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/contacts')}><ArrowLeft className="h-5 w-5" /></Button>
+          <div>
+            <h1 className="text-xl font-display font-bold text-foreground">{contact.name}</h1>
+            <p className="text-xs text-muted-foreground">Contato{company ? ` · ${company.name}` : ''}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {(userRole === 'admin' || contact.created_by === user?.id) && (
+            <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-1" />Excluir
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
+                <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir o contato "{contact.name}"?</p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setDeleteConfirm(false)}>Cancelar</Button>
+                  <Button variant="destructive" onClick={handleDeleteContact}>Excluir</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
