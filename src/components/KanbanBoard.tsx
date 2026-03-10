@@ -30,7 +30,7 @@ export function KanbanBoard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, close_date, company_id, companies(name)')
+        .select('id, name, value, stage, close_date, updated_at, company_id, companies(name)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Deal[];
