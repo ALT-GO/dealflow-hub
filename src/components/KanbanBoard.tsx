@@ -285,6 +285,12 @@ export function KanbanBoard({ filters = {} }: Props) {
           }
         }}
       />
+
+      <DealDetailModal
+        deal={selectedDeal ? { ...selectedDeal, company_name: selectedDeal.companies?.name } : null}
+        open={!!selectedDeal}
+        onOpenChange={(o) => { if (!o) setSelectedDeal(null); }}
+      />
     </>
   );
 }
