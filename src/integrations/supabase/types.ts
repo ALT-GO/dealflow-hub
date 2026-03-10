@@ -68,6 +68,45 @@ export type Database = {
           },
         ]
       }
+      automation_rules: {
+        Row: {
+          action_config: Json
+          action_type: string
+          conditions: Json
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          conditions?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          conditions?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string
@@ -214,6 +253,83 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_properties: {
+        Row: {
+          created_at: string
+          created_by: string
+          default_value: string | null
+          dropdown_options: Json | null
+          entity_type: string
+          field_label: string
+          field_name: string
+          field_type: string
+          id: string
+          is_required: boolean
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          default_value?: string | null
+          dropdown_options?: Json | null
+          entity_type: string
+          field_label: string
+          field_name: string
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          default_value?: string | null
+          dropdown_options?: Json | null
+          entity_type?: string
+          field_label?: string
+          field_name?: string
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      custom_property_values: {
+        Row: {
+          created_at: string
+          entity_id: string
+          id: string
+          property_id: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          id?: string
+          property_id: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          id?: string
+          property_id?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_property_values_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "custom_properties"
             referencedColumns: ["id"]
           },
         ]

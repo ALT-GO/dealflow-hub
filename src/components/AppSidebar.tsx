@@ -1,6 +1,5 @@
-import { LayoutDashboard, Building2, Users, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, LogOut, Settings, Zap, UsersRound } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Sidebar,
@@ -24,12 +23,13 @@ const navItems = [
 
 const settingsItems = [
   { title: 'Propriedades', url: '/settings/properties', icon: Settings },
+  { title: 'Automações', url: '/settings/automations', icon: Zap },
+  { title: 'Equipe', url: '/settings/team', icon: UsersRound },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
   const { signOut, user, role } = useAuth();
 
   return (
@@ -41,9 +41,7 @@ export function AppSidebar() {
               <Building2 className="h-4 w-4 text-sidebar-primary-foreground" />
             </div>
             {!collapsed && (
-              <span className="text-lg font-display font-bold text-sidebar-foreground">
-                CRM Pro
-              </span>
+              <span className="text-lg font-display font-bold text-sidebar-foreground">CRM Pro</span>
             )}
           </div>
         </div>
@@ -55,12 +53,7 @@ export function AppSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === '/'}
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
+                    <NavLink to={item.url} end={item.url === '/'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -78,11 +71,7 @@ export function AppSidebar() {
               {settingsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
+                    <NavLink to={item.url} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -101,12 +90,7 @@ export function AppSidebar() {
             <p className="text-xs font-medium text-sidebar-primary capitalize">{role}</p>
           </div>
         )}
-        <Button
-          variant="ghost"
-          size={collapsed ? 'icon' : 'sm'}
-          className="w-full text-sidebar-foreground hover:bg-sidebar-accent"
-          onClick={signOut}
-        >
+        <Button variant="ghost" size={collapsed ? 'icon' : 'sm'} className="w-full text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
           <LogOut className="h-4 w-4" />
           {!collapsed && <span className="ml-2">Sair</span>}
         </Button>
