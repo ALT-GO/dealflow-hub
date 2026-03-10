@@ -24,6 +24,7 @@ type Contact = {
 
 export default function Contacts() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
