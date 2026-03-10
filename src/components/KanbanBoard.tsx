@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, DollarSign, Calendar, TrendingUp, Eye } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
 import { notifyDealFollowers } from '@/components/DealFollowers';
+import { DealDetailModal } from '@/components/DealDetailModal';
 import { toast } from '@/components/ui/sonner';
 import confetti from 'canvas-confetti';
 import type { Filters } from '@/components/AdvancedFilters';
