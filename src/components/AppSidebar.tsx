@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, LogOut, Settings, Zap, UsersRound, TrendingUp } from 'lucide-react';
+import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,16 +17,15 @@ import {
 import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Negócios', url: '/', icon: Briefcase },
   { title: 'Empresas', url: '/companies', icon: Building2 },
   { title: 'Contatos', url: '/contacts', icon: Users },
   { title: 'Performance', url: '/performance', icon: TrendingUp },
 ];
 
 const settingsItems = [
-  { title: 'Propriedades', url: '/settings/properties', icon: Settings },
+  { title: 'Configurações', url: '/settings', icon: Settings },
   { title: 'Automações', url: '/settings/automations', icon: Zap },
-  { title: 'Equipe', url: '/settings/team', icon: UsersRound },
 ];
 
 export function AppSidebar() {

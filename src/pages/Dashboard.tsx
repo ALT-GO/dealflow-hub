@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NewDealModal } from '@/components/NewDealModal';
-import { CircularProgress } from '@/components/CircularProgress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, Briefcase, DollarSign } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
@@ -14,10 +13,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
-
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -36,42 +31,6 @@ export default function Dashboard() {
       };
     },
   });
-
-  // User's monthly goal progress
-  const { data: myGoal } = useQuery({
-    queryKey: ['my-goal', user?.id, currentMonth, currentYear],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('sales_goals')
-        .select('target_value')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .eq('year', currentYear)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const { data: myClosedValue = 0 } = useQuery({
-    queryKey: ['my-closed-value', user?.id, currentMonth, currentYear],
-    queryFn: async () => {
-      if (!user) return 0;
-      const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
-      const { data } = await supabase
-        .from('deals')
-        .select('value, updated_at')
-        .eq('owner_id', user.id)
-        .eq('stage', 'fechado')
-        .gte('updated_at', startOfMonth);
-      return (data || []).reduce((s, d) => s + (Number(d.value) || 0), 0);
-    },
-    enabled: !!user,
-  });
-
-  const goalTarget = Number(myGoal?.target_value) || 0;
-  const goalPercent = goalTarget > 0 ? (myClosedValue / goalTarget) * 100 : 0;
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -92,8 +51,8 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Visão geral do pipeline de vendas</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Negócios</h1>
+          <p className="text-muted-foreground text-sm">Pipeline de vendas e negócios em andamento</p>
         </div>
         <NewDealModal />
       </div>
@@ -111,25 +70,6 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
-
-      {/* Circular Goal Progress */}
-      {goalTarget > 0 && (
-        <Card className="border-border">
-          <CardContent className="py-5 flex items-center gap-6">
-            <CircularProgress value={goalPercent} label="da sua meta mensal" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
-                Você atingiu <strong className="text-primary">{formatCurrency(myClosedValue)}</strong> de {formatCurrency(goalTarget)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {goalPercent >= 100
-                  ? '🎉 Meta batida! Continue assim!'
-                  : `Faltam ${formatCurrency(goalTarget - myClosedValue)} para bater a meta`}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div>
         <h2 className="text-lg font-display font-semibold text-foreground mb-4">Pipeline de Negócios</h2>
