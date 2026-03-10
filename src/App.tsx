@@ -15,6 +15,7 @@ import ContactDetail from "./pages/ContactDetail";
 import PropertiesSettings from "./pages/PropertiesSettings";
 import Automations from "./pages/Automations";
 import TeamManagement from "./pages/TeamManagement";
+import Performance from "./pages/Performance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
