@@ -52,8 +52,8 @@ function fireConfetti() {
 export function KanbanBoard({ filters = {} }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', filters],
