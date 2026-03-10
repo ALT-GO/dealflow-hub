@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,6 +13,8 @@ import { toast } from 'sonner';
 import { Plus, Search } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
+import { useCustomProperties } from '@/hooks/useCustomProperties';
+import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
 
 export default function Companies() {
   const { user } = useAuth();
@@ -20,9 +23,11 @@ export default function Companies() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', domain: '', sector: '', phone: '' });
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
+  const { data: customProps = [] } = useCustomProperties('companies');
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies', search, filters],
@@ -47,16 +52,21 @@ export default function Companies() {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase.from('companies').insert({ ...form, created_by: user.id });
-    setLoading(false);
+    const { data, error } = await supabase.from('companies').insert({ ...form, created_by: user.id }).select('id').single();
     if (error) {
       toast.error('Erro: ' + error.message);
-    } else {
-      toast.success('Empresa criada!');
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-      setOpen(false);
-      setForm({ name: '', domain: '', sector: '', phone: '' });
+      setLoading(false);
+      return;
     }
+    if (data && Object.keys(customValues).length > 0) {
+      await saveCustomPropertyValues(data.id, customValues, supabase);
+    }
+    setLoading(false);
+    toast.success('Empresa criada!');
+    queryClient.invalidateQueries({ queryKey: ['companies'] });
+    setOpen(false);
+    setForm({ name: '', domain: '', sector: '', phone: '' });
+    setCustomValues({});
   };
 
   return (
@@ -70,13 +80,33 @@ export default function Companies() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Nova Empresa</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Empresa</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
-              <Input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              <Input placeholder="Domínio (ex: empresa.com)" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
-              <Input placeholder="Setor" value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
-              <Input placeholder="Telefone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Nome</Label>
+                <Input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Domínio</Label>
+                <Input placeholder="empresa.com" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Setor</Label>
+                <Input placeholder="Setor" value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Telefone</Label>
+                <Input placeholder="Telefone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+
+              {customProps.length > 0 && (
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Campos Customizados</p>
+                  <DynamicFields properties={customProps} values={customValues} onChange={setCustomValues} />
+                </div>
+              )}
+
               <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Criando...' : 'Criar Empresa'}</Button>
             </form>
           </DialogContent>

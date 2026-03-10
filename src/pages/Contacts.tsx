@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -14,6 +15,8 @@ import { toast } from 'sonner';
 import { Plus, Search } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
+import { useCustomProperties } from '@/hooks/useCustomProperties';
+import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
 
 const LEAD_SOURCES = ['Site', 'Indicação', 'Evento', 'Outbound', 'Inbound', 'Parceiro', 'Outro'];
 const CONTACT_STATUSES = [
@@ -42,9 +45,11 @@ export default function Contacts() {
   const [open, setOpen] = useState(false);
   const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
+  const { data: customProps = [] } = useCustomProperties('contacts');
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', search, filters],
@@ -77,7 +82,7 @@ export default function Contacts() {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase.from('contacts').insert({
+    const { data, error } = await supabase.from('contacts').insert({
       name: form.name,
       email: form.email || null,
       role: form.role || null,
@@ -85,16 +90,21 @@ export default function Contacts() {
       lead_source: form.lead_source || null,
       status: form.status || 'novo',
       created_by: user.id,
-    });
-    setLoading(false);
+    }).select('id').single();
     if (error) {
       toast.error('Erro: ' + error.message);
-    } else {
-      toast.success('Contato criado!');
-      queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      setOpen(false);
-      setForm({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
+      setLoading(false);
+      return;
     }
+    if (data && Object.keys(customValues).length > 0) {
+      await saveCustomPropertyValues(data.id, customValues, supabase);
+    }
+    setLoading(false);
+    toast.success('Contato criado!');
+    queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    setOpen(false);
+    setForm({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
+    setCustomValues({});
   };
 
   return (
@@ -108,30 +118,56 @@ export default function Contacts() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Novo Contato</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Novo Contato</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
-              <Input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              <Input type="email" placeholder="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <Input placeholder="Cargo" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
-              <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-                <SelectContent>
-                  {companiesList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={form.lead_source} onValueChange={(v) => setForm({ ...form, lead_source: v })}>
-                <SelectTrigger><SelectValue placeholder="Origem do Lead" /></SelectTrigger>
-                <SelectContent>
-                  {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  {CONTACT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Nome</Label>
+                <Input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">E-mail</Label>
+                <Input type="email" placeholder="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Cargo</Label>
+                <Input placeholder="Cargo" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Empresa</Label>
+                <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                  <SelectContent>
+                    {companiesList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Origem do Lead</Label>
+                <Select value={form.lead_source} onValueChange={(v) => setForm({ ...form, lead_source: v })}>
+                  <SelectTrigger><SelectValue placeholder="Origem do Lead" /></SelectTrigger>
+                  <SelectContent>
+                    {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    {CONTACT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {customProps.length > 0 && (
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Campos Customizados</p>
+                  <DynamicFields properties={customProps} values={customValues} onChange={setCustomValues} />
+                </div>
+              )}
+
               <Button type="submit" className="w-full" disabled={loading || !form.company_id}>{loading ? 'Criando...' : 'Criar Contato'}</Button>
             </form>
           </DialogContent>
