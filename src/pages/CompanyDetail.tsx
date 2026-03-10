@@ -301,12 +301,17 @@ export default function CompanyDetail() {
           <Tabs defaultValue="timeline">
             <TabsList>
               <TabsTrigger value="timeline" className="text-xs gap-1.5"><Clock className="h-3.5 w-3.5" />Timeline</TabsTrigger>
+              <TabsTrigger value="comments" className="text-xs gap-1.5"><MessageCircle className="h-3.5 w-3.5" />Comentários</TabsTrigger>
               <TabsTrigger value="notes" className="text-xs gap-1.5"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
               <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline" className="mt-3">
               <ActivityTimeline activities={activities} profiles={profilesMap} />
+            </TabsContent>
+
+            <TabsContent value="comments" className="mt-3">
+              <CommentBox entityType="company" entityId={id!} />
             </TabsContent>
 
             <TabsContent value="notes" className="space-y-3 mt-3">
