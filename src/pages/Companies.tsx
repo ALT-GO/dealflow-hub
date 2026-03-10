@@ -13,6 +13,7 @@ import { Plus, Search } from 'lucide-react';
 
 export default function Companies() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
