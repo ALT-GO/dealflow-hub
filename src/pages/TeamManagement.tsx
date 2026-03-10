@@ -1,11 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { UsersRound, Shield, Briefcase, DollarSign } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { UsersRound, Shield, Briefcase, DollarSign, Target } from 'lucide-react';
 
 type TeamMember = {
   user_id: string;
@@ -15,13 +22,28 @@ type TeamMember = {
   deal_value: number;
 };
 
+const MONTHS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
 export default function TeamManagement() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  const queryClient = useQueryClient();
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [goalSaving, setGoalSaving] = useState(false);
+  const now = new Date();
+  const [goalForm, setGoalForm] = useState({
+    user_id: '',
+    month: String(now.getMonth() + 1),
+    year: String(now.getFullYear()),
+    target_value: '',
+    target_deals_count: '',
+  });
 
   const { data: members = [], isLoading } = useQuery({
     queryKey: ['team-members'],
     queryFn: async () => {
-      // Get all user_roles with profiles
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role');
@@ -37,7 +59,6 @@ export default function TeamManagement() {
         .select('owner_id, value');
       if (dealsError) throw dealsError;
 
-      // Aggregate
       const memberMap = new Map<string, TeamMember>();
       for (const r of roles) {
         const profile = profiles.find((p) => p.user_id === r.user_id);
@@ -54,6 +75,51 @@ export default function TeamManagement() {
     },
   });
 
+  // Fetch current month goals
+  const { data: goals = [] } = useQuery({
+    queryKey: ['sales-goals', now.getMonth() + 1, now.getFullYear()],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales_goals')
+        .select('*')
+        .eq('month', now.getMonth() + 1)
+        .eq('year', now.getFullYear());
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const handleSetGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setGoalSaving(true);
+
+    // Upsert: delete existing then insert
+    await supabase
+      .from('sales_goals')
+      .delete()
+      .eq('user_id', goalForm.user_id)
+      .eq('month', Number(goalForm.month))
+      .eq('year', Number(goalForm.year));
+
+    const { error } = await supabase.from('sales_goals').insert({
+      user_id: goalForm.user_id,
+      month: Number(goalForm.month),
+      year: Number(goalForm.year),
+      target_value: Number(goalForm.target_value) || 0,
+      target_deals_count: Number(goalForm.target_deals_count) || 0,
+    });
+
+    setGoalSaving(false);
+    if (error) {
+      toast.error('Erro ao definir meta: ' + error.message);
+    } else {
+      toast.success('Meta definida!');
+      setGoalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['sales-goals'] });
+    }
+  };
+
   const admins = members.filter((m) => m.role === 'admin');
   const sellers = members.filter((m) => m.role === 'vendedor');
   const totalPipeline = members.reduce((sum, m) => sum + m.deal_value, 0);
@@ -66,20 +132,77 @@ export default function TeamManagement() {
     return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
   };
 
+  const getUserGoal = (userId: string) => goals.find((g: any) => g.user_id === userId);
+
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <UsersRound className="h-5 w-5 text-primary" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <UsersRound className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-display font-bold text-foreground">Gestão de Equipe</h1>
+            <p className="text-sm text-muted-foreground">{members.length} membros · {admins.length} admin(s) · {sellers.length} vendedor(es)</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Gestão de Equipe</h1>
-          <p className="text-sm text-muted-foreground">{members.length} membros · {admins.length} admin(s) · {sellers.length} vendedor(es)</p>
-        </div>
+        {role === 'admin' && (
+          <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
+            <DialogTrigger asChild>
+              <Button><Target className="h-4 w-4 mr-2" />Definir Meta</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Definir Meta Mensal</DialogTitle></DialogHeader>
+              <form onSubmit={handleSetGoal} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Vendedor</Label>
+                  <Select value={goalForm.user_id} onValueChange={(v) => setGoalForm({ ...goalForm, user_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar vendedor" /></SelectTrigger>
+                    <SelectContent>
+                      {members.map((m) => (
+                        <SelectItem key={m.user_id} value={m.user_id}>
+                          {m.profile?.full_name || m.user_id.slice(0, 8)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Mês</Label>
+                    <Select value={goalForm.month} onValueChange={(v) => setGoalForm({ ...goalForm, month: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {MONTHS.map((m, i) => (
+                          <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ano</Label>
+                    <Input type="number" value={goalForm.year} onChange={(e) => setGoalForm({ ...goalForm, year: e.target.value })} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta de Valor (R$)</Label>
+                  <Input type="number" step="0.01" placeholder="50000" value={goalForm.target_value} onChange={(e) => setGoalForm({ ...goalForm, target_value: e.target.value })} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta de Negócios (qtd)</Label>
+                  <Input type="number" placeholder="10" value={goalForm.target_deals_count} onChange={(e) => setGoalForm({ ...goalForm, target_deals_count: e.target.value })} />
+                </div>
+                <Button type="submit" className="w-full" disabled={goalSaving || !goalForm.user_id}>
+                  {goalSaving ? 'Salvando...' : 'Salvar Meta'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -125,10 +248,10 @@ export default function TeamManagement() {
         </Card>
       </div>
 
-      {/* Members table */}
+      {/* Members table with goals */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Membros da Equipe</CardTitle>
+          <CardTitle className="text-base">Membros da Equipe — {MONTHS[now.getMonth()]} {now.getFullYear()}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -137,13 +260,16 @@ export default function TeamManagement() {
                 <TableHead>Membro</TableHead>
                 <TableHead>Papel</TableHead>
                 <TableHead className="text-right">Negócios</TableHead>
-                <TableHead className="text-right">Volume (Pipeline)</TableHead>
-                <TableHead className="text-right">% do Pipeline</TableHead>
+                <TableHead className="text-right">Volume</TableHead>
+                <TableHead className="text-right">Meta (R$)</TableHead>
+                <TableHead className="text-right">Progresso</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.map((m) => {
-                const pct = totalPipeline > 0 ? ((m.deal_value / totalPipeline) * 100).toFixed(1) : '0';
+                const goal = getUserGoal(m.user_id);
+                const targetValue = goal ? Number((goal as any).target_value) : 0;
+                const progress = targetValue > 0 ? Math.min((m.deal_value / targetValue) * 100, 100) : 0;
                 return (
                   <TableRow key={m.user_id}>
                     <TableCell>
@@ -173,20 +299,32 @@ export default function TeamManagement() {
                     </TableCell>
                     <TableCell className="text-right font-medium text-foreground">{m.deal_count}</TableCell>
                     <TableCell className="text-right font-medium text-foreground">{formatCurrency(m.deal_value)}</TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {targetValue > 0 ? formatCurrency(targetValue) : (
+                        <span className="text-xs text-muted-foreground/50">Sem meta</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-16 h-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                      {targetValue > 0 ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${progress >= 100 ? 'bg-emerald-500' : progress >= 50 ? 'bg-primary' : 'bg-yellow-500'}`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-10 text-right">{progress.toFixed(0)}%</span>
                         </div>
-                        <span className="text-xs text-muted-foreground w-10 text-right">{pct}%</span>
-                      </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
               })}
               {members.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum membro encontrado</TableCell>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum membro encontrado</TableCell>
                 </TableRow>
               )}
             </TableBody>
