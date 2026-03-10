@@ -21,9 +21,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Globe, Phone, StickyNote, Activity, ListTodo,
-  Users, Briefcase, DollarSign, Clock, Layers, MessageCircle,
+  Users, Briefcase, DollarSign, Clock, Layers, MessageCircle, Paperclip,
 } from 'lucide-react';
 import { CommentBox } from '@/components/CommentBox';
+import { FileManager } from '@/components/FileManager';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const stageLabels: Record<string, string> = {
