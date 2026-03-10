@@ -2,7 +2,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  Briefcase, ListTodo, StickyNote, PhoneCall, CalendarClock, Activity,
+  Briefcase, ListTodo, StickyNote, PhoneCall, CalendarClock, Activity, RefreshCw,
 } from 'lucide-react';
 
 const typeConfig: Record<string, { icon: typeof Activity; label: string; color: string }> = {
@@ -12,6 +12,7 @@ const typeConfig: Record<string, { icon: typeof Activity; label: string; color: 
   meeting: { icon: CalendarClock, label: 'Reunião', color: 'bg-primary/10 text-primary' },
   call: { icon: PhoneCall, label: 'Chamada', color: 'bg-primary/10 text-primary' },
   note: { icon: StickyNote, label: 'Nota', color: 'bg-muted text-muted-foreground' },
+  property_changed: { icon: RefreshCw, label: 'Alteração', color: 'bg-secondary text-secondary-foreground' },
 };
 
 interface ActivityEntry {

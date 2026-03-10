@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TasksChecklist } from '@/components/TasksChecklist';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { DynamicFields } from '@/components/DynamicFields';
+import { InlineEdit } from '@/components/InlineEdit';
 import { useCustomProperties, useCustomPropertyValues } from '@/hooks/useCustomProperties';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,7 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Mail, Building2, Briefcase, StickyNote, Activity, ListTodo,
-  DollarSign, User, Clock, Layers,
+  User, Clock, Layers,
 } from 'lucide-react';
 
 const stageLabels: Record<string, string> = {
@@ -99,8 +100,27 @@ export default function ContactDetail() {
   });
 
   const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['contact', id] });
     queryClient.invalidateQueries({ queryKey: ['contact-notes', id] });
     queryClient.invalidateQueries({ queryKey: ['contact-activities', id] });
+  };
+
+  /** Inline edit a system property */
+  const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
+    if (!user || !id || newValue === oldValue) return;
+    const { error } = await supabase.from('contacts').update({ [field]: newValue || null }).eq('id', id);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    // Log change to timeline
+    await supabase.from('activities').insert({
+      type: 'property_changed',
+      title: `Alterou "${label}"`,
+      description: `De "${oldValue || '(vazio)'}" para "${newValue || '(vazio)'}"`,
+      contact_id: id,
+      company_id: contact?.company_id || null,
+      created_by: user.id,
+    });
+    invalidateAll();
+    toast.success('Atualizado!');
   };
 
   const handleAddNote = async () => {
@@ -163,23 +183,25 @@ export default function ContactDetail() {
                   <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
                     <div>
                       <p className="text-muted-foreground text-xs">Nome</p>
-                      <p className="font-medium text-foreground flex items-center gap-1"><User className="h-3 w-3" />{contact.name}</p>
+                      <InlineEdit value={contact.name} onSave={(v) => handleInlineEdit('name', 'Nome', contact.name, v)} icon={<User className="h-3 w-3 shrink-0 text-muted-foreground" />} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">E-mail</p>
-                      <p className="font-medium text-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{contact.email || '-'}</p>
+                      <InlineEdit value={contact.email || ''} onSave={(v) => handleInlineEdit('email', 'E-mail', contact.email || '', v)} icon={<Mail className="h-3 w-3 shrink-0 text-muted-foreground" />} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Cargo</p>
-                      <p className="font-medium text-foreground">{contact.role || '-'}</p>
+                      <InlineEdit value={contact.role || ''} onSave={(v) => handleInlineEdit('role', 'Cargo', contact.role || '', v)} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Empresa</p>
-                      <p className="font-medium text-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{company?.name || '-'}</p>
+                      <p className="font-medium text-foreground flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" onClick={() => company && navigate(`/companies/${company.id}`)}>
+                        <Building2 className="h-3 w-3" />{company?.name || '-'}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Criado em</p>
-                      <p className="font-medium text-foreground">{new Date(contact.created_at).toLocaleDateString('pt-BR')}</p>
+                      <p className="font-medium text-foreground text-sm">{new Date(contact.created_at).toLocaleDateString('pt-BR')}</p>
                     </div>
                   </CardContent>
                 </AccordionContent>
@@ -195,11 +217,11 @@ export default function ContactDetail() {
                   <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
                     <div>
                       <p className="text-muted-foreground text-xs">Status</p>
-                      <p className="font-medium text-foreground">{contact.status || '-'}</p>
+                      <InlineEdit value={contact.status || ''} onSave={(v) => handleInlineEdit('status', 'Status', contact.status || '', v)} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Origem do Lead</p>
-                      <p className="font-medium text-foreground">{contact.lead_source || '-'}</p>
+                      <InlineEdit value={contact.lead_source || ''} onSave={(v) => handleInlineEdit('lead_source', 'Origem do Lead', contact.lead_source || '', v)} />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Negócios Vinculados</p>
@@ -292,9 +314,7 @@ export default function ContactDetail() {
                     <Card key={n.id} className="border-border">
                       <CardContent className="p-4">
                         <div className="prose prose-sm max-w-none text-foreground text-sm whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: n.content }} />
-                        <p className="text-xs text-muted-foreground mt-3 border-t border-border pt-2">
-                          {new Date(n.created_at).toLocaleString('pt-BR')}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-3 border-t border-border pt-2">{new Date(n.created_at).toLocaleString('pt-BR')}</p>
                       </CardContent>
                     </Card>
                   ))}

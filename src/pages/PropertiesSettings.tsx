@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Building2, Users, Briefcase, Settings, Plus, Trash2 } from 'lucide-react';
+import { Building2, Users, Briefcase, Settings, Plus, Trash2, Search } from 'lucide-react';
 
 type PropertyDef = {
   name: string;
@@ -75,12 +75,20 @@ const FIELD_TYPES = [
   { value: 'dropdown', label: 'Dropdown' },
 ];
 
+const ENTITY_LABELS: Record<string, string> = {
+  companies: 'Empresas',
+  contacts: 'Contatos',
+  deals: 'Negócios',
+};
+
 export default function PropertiesSettings() {
   const { role, user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('companies');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [originFilter, setOriginFilter] = useState<'all' | 'system' | 'custom'>('all');
   const [form, setForm] = useState({
     field_name: '',
     field_label: '',
@@ -153,6 +161,17 @@ export default function PropertiesSettings() {
     })),
   ];
 
+  // Apply filters
+  const filteredProps = allProps.filter((p) => {
+    if (searchQuery && !p.label.toLowerCase().includes(searchQuery.toLowerCase()) && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (originFilter === 'system' && !p.isSystem) return false;
+    if (originFilter === 'custom' && p.isSystem) return false;
+    return true;
+  });
+
+  const customCount = allProps.filter(p => !p.isSystem).length;
+  const systemCount = allProps.filter(p => p.isSystem).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -162,7 +181,7 @@ export default function PropertiesSettings() {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">Configurações de Propriedades</h1>
-            <p className="text-sm text-muted-foreground">Gerencie campos padrão e customizados</p>
+            <p className="text-sm text-muted-foreground">Gerencie campos padrão e customizados de cada objeto</p>
           </div>
         </div>
         {role === 'admin' && (
@@ -187,7 +206,7 @@ export default function PropertiesSettings() {
                 <div className="space-y-2">
                   <Label>Nome do campo (label)</Label>
                   <Input value={form.field_label} onChange={(e) => setForm({ ...form, field_label: e.target.value, field_name: e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') })} placeholder="Ex: CNPJ" required maxLength={50} />
-                  <p className="text-[10px] text-muted-foreground">Nome interno: <code>{form.field_name || '...'}</code></p>
+                  <p className="text-[10px] text-muted-foreground">Nome interno: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">{form.field_name || '...'}</code></p>
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo</Label>
@@ -219,7 +238,7 @@ export default function PropertiesSettings() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearchQuery(''); setOriginFilter('all'); }}>
         <TabsList>
           <TabsTrigger value="companies" className="gap-1.5"><Building2 className="h-4 w-4" />Empresas</TabsTrigger>
           <TabsTrigger value="contacts" className="gap-1.5"><Users className="h-4 w-4" />Contatos</TabsTrigger>
@@ -227,7 +246,46 @@ export default function PropertiesSettings() {
         </TabsList>
 
         {['companies', 'contacts', 'deals'].map((entity) => (
-          <TabsContent key={entity} value={entity} className="mt-4">
+          <TabsContent key={entity} value={entity} className="mt-4 space-y-4">
+            {/* Toolbar: Search + Origin Filter + Counts */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={`Buscar em ${ENTITY_LABELS[entity]}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-9"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant={originFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setOriginFilter('all')}
+                >
+                  Todos ({allProps.length})
+                </Button>
+                <Button
+                  variant={originFilter === 'system' ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setOriginFilter('system')}
+                >
+                  Sistema ({systemCount})
+                </Button>
+                <Button
+                  variant={originFilter === 'custom' ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setOriginFilter('custom')}
+                >
+                  Custom ({customCount})
+                </Button>
+              </div>
+            </div>
+
             <Card>
               <CardContent className="p-0">
                 <Table>
@@ -239,36 +297,53 @@ export default function PropertiesSettings() {
                       <TableHead>Obrigatório</TableHead>
                       <TableHead>Padrão</TableHead>
                       <TableHead>Origem</TableHead>
-                      <TableHead></TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allProps.map((p) => (
+                    {filteredProps.map((p) => (
                       <TableRow key={p.name}>
                         <TableCell className="font-medium text-foreground">{p.label}</TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-xs">{p.name}</TableCell>
-                        <TableCell><Badge variant="secondary" className="text-xs">{p.type}</Badge></TableCell>
+                        <TableCell><code className="text-muted-foreground bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{p.name}</code></TableCell>
+                        <TableCell><Badge variant="secondary" className="text-xs font-normal">{p.type}</Badge></TableCell>
                         <TableCell>
-                          {p.required ? <Badge className="bg-primary/10 text-primary text-xs">Sim</Badge> : <span className="text-muted-foreground text-xs">Não</span>}
+                          {p.required ? (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Sim</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">Não</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">{p.default || '-'}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-[10px] ${p.isSystem ? 'border-muted-foreground/30' : 'border-accent text-accent'}`}>
-                            {p.isSystem ? 'Sistema' : 'Custom'}
-                          </Badge>
+                          {p.isSystem ? (
+                            <Badge variant="outline" className="text-[10px] border-muted-foreground/20 text-muted-foreground bg-muted/50">
+                              Sistema
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary bg-primary/5">
+                              Custom
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           {!p.isSystem && role === 'admin' && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                            <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => {
                               const cp = entityCustomProps.find((c) => c.field_name === p.name);
                               if (cp) handleDelete(cp.id);
                             }}>
-                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
                         </TableCell>
                       </TableRow>
                     ))}
+                    {filteredProps.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                          Nenhuma propriedade encontrada
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
