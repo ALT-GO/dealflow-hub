@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { TasksChecklist } from '@/components/TasksChecklist';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
+import { DynamicFields } from '@/components/DynamicFields';
+import { useCustomProperties, useCustomPropertyValues } from '@/hooks/useCustomProperties';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -17,8 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Mail, Phone, Building2, Briefcase, StickyNote, Activity, ListTodo,
-  ChevronDown, ChevronUp, DollarSign, User, Clock,
+  ArrowLeft, Mail, Building2, Briefcase, StickyNote, Activity, ListTodo,
+  DollarSign, User, Clock, Layers,
 } from 'lucide-react';
 
 const stageLabels: Record<string, string> = {
@@ -38,10 +41,12 @@ export default function ContactDetail() {
   const queryClient = useQueryClient();
   const [noteContent, setNoteContent] = useState('');
   const [saving, setSaving] = useState(false);
-  const [showAllProps, setShowAllProps] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'meeting', title: '', description: '' });
   const [activitySaving, setActivitySaving] = useState(false);
+
+  const { data: customProps = [] } = useCustomProperties('contacts');
+  const { data: customValues = {} } = useCustomPropertyValues(id);
 
   const { data: contact } = useQuery({
     queryKey: ['contact', id],
@@ -137,7 +142,6 @@ export default function ContactDetail() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/contacts')}><ArrowLeft className="h-5 w-5" /></Button>
         <div>
@@ -146,44 +150,83 @@ export default function ContactDetail() {
         </div>
       </div>
 
-      {/* 3-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
-        {/* LEFT: Properties */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Informações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <p className="text-muted-foreground text-xs">Nome</p>
-                <p className="font-medium text-foreground flex items-center gap-1"><User className="h-3 w-3" />{contact.name}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs">E-mail</p>
-                <p className="font-medium text-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{contact.email || '-'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs">Cargo</p>
-                <p className="font-medium text-foreground">{contact.role || '-'}</p>
-              </div>
-              {showAllProps && (
-                <>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Empresa</p>
-                    <p className="font-medium text-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{company?.name || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Criado em</p>
-                    <p className="font-medium text-foreground">{new Date(contact.created_at).toLocaleDateString('pt-BR')}</p>
-                  </div>
-                </>
-              )}
-              <Button variant="ghost" size="sm" className="w-full text-xs text-primary" onClick={() => setShowAllProps(!showAllProps)}>
-                {showAllProps ? <><ChevronUp className="h-3 w-3 mr-1" />Menos propriedades</> : <><ChevronDown className="h-3 w-3 mr-1" />Visualizar todas as propriedades</>}
-              </Button>
-            </CardContent>
-          </Card>
+        {/* LEFT: Properties in Accordion Sections */}
+        <div className="space-y-3">
+          <Accordion type="multiple" defaultValue={['basic', 'sales', 'custom']}>
+            <AccordionItem value="basic" className="border-border">
+              <Card className="border-0 shadow-none">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informações Básicas</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Nome</p>
+                      <p className="font-medium text-foreground flex items-center gap-1"><User className="h-3 w-3" />{contact.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">E-mail</p>
+                      <p className="font-medium text-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{contact.email || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Cargo</p>
+                      <p className="font-medium text-foreground">{contact.role || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Empresa</p>
+                      <p className="font-medium text-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{company?.name || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Criado em</p>
+                      <p className="font-medium text-foreground">{new Date(contact.created_at).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+
+            <AccordionItem value="sales" className="border-border">
+              <Card className="border-0 shadow-none">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Detalhes da Venda</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Status</p>
+                      <p className="font-medium text-foreground">{contact.status || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Origem do Lead</p>
+                      <p className="font-medium text-foreground">{contact.lead_source || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Negócios Vinculados</p>
+                      <p className="font-medium text-foreground">{deals.length}</p>
+                    </div>
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+
+            {customProps.length > 0 && (
+              <AccordionItem value="custom" className="border-border">
+                <Card className="border-0 shadow-none">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Layers className="h-3 w-3" />Campos Customizados
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CardContent className="pt-0 px-4 pb-4">
+                      <DynamicFields properties={customProps} values={customValues} onChange={() => {}} readOnly />
+                    </CardContent>
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            )}
+          </Accordion>
         </div>
 
         {/* CENTER: Timeline */}
