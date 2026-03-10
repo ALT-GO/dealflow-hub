@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { usePagePermissions } from "@/hooks/usePagePermissions";
 import { Layout } from "@/components/Layout";
 import Auth from "./pages/Auth";
 import LandingPage from "./pages/LandingPage";
@@ -19,6 +20,12 @@ import Performance from "./pages/Performance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function RoleGuard({ path, children }: { path: string; children: React.ReactNode }) {
+  const { canAccess } = usePagePermissions();
+  if (!canAccess(path)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
@@ -41,9 +48,9 @@ function ProtectedRoutes() {
         <Route path="/companies/:id" element={<CompanyDetail />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/contacts/:id" element={<ContactDetail />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/settings/automations" element={<Automations />} />
-        <Route path="/performance" element={<Performance />} />
+        <Route path="/settings" element={<RoleGuard path="/settings"><Settings /></RoleGuard>} />
+        <Route path="/settings/automations" element={<RoleGuard path="/settings/automations"><Automations /></RoleGuard>} />
+        <Route path="/performance" element={<RoleGuard path="/performance"><Performance /></RoleGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

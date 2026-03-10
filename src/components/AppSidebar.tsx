@@ -2,6 +2,7 @@ import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp } from '
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
+import { usePagePermissions } from '@/hooks/usePagePermissions';
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +33,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { signOut, user, role } = useAuth();
+  const { canAccess } = usePagePermissions();
   const location = useLocation();
 
   const isActive = (url: string) => {
@@ -40,6 +42,7 @@ export function AppSidebar() {
   };
 
   const renderNavItem = (item: typeof navItems[0]) => {
+    if (!canAccess(item.url)) return null;
     const active = isActive(item.url);
     return (
       <SidebarMenuItem key={item.title}>
@@ -50,7 +53,6 @@ export function AppSidebar() {
             className="relative rounded-lg transition-all duration-200 hover:bg-sidebar-accent"
             activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
           >
-            {/* Active bar indicator */}
             {active && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
             )}
