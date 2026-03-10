@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TasksChecklist } from '@/components/TasksChecklist';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
