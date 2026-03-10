@@ -131,6 +131,8 @@ export function KanbanBoard({ filters = {} }: Props) {
   };
 
   const moveDeal = async (dealId: string, stage: string, lossReason?: string) => {
+    const deal = deals.find(d => d.id === dealId);
+    const oldStage = deal?.stage || '';
     const updateData: any = { stage };
     if (lossReason) updateData.loss_reason = lossReason;
     if (stage === 'fechado') updateData.loss_reason = null;
@@ -143,6 +145,20 @@ export function KanbanBoard({ filters = {} }: Props) {
       fireConfetti();
       toast('🎉 Negócio Fechado!', { description: 'Parabéns pela conquista!' });
     }
+
+    // Notify followers about stage change
+    const stageLabels: Record<string, string> = {
+      prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
+      negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido',
+    };
+    const myName = profiles.find(p => p.user_id === user?.id)?.full_name || 'Alguém';
+    await notifyDealFollowers(
+      dealId,
+      'deal_stage_changed',
+      `Negócio "${deal?.name}" mudou de estágio`,
+      `${myName} moveu de ${stageLabels[oldStage] || oldStage} → ${stageLabels[stage] || stage}`,
+      user?.id
+    );
   };
 
   const handleDrop = async (e: React.DragEvent, stage: string) => {
