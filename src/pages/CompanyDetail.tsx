@@ -406,7 +406,7 @@ export default function CompanyDetail() {
             </CardHeader>
             <CardContent className="space-y-2">
               {deals.slice(0, 5).map((d) => (
-                <div key={d.id} className="p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <div key={d.id} className="p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors duration-200" onClick={() => navigate(`/deals/${d.id}`)}>
                   <p className="text-sm font-medium text-foreground">{d.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className={`text-[10px] ${stageColors[d.stage] || ''}`}>{stageLabels[d.stage] || d.stage}</Badge>
