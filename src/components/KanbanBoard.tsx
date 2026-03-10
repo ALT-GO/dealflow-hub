@@ -82,34 +82,46 @@ export function KanbanBoard() {
               <p className="text-xs text-muted-foreground mt-1">{formatCurrency(total)}</p>
             </div>
             <div className="space-y-2 min-h-[200px] bg-muted/30 rounded-b-lg p-2">
-              {stageDeals.map((deal) => (
-                <Card
-                  key={deal.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, deal.id)}
-                  className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow border-border"
-                >
-                  <CardContent className="p-3 space-y-2">
-                    <p className="font-medium text-sm text-card-foreground">{deal.name}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Building2 className="h-3 w-3" />
-                      <span>{deal.companies?.name || '-'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <DollarSign className="h-3 w-3" />
-                        {formatCurrency(deal.value)}
-                      </span>
-                      {deal.close_date && (
+              {stageDeals.map((deal) => {
+                const daysSinceUpdate = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / (1000 * 60 * 60 * 24));
+                const isStale = daysSinceUpdate > 15;
+
+                return (
+                  <Card
+                    key={deal.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, deal.id)}
+                    className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow ${isStale ? 'border-destructive border-2 shadow-destructive/10' : 'border-border'}`}
+                  >
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-sm text-card-foreground">{deal.name}</p>
+                        {isStale && (
+                          <span className="flex items-center gap-1 text-destructive text-[10px] font-medium">
+                            <AlertTriangle className="h-3 w-3" />{daysSinceUpdate}d
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Building2 className="h-3 w-3" />
+                        <span>{deal.companies?.name || '-'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1 text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(deal.close_date).toLocaleDateString('pt-BR')}
+                          <DollarSign className="h-3 w-3" />
+                          {formatCurrency(deal.value)}
                         </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        {deal.close_date && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(deal.close_date).toLocaleDateString('pt-BR')}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         );
