@@ -5,11 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Plus, Search } from 'lucide-react';
+import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 
 export default function Companies() {
   const { user } = useAuth();
@@ -19,12 +20,17 @@ export default function Companies() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', domain: '', sector: '', phone: '' });
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState<Filters>({});
+  const [activeViewId, setActiveViewId] = useState<string>();
 
   const { data: companies = [] } = useQuery({
-    queryKey: ['companies', search],
+    queryKey: ['companies', search, filters],
     queryFn: async () => {
       let q = supabase.from('companies').select('*').order('name');
       if (search) q = q.ilike('name', `%${search}%`);
+      if (filters.createdAfter) q = q.gte('created_at', filters.createdAfter);
+      if (filters.createdBefore) q = q.lte('created_at', filters.createdBefore + 'T23:59:59');
+      if (filters.ownerId === 'mine' && user) q = q.eq('created_by', user.id);
       const { data, error } = await q;
       if (error) throw error;
       return data;
@@ -48,7 +54,7 @@ export default function Companies() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Empresas</h1>
@@ -71,14 +77,17 @@ export default function Companies() {
         </Dialog>
       </div>
 
+      <AdvancedFilters
+        entityType="companies"
+        filters={filters}
+        onFiltersChange={setFilters}
+        activeViewId={activeViewId}
+        onViewSelect={(v) => setActiveViewId(v?.id)}
+      />
+
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar empresas..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+        <Input placeholder="Buscar empresas..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
 
       <Card className="border-border">
@@ -103,9 +112,7 @@ export default function Companies() {
               ))}
               {companies.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhuma empresa encontrada
-                  </TableCell>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell>
                 </TableRow>
               )}
             </TableBody>

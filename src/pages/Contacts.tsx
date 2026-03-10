@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,18 +6,29 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Plus, Search } from 'lucide-react';
-import { useEffect } from 'react';
+import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
+
+const LEAD_SOURCES = ['Site', 'Indicação', 'Evento', 'Outbound', 'Inbound', 'Parceiro', 'Outro'];
+const CONTACT_STATUSES = [
+  { value: 'novo', label: 'Novo', color: 'bg-primary/10 text-primary' },
+  { value: 'ativo', label: 'Ativo', color: 'bg-success/10 text-success' },
+  { value: 'inativo', label: 'Inativo', color: 'bg-muted text-muted-foreground' },
+  { value: 'qualificado', label: 'Qualificado', color: 'bg-accent/10 text-accent' },
+];
 
 type Contact = {
   id: string;
   name: string;
   email: string | null;
   role: string | null;
+  lead_source: string | null;
+  status: string | null;
   company_id: string;
   companies: { name: string } | null;
 };
@@ -28,15 +39,20 @@ export default function Contacts() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
-  const [form, setForm] = useState({ name: '', email: '', role: '', company_id: '' });
+  const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([]);
+  const [form, setForm] = useState({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState<Filters>({});
+  const [activeViewId, setActiveViewId] = useState<string>();
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', search],
+    queryKey: ['contacts', search, filters],
     queryFn: async () => {
-      let q = supabase.from('contacts').select('id, name, email, role, company_id, companies(name)').order('name');
+      let q = supabase.from('contacts').select('id, name, email, role, lead_source, status, company_id, companies(name)').order('name');
       if (search) q = q.ilike('name', `%${search}%`);
+      if (filters.createdAfter) q = q.gte('created_at', filters.createdAfter);
+      if (filters.createdBefore) q = q.lte('created_at', filters.createdBefore + 'T23:59:59');
+      if (filters.ownerId === 'mine' && user) q = q.eq('created_by', user.id);
       const { data, error } = await q;
       if (error) throw error;
       return data as Contact[];
@@ -46,7 +62,7 @@ export default function Contacts() {
   useEffect(() => {
     if (open) {
       supabase.from('companies').select('id, name').order('name').then(({ data }) => {
-        if (data) setCompanies(data);
+        if (data) setCompaniesList(data);
       });
     }
   }, [open]);
@@ -60,6 +76,8 @@ export default function Contacts() {
       email: form.email || null,
       role: form.role || null,
       company_id: form.company_id,
+      lead_source: form.lead_source || null,
+      status: form.status || 'novo',
       created_by: user.id,
     });
     setLoading(false);
@@ -69,12 +87,12 @@ export default function Contacts() {
       toast.success('Contato criado!');
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       setOpen(false);
-      setForm({ name: '', email: '', role: '', company_id: '' });
+      setForm({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Contatos</h1>
@@ -93,7 +111,19 @@ export default function Contacts() {
               <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
-                  {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {companiesList.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={form.lead_source} onValueChange={(v) => setForm({ ...form, lead_source: v })}>
+                <SelectTrigger><SelectValue placeholder="Origem do Lead" /></SelectTrigger>
+                <SelectContent>
+                  {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  {CONTACT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Button type="submit" className="w-full" disabled={loading || !form.company_id}>{loading ? 'Criando...' : 'Criar Contato'}</Button>
@@ -101,6 +131,14 @@ export default function Contacts() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AdvancedFilters
+        entityType="contacts"
+        filters={filters}
+        onFiltersChange={setFilters}
+        activeViewId={activeViewId}
+        onViewSelect={(v) => setActiveViewId(v?.id)}
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -116,22 +154,33 @@ export default function Contacts() {
                 <TableHead>E-mail</TableHead>
                 <TableHead>Cargo</TableHead>
                 <TableHead>Empresa</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contacts.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/contacts/${c.id}`)}>
-                  <TableCell className="font-medium text-primary">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.email || '-'}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.role || '-'}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.companies?.name || '-'}</TableCell>
-                </TableRow>
-              ))}
+              {contacts.map((c) => {
+                const statusDef = CONTACT_STATUSES.find((s) => s.value === c.status);
+                return (
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/contacts/${c.id}`)}>
+                    <TableCell className="font-medium text-primary">{c.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.email || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.role || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.companies?.name || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{c.lead_source || '-'}</TableCell>
+                    <TableCell>
+                      {statusDef ? (
+                        <Badge variant="secondary" className={`text-[10px] ${statusDef.color}`}>{statusDef.label}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {contacts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    Nenhum contato encontrado
-                  </TableCell>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum contato encontrado</TableCell>
                 </TableRow>
               )}
             </TableBody>
