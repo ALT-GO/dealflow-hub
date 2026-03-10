@@ -343,6 +343,10 @@ export default function CompanyDetail() {
             <TabsContent value="tasks" className="mt-3">
               <TasksChecklist dealId={deals[0]?.id} contactId={contacts[0]?.id} />
             </TabsContent>
+
+            <TabsContent value="files" className="mt-3">
+              <FileManager entityType="company" entityId={id!} />
+            </TabsContent>
           </Tabs>
         </div>
 
