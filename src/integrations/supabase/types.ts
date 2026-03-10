@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          activity_date: string
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          activity_date?: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          activity_date?: string
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -78,6 +132,41 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_notes: {
+        Row: {
+          contact_id: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          content?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]

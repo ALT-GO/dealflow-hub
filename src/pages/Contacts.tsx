@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +24,7 @@ type Contact = {
 
 export default function Contacts() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -118,8 +120,8 @@ export default function Contacts() {
             </TableHeader>
             <TableBody>
               {contacts.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/contacts/${c.id}`)}>
+                  <TableCell className="font-medium text-primary">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.email || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.role || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.companies?.name || '-'}</TableCell>

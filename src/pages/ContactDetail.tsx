@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,10 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Building2, Globe, Phone, StickyNote, Activity, ListTodo,
-  PhoneCall, CalendarClock, ChevronDown, ChevronUp, Users, Briefcase, DollarSign,
+  ArrowLeft, Mail, Phone, Building2, Briefcase, StickyNote, Activity, ListTodo,
+  PhoneCall, CalendarClock, ChevronDown, ChevronUp, DollarSign, User,
 } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
 
 const stageLabels: Record<string, string> = {
   prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
@@ -35,7 +35,7 @@ const activityIcons: Record<string, typeof PhoneCall> = {
   note: StickyNote,
 };
 
-export default function CompanyDetail() {
+export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,20 +47,10 @@ export default function CompanyDetail() {
   const [activityForm, setActivityForm] = useState({ type: 'meeting', title: '', description: '' });
   const [activitySaving, setActivitySaving] = useState(false);
 
-  const { data: company } = useQuery({
-    queryKey: ['company', id],
+  const { data: contact } = useQuery({
+    queryKey: ['contact', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('companies').select('*').eq('id', id!).single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
-  });
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['company-contacts', id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('contacts').select('*').eq('company_id', id!).order('name');
+      const { data, error } = await supabase.from('contacts').select('*, companies(id, name, domain, sector)').eq('id', id!).single();
       if (error) throw error;
       return data;
     },
@@ -68,9 +58,9 @@ export default function CompanyDetail() {
   });
 
   const { data: deals = [] } = useQuery({
-    queryKey: ['company-deals', id],
+    queryKey: ['contact-deals', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('deals').select('*').eq('company_id', id!).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('deals').select('*').eq('contact_id', id!).order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -78,9 +68,9 @@ export default function CompanyDetail() {
   });
 
   const { data: notes = [] } = useQuery({
-    queryKey: ['company-notes', id],
+    queryKey: ['contact-notes', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('company_notes').select('*').eq('company_id', id!).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('contact_notes').select('*').eq('contact_id', id!).order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -88,9 +78,9 @@ export default function CompanyDetail() {
   });
 
   const { data: activities = [] } = useQuery({
-    queryKey: ['company-activities', id],
+    queryKey: ['contact-activities', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('activities').select('*').eq('company_id', id!).order('activity_date', { ascending: false });
+      const { data, error } = await supabase.from('activities').select('*').eq('contact_id', id!).order('activity_date', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -100,12 +90,12 @@ export default function CompanyDetail() {
   const handleAddNote = async () => {
     if (!noteContent.trim() || !user || !id) return;
     setSaving(true);
-    const { error } = await supabase.from('company_notes').insert({ company_id: id, content: noteContent.trim(), created_by: user.id });
+    const { error } = await supabase.from('contact_notes').insert({ contact_id: id, content: noteContent.trim(), created_by: user.id });
     setSaving(false);
     if (error) { toast.error('Erro ao salvar nota'); return; }
     toast.success('Nota adicionada!');
     setNoteContent('');
-    queryClient.invalidateQueries({ queryKey: ['company-notes', id] });
+    queryClient.invalidateQueries({ queryKey: ['contact-notes', id] });
   };
 
   const handleLogActivity = async (e: React.FormEvent) => {
@@ -116,7 +106,8 @@ export default function CompanyDetail() {
       type: activityForm.type,
       title: activityForm.title.trim(),
       description: activityForm.description.trim() || null,
-      company_id: id,
+      contact_id: id,
+      company_id: contact?.company_id || null,
       created_by: user.id,
     });
     setActivitySaving(false);
@@ -124,23 +115,23 @@ export default function CompanyDetail() {
     toast.success('Atividade registrada!');
     setActivityForm({ type: 'meeting', title: '', description: '' });
     setActivityOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['company-activities', id] });
+    queryClient.invalidateQueries({ queryKey: ['contact-activities', id] });
   };
 
-  if (!company) {
+  if (!contact) {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   }
 
-  const totalPipeline = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+  const company = contact.companies as { id: string; name: string; domain: string | null; sector: string | null } | null;
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/companies')}><ArrowLeft className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/contacts')}><ArrowLeft className="h-5 w-5" /></Button>
         <div>
-          <h1 className="text-xl font-display font-bold text-foreground">{company.name}</h1>
-          <p className="text-xs text-muted-foreground">Empresa</p>
+          <h1 className="text-xl font-display font-bold text-foreground">{contact.name}</h1>
+          <p className="text-xs text-muted-foreground">Contato{company ? ` · ${company.name}` : ''}</p>
         </div>
       </div>
 
@@ -155,32 +146,25 @@ export default function CompanyDetail() {
             <CardContent className="space-y-3 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs">Nome</p>
-                <p className="font-medium text-foreground">{company.name}</p>
+                <p className="font-medium text-foreground flex items-center gap-1"><User className="h-3 w-3" />{contact.name}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Domínio</p>
-                <p className="font-medium text-foreground flex items-center gap-1"><Globe className="h-3 w-3" />{company.domain || '-'}</p>
+                <p className="text-muted-foreground text-xs">E-mail</p>
+                <p className="font-medium text-foreground flex items-center gap-1"><Mail className="h-3 w-3" />{contact.email || '-'}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Telefone</p>
-                <p className="font-medium text-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{company.phone || '-'}</p>
+                <p className="text-muted-foreground text-xs">Cargo</p>
+                <p className="font-medium text-foreground">{contact.role || '-'}</p>
               </div>
               {showAllProps && (
                 <>
                   <div>
-                    <p className="text-muted-foreground text-xs">Setor</p>
-                    <p className="font-medium text-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{company.sector || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Pipeline Total</p>
-                    <p className="font-medium text-foreground flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" />
-                      {totalPipeline.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
+                    <p className="text-muted-foreground text-xs">Empresa</p>
+                    <p className="font-medium text-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{company?.name || '-'}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Criado em</p>
-                    <p className="font-medium text-foreground">{new Date(company.created_at).toLocaleDateString('pt-BR')}</p>
+                    <p className="font-medium text-foreground">{new Date(contact.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                 </>
               )}
@@ -214,7 +198,7 @@ export default function CompanyDetail() {
                   </div>
                   <div className="space-y-2">
                     <Label>Título</Label>
-                    <Input value={activityForm.title} onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })} placeholder="Ex: Reunião de discovery" required maxLength={100} />
+                    <Input value={activityForm.title} onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })} placeholder="Ex: Call de follow-up" required maxLength={100} />
                   </div>
                   <div className="space-y-2">
                     <Label>Descrição</Label>
@@ -298,23 +282,19 @@ export default function CompanyDetail() {
 
         {/* RIGHT: Associations */}
         <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Users className="h-4 w-4" />Contatos ({contacts.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {contacts.slice(0, 5).map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/contacts/${c.id}`)}>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.role || c.email || '-'}</p>
-                  </div>
+          {company && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Building2 className="h-4 w-4" />Empresa</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/companies/${company.id}`)}>
+                  <p className="text-sm font-medium text-primary">{company.name}</p>
+                  <p className="text-xs text-muted-foreground">{company.sector || company.domain || '-'}</p>
                 </div>
-              ))}
-              {contacts.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Nenhum contato</p>}
-              {contacts.length > 5 && <Button variant="ghost" size="sm" className="w-full text-xs text-primary">Ver todos ({contacts.length})</Button>}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="pb-2">
