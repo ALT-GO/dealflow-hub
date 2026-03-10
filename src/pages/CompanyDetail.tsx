@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Globe, Phone, StickyNote, Activity, ListTodo,
-  Users, Briefcase, DollarSign, Clock, Layers, MessageCircle, Paperclip,
+  Users, Briefcase, DollarSign, Clock, Layers, MessageCircle, Paperclip, Trash2,
 } from 'lucide-react';
 import { CommentBox } from '@/components/CommentBox';
 import { FileManager } from '@/components/FileManager';
