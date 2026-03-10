@@ -1,11 +1,17 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NewDealModal } from '@/components/NewDealModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, Briefcase, DollarSign } from 'lucide-react';
+import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
+import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
 
 export default function Dashboard() {
+  const [filters, setFilters] = useState<Filters>({});
+  const [activeTab, setActiveTab] = useState<ViewTab>('all');
+
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
@@ -34,6 +40,11 @@ export default function Dashboard() {
     { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
   ];
 
+  const handleTabChange = (tab: ViewTab, tabFilters?: Filters) => {
+    setActiveTab(tab);
+    if (tabFilters) setFilters(tabFilters);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -60,7 +71,19 @@ export default function Dashboard() {
 
       <div>
         <h2 className="text-lg font-display font-semibold text-foreground mb-4">Pipeline de Negócios</h2>
-        <KanbanBoard />
+        <ViewTabs entityType="deals" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
+        <div className="mt-4">
+          <AdvancedFilters
+            entityType="deals"
+            filters={filters}
+            onFiltersChange={setFilters}
+            activeViewId={activeTab !== 'all' && activeTab !== 'mine' && activeTab !== 'recent' ? activeTab : undefined}
+            onViewSelect={(v) => setActiveTab(v?.id || 'all')}
+          />
+        </div>
+        <div className="mt-4">
+          <KanbanBoard filters={filters} />
+        </div>
       </div>
     </div>
   );

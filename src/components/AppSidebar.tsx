@@ -39,6 +39,33 @@ export function AppSidebar() {
     return location.pathname.startsWith(url);
   };
 
+  const renderNavItem = (item: typeof navItems[0]) => {
+    const active = isActive(item.url);
+    return (
+      <SidebarMenuItem key={item.title}>
+        <SidebarMenuButton asChild>
+          <NavLink
+            to={item.url}
+            end={item.url === '/'}
+            className="relative rounded-lg transition-all duration-200 hover:bg-sidebar-accent"
+            activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+          >
+            {/* Active bar indicator */}
+            {active && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
+            )}
+            <item.icon
+              className="mr-2 h-[18px] w-[18px] transition-all duration-200"
+              fill={active ? 'currentColor' : 'none'}
+              strokeWidth={active ? 1.5 : 1.75}
+            />
+            {!collapsed && <span className="text-[13px]">{item.title}</span>}
+          </NavLink>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  };
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -57,28 +84,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.15em] text-sidebar-muted font-semibold mb-1">Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => {
-                const active = isActive(item.url);
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end={item.url === '/'}
-                        className="rounded-lg transition-all duration-200 hover:bg-sidebar-accent"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                      >
-                        <item.icon
-                          className="mr-2 h-[18px] w-[18px] transition-all duration-200"
-                          fill={active ? 'currentColor' : 'none'}
-                          strokeWidth={active ? 1.5 : 1.75}
-                        />
-                        {!collapsed && <span className="text-[13px]">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {navItems.map(renderNavItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -87,27 +93,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.15em] text-sidebar-muted font-semibold mb-1">Configurações</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {settingsItems.map((item) => {
-                const active = isActive(item.url);
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="rounded-lg transition-all duration-200 hover:bg-sidebar-accent"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                      >
-                        <item.icon
-                          className="mr-2 h-[18px] w-[18px] transition-all duration-200"
-                          fill={active ? 'currentColor' : 'none'}
-                          strokeWidth={active ? 1.5 : 1.75}
-                        />
-                        {!collapsed && <span className="text-[13px]">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {settingsItems.map(renderNavItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
