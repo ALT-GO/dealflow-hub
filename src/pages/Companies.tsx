@@ -165,26 +165,84 @@ export default function Companies() {
                 <TableHead>Domínio</TableHead>
                 <TableHead>Setor</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {companies.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/companies/${c.id}`)}>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 group" onClick={() => navigate(`/companies/${c.id}`)}>
                   <TableCell className="font-medium text-primary">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.domain || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.sector || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.phone || '-'}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setEditForm({ id: c.id, name: c.name, domain: c.domain || '', sector: c.sector || '', phone: c.phone || '' }); setEditOpen(true); }}>
+                          <Pencil className="h-4 w-4 mr-2" />Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(c.id)}>
+                          <Trash2 className="h-4 w-4 mr-2" />Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
               {companies.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma empresa encontrada</TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Empresa</DialogTitle></DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nome</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Domínio</Label>
+              <Input value={editForm.domain} onChange={(e) => setEditForm({ ...editForm, domain: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Setor</Label>
+              <Input value={editForm.sector} onChange={(e) => setEditForm({ ...editForm, sector: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Telefone</Label>
+              <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            </div>
+            <Button type="submit" className="w-full" disabled={editLoading}>{editLoading ? 'Salvando...' : 'Salvar'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir empresa?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é irreversível. Todos os dados relacionados serão perdidos.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
