@@ -21,9 +21,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, Globe, Phone, StickyNote, Activity, ListTodo,
-  Users, Briefcase, DollarSign, Clock, Layers, MessageCircle,
+  Users, Briefcase, DollarSign, Clock, Layers, MessageCircle, Paperclip,
 } from 'lucide-react';
 import { CommentBox } from '@/components/CommentBox';
+import { FileManager } from '@/components/FileManager';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const stageLabels: Record<string, string> = {
@@ -304,6 +305,7 @@ export default function CompanyDetail() {
               <TabsTrigger value="comments" className="text-xs gap-1.5"><MessageCircle className="h-3.5 w-3.5" />Comentários</TabsTrigger>
               <TabsTrigger value="notes" className="text-xs gap-1.5"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
               <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
+              <TabsTrigger value="files" className="text-xs gap-1.5"><Paperclip className="h-3.5 w-3.5" />Arquivos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline" className="mt-3">
@@ -340,6 +342,10 @@ export default function CompanyDetail() {
 
             <TabsContent value="tasks" className="mt-3">
               <TasksChecklist dealId={deals[0]?.id} contactId={contacts[0]?.id} />
+            </TabsContent>
+
+            <TabsContent value="files" className="mt-3">
+              <FileManager entityType="company" entityId={id!} />
             </TabsContent>
           </Tabs>
         </div>

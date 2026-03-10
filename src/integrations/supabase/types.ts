@@ -456,6 +456,45 @@ export type Database = {
           },
         ]
       }
+      file_attachments: {
+        Row: {
+          category: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

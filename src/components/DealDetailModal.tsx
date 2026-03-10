@@ -4,8 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DealFollowers } from '@/components/DealFollowers';
 import { CommentBox } from '@/components/CommentBox';
 import { TasksChecklist } from '@/components/TasksChecklist';
+import { FileManager } from '@/components/FileManager';
 import { Badge } from '@/components/ui/badge';
-import { Building2, DollarSign, Calendar, Eye, MessageCircle, ListTodo } from 'lucide-react';
+import { Building2, DollarSign, Calendar, Eye, MessageCircle, ListTodo, Paperclip } from 'lucide-react';
 
 interface Deal {
   id: string;
@@ -74,12 +75,18 @@ export function DealDetailModal({ deal, open, onOpenChange }: Props) {
               <TabsTrigger value="tasks" className="text-xs gap-1.5">
                 <ListTodo className="h-3.5 w-3.5" />Tarefas
               </TabsTrigger>
+              <TabsTrigger value="files" className="text-xs gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />Arquivos
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="comments" className="mt-3">
               <CommentBox entityType="deal" entityId={deal.id} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-3">
               <TasksChecklist dealId={deal.id} />
+            </TabsContent>
+            <TabsContent value="files" className="mt-3">
+              <FileManager entityType="deal" entityId={deal.id} />
             </TabsContent>
           </Tabs>
         </div>

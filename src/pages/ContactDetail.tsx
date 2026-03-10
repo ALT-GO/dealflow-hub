@@ -22,9 +22,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Mail, Building2, Briefcase, StickyNote, Activity, ListTodo,
-  User, Clock, Layers, MessageCircle,
+  User, Clock, Layers, MessageCircle, Paperclip,
 } from 'lucide-react';
 import { CommentBox } from '@/components/CommentBox';
+import { FileManager } from '@/components/FileManager';
 
 const stageLabels: Record<string, string> = {
   prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
@@ -295,6 +296,7 @@ export default function ContactDetail() {
               <TabsTrigger value="comments" className="text-xs gap-1.5"><MessageCircle className="h-3.5 w-3.5" />Comentários</TabsTrigger>
               <TabsTrigger value="notes" className="text-xs gap-1.5"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
               <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
+              <TabsTrigger value="files" className="text-xs gap-1.5"><Paperclip className="h-3.5 w-3.5" />Arquivos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline" className="mt-3">
@@ -331,6 +333,10 @@ export default function ContactDetail() {
 
             <TabsContent value="tasks" className="mt-3">
               <TasksChecklist contactId={id} />
+            </TabsContent>
+
+            <TabsContent value="files" className="mt-3">
+              <FileManager entityType="contact" entityId={id!} companyId={contact?.company_id} />
             </TabsContent>
           </Tabs>
         </div>
