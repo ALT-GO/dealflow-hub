@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TasksChecklist } from '@/components/TasksChecklist';
+import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Mail, Phone, Building2, Briefcase, StickyNote, Activity, ListTodo,
-  PhoneCall, CalendarClock, ChevronDown, ChevronUp, DollarSign, User,
+  ChevronDown, ChevronUp, DollarSign, User, Clock,
 } from 'lucide-react';
 
 const stageLabels: Record<string, string> = {
@@ -28,12 +29,6 @@ const stageColors: Record<string, string> = {
   prospeccao: 'bg-muted text-muted-foreground', qualificacao: 'bg-primary/10 text-primary',
   proposta: 'bg-accent/10 text-accent', negociacao: 'bg-warning/10 text-warning',
   fechado: 'bg-success/10 text-success',
-};
-
-const activityIcons: Record<string, typeof PhoneCall> = {
-  meeting: CalendarClock,
-  call: PhoneCall,
-  note: StickyNote,
 };
 
 export default function ContactDetail() {
@@ -88,6 +83,21 @@ export default function ContactDetail() {
     enabled: !!id,
   });
 
+  const { data: profilesMap = {} } = useQuery({
+    queryKey: ['profiles-map'],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('user_id, full_name');
+      const map: Record<string, string> = {};
+      (data || []).forEach((p) => { if (p.full_name) map[p.user_id] = p.full_name; });
+      return map;
+    },
+  });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['contact-notes', id] });
+    queryClient.invalidateQueries({ queryKey: ['contact-activities', id] });
+  };
+
   const handleAddNote = async () => {
     if (!noteContent.trim() || !user || !id) return;
     setSaving(true);
@@ -96,7 +106,7 @@ export default function ContactDetail() {
     if (error) { toast.error('Erro ao salvar nota'); return; }
     toast.success('Nota adicionada!');
     setNoteContent('');
-    queryClient.invalidateQueries({ queryKey: ['contact-notes', id] });
+    invalidateAll();
   };
 
   const handleLogActivity = async (e: React.FormEvent) => {
@@ -179,7 +189,9 @@ export default function ContactDetail() {
         {/* CENTER: Timeline */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Atividades</h2>
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />Histórico
+            </h2>
             <Dialog open={activityOpen} onOpenChange={setActivityOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline" className="text-xs"><Activity className="h-3.5 w-3.5 mr-1" />Log de Atividade</Button>
@@ -211,12 +223,16 @@ export default function ContactDetail() {
             </Dialog>
           </div>
 
-          <Tabs defaultValue="notes">
+          <Tabs defaultValue="timeline">
             <TabsList>
+              <TabsTrigger value="timeline" className="text-xs gap-1.5"><Clock className="h-3.5 w-3.5" />Timeline</TabsTrigger>
               <TabsTrigger value="notes" className="text-xs gap-1.5"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
-              <TabsTrigger value="activities" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" />Atividades</TabsTrigger>
               <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="timeline" className="mt-3">
+              <ActivityTimeline activities={activities} profiles={profilesMap} />
+            </TabsContent>
 
             <TabsContent value="notes" className="space-y-3 mt-3">
               <Card>
@@ -244,37 +260,6 @@ export default function ContactDetail() {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="activities" className="mt-3">
-              <ScrollArea className="max-h-[500px]">
-                <div className="space-y-3">
-                  {activities.map((a) => {
-                    const Icon = activityIcons[a.type] || Activity;
-                    return (
-                      <div key={a.id} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <Icon className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="w-px flex-1 bg-border mt-1" />
-                        </div>
-                        <Card className="flex-1 border-border">
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-sm text-foreground">{a.title}</p>
-                              <Badge variant="secondary" className="text-[10px]">{a.type === 'meeting' ? 'Reunião' : a.type === 'call' ? 'Chamada' : 'Nota'}</Badge>
-                            </div>
-                            {a.description && <p className="text-xs text-muted-foreground mt-1">{a.description}</p>}
-                            <p className="text-[10px] text-muted-foreground mt-2">{new Date(a.activity_date).toLocaleString('pt-BR')}</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    );
-                  })}
-                  {activities.length === 0 && <p className="text-center text-muted-foreground py-6 text-xs">Nenhuma atividade registrada</p>}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
             <TabsContent value="tasks" className="mt-3">
               <TasksChecklist contactId={id} />
             </TabsContent>
@@ -289,7 +274,7 @@ export default function ContactDetail() {
                 <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Building2 className="h-4 w-4" />Empresa</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/companies/${company.id}`)}>
+                <div className="p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors duration-200" onClick={() => navigate(`/companies/${company.id}`)}>
                   <p className="text-sm font-medium text-primary">{company.name}</p>
                   <p className="text-xs text-muted-foreground">{company.sector || company.domain || '-'}</p>
                 </div>
@@ -303,7 +288,7 @@ export default function ContactDetail() {
             </CardHeader>
             <CardContent className="space-y-2">
               {deals.slice(0, 5).map((d) => (
-                <div key={d.id} className="p-2 rounded-md hover:bg-muted/50">
+                <div key={d.id} className="p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
                   <p className="text-sm font-medium text-foreground">{d.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className={`text-[10px] ${stageColors[d.stage] || ''}`}>{stageLabels[d.stage] || d.stage}</Badge>
