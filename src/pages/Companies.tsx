@@ -30,6 +30,10 @@ export default function Companies() {
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
   const { data: customProps = [] } = useCustomProperties('companies');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ id: '', name: '', domain: '', sector: '', phone: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies', search, filters],
