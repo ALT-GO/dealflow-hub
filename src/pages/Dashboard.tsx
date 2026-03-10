@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NewDealModal } from '@/components/NewDealModal';
-import { CircularProgress } from '@/components/CircularProgress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, Briefcase, DollarSign } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
