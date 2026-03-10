@@ -14,10 +14,6 @@ export default function Dashboard() {
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
 
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
