@@ -92,8 +92,8 @@ export default function Companies() {
             </TableHeader>
             <TableBody>
               {companies.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/companies/${c.id}`)}>
+                  <TableCell className="font-medium text-primary">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.domain || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.sector || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.phone || '-'}</TableCell>
