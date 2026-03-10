@@ -116,6 +116,7 @@ export type Database = {
           entity_type: string
           id: string
           mentions: string[] | null
+          reply_to: string | null
           updated_at: string
         }
         Insert: {
@@ -126,6 +127,7 @@ export type Database = {
           entity_type: string
           id?: string
           mentions?: string[] | null
+          reply_to?: string | null
           updated_at?: string
         }
         Update: {
@@ -136,9 +138,18 @@ export type Database = {
           entity_type?: string
           id?: string
           mentions?: string[] | null
+          reply_to?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comments_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
@@ -366,6 +377,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deal_followers: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       deals: {
         Row: {
