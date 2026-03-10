@@ -194,7 +194,7 @@ export function TeamsTab() {
   };
 
   const handleChangeRole = async (userId: string, newRole: string) => {
-    const { error } = await supabase.from('user_roles').update({ role: newRole }).eq('user_id', userId);
+    const { error } = await supabase.from('user_roles').update({ role: newRole as any }).eq('user_id', userId);
     if (error) toast.error('Erro ao alterar papel');
     else { toast.success('Papel atualizado!'); queryClient.invalidateQueries({ queryKey: ['team-members'] }); }
   };
