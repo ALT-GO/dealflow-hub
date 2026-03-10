@@ -75,6 +75,28 @@ export default function Companies() {
     setCustomValues({});
   };
 
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    const { error } = await supabase.from('companies').update({
+      name: editForm.name, domain: editForm.domain || null, sector: editForm.sector || null, phone: editForm.phone || null,
+    }).eq('id', editForm.id);
+    setEditLoading(false);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Empresa atualizada!');
+    queryClient.invalidateQueries({ queryKey: ['companies'] });
+    setEditOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from('companies').delete().eq('id', deleteId);
+    if (error) { toast.error('Erro: ' + error.message); return; }
+    toast.success('Empresa excluída!');
+    queryClient.invalidateQueries({ queryKey: ['companies'] });
+    setDeleteId(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
