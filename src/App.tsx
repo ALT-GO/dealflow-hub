@@ -12,9 +12,8 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
-import PropertiesSettings from "./pages/PropertiesSettings";
+import Settings from "./pages/Settings";
 import Automations from "./pages/Automations";
-import TeamManagement from "./pages/TeamManagement";
 import Performance from "./pages/Performance";
 import NotFound from "./pages/NotFound";
 
