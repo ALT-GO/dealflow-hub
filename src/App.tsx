@@ -36,6 +36,7 @@ function ProtectedRoutes() {
         <Route path="/companies" element={<Companies />} />
         <Route path="/companies/:id" element={<CompanyDetail />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/contacts/:id" element={<ContactDetail />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

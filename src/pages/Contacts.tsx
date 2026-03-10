@@ -120,8 +120,8 @@ export default function Contacts() {
             </TableHeader>
             <TableBody>
               {contacts.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/contacts/${c.id}`)}>
+                  <TableCell className="font-medium text-primary">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.email || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.role || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{c.companies?.name || '-'}</TableCell>
