@@ -52,6 +52,10 @@ export default function Contacts() {
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
   const { data: customProps = [] } = useCustomProperties('contacts');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ id: '', name: '', email: '', role: '', lead_source: '', status: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', search, filters],
