@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Plus, Search } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
+import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
 
 const LEAD_SOURCES = ['Site', 'Indicação', 'Evento', 'Outbound', 'Inbound', 'Parceiro', 'Outro'];
 const CONTACT_STATUSES = [
@@ -43,7 +44,7 @@ export default function Contacts() {
   const [form, setForm] = useState({ name: '', email: '', role: '', company_id: '', lead_source: '', status: 'novo' });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>({});
-  const [activeViewId, setActiveViewId] = useState<string>();
+  const [activeTab, setActiveTab] = useState<ViewTab>('all');
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', search, filters],
@@ -66,6 +67,11 @@ export default function Contacts() {
       });
     }
   }, [open]);
+
+  const handleTabChange = (tab: ViewTab, tabFilters?: Filters) => {
+    setActiveTab(tab);
+    if (tabFilters) setFilters(tabFilters);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,12 +138,14 @@ export default function Contacts() {
         </Dialog>
       </div>
 
+      <ViewTabs entityType="contacts" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
+
       <AdvancedFilters
         entityType="contacts"
         filters={filters}
         onFiltersChange={setFilters}
-        activeViewId={activeViewId}
-        onViewSelect={(v) => setActiveViewId(v?.id)}
+        activeViewId={activeTab !== 'all' && activeTab !== 'mine' && activeTab !== 'recent' ? activeTab : undefined}
+        onViewSelect={(v) => setActiveTab(v?.id || 'all')}
       />
 
       <div className="relative max-w-sm">

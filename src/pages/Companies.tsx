@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Plus, Search } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
+import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
 
 export default function Companies() {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export default function Companies() {
   const [form, setForm] = useState({ name: '', domain: '', sector: '', phone: '' });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Filters>({});
-  const [activeViewId, setActiveViewId] = useState<string>();
+  const [activeTab, setActiveTab] = useState<ViewTab>('all');
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies', search, filters],
@@ -36,6 +37,11 @@ export default function Companies() {
       return data;
     },
   });
+
+  const handleTabChange = (tab: ViewTab, tabFilters?: Filters) => {
+    setActiveTab(tab);
+    if (tabFilters) setFilters(tabFilters);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,12 +83,14 @@ export default function Companies() {
         </Dialog>
       </div>
 
+      <ViewTabs entityType="companies" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
+
       <AdvancedFilters
         entityType="companies"
         filters={filters}
         onFiltersChange={setFilters}
-        activeViewId={activeViewId}
-        onViewSelect={(v) => setActiveViewId(v?.id)}
+        activeViewId={activeTab !== 'all' && activeTab !== 'mine' && activeTab !== 'recent' ? activeTab : undefined}
+        onViewSelect={(v) => setActiveTab(v?.id || 'all')}
       />
 
       <div className="relative max-w-sm">
