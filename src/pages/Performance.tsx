@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CircularProgress } from '@/components/CircularProgress';
 import { useLossReasons } from '@/hooks/useLossReasons';
-import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon } from 'lucide-react';
+import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell, PieChart, Pie,
@@ -56,9 +56,9 @@ export default function Performance() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, owner_id, created_at, updated_at, loss_reason');
+        .select('id, name, value, stage, owner_id, created_at, updated_at, loss_reason, profit_margin');
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 
@@ -103,6 +103,16 @@ export default function Performance() {
   const closedThisMonth = allDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth);
   const closedValue = closedThisMonth.reduce((s, d) => s + (Number(d.value) || 0), 0);
 
+  // Profit calculation
+  const totalProfit = closedThisMonth.reduce((s, d) => {
+    const margin = Number(d.profit_margin) || 0;
+    const value = Number(d.value) || 0;
+    return s + (value * margin / 100);
+  }, 0);
+  const avgProfitMargin = closedThisMonth.length > 0
+    ? closedThisMonth.reduce((s, d) => s + (Number(d.profit_margin) || 0), 0) / closedThisMonth.length
+    : 0;
+
   const totalGoalValue = goals.reduce((s, g: any) => s + (Number(g.target_value) || 0), 0);
   const goalPercent = totalGoalValue > 0 ? (closedValue / totalGoalValue) * 100 : 0;
 
@@ -130,10 +140,11 @@ export default function Performance() {
     const userDeals = allDeals.filter(d => d.owner_id === ownerId);
     const closedDeals = userDeals.filter(d => d.stage === 'fechado');
     const cv = closedDeals.reduce((s, d) => s + (Number(d.value) || 0), 0);
+    const profit = closedDeals.reduce((s, d) => s + ((Number(d.value) || 0) * (Number(d.profit_margin) || 0) / 100), 0);
     const winRate = userDeals.length > 0 ? Math.round((closedDeals.length / userDeals.length) * 100) : 0;
     const userActivities = activitiesCounts.filter(a => a.created_by === ownerId).length;
     const profile = getProfile(ownerId);
-    return { userId: ownerId, name: profile?.full_name || 'Sem nome', closedValue: cv, winRate, activities: userActivities, totalDeals: userDeals.length };
+    return { userId: ownerId, name: profile?.full_name || 'Sem nome', closedValue: cv, profit, winRate, activities: userActivities, totalDeals: userDeals.length };
   }).sort((a, b) => b.closedValue - a.closedValue);
 
   // Forecast
@@ -161,6 +172,7 @@ export default function Performance() {
   const barData = leaderboard.slice(0, 8).map(l => ({
     name: l.name.split(' ')[0],
     valor: l.closedValue,
+    lucro: l.profit,
   }));
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -178,7 +190,7 @@ export default function Performance() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
@@ -188,6 +200,20 @@ export default function Performance() {
               <div>
                 <p className="text-xs text-muted-foreground">Fechado no Mês</p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(closedValue)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Percent className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Lucro Total</p>
+                <p className="text-xl font-display font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
+                {avgProfitMargin > 0 && <p className="text-[10px] text-muted-foreground">Margem média: {avgProfitMargin.toFixed(1)}%</p>}
               </div>
             </div>
           </CardContent>
@@ -246,6 +272,11 @@ export default function Performance() {
               <p className="text-xs text-muted-foreground">
                 {goalPercent >= 100 ? '🎉 Meta batida!' : `Faltam ${formatCurrency(totalGoalValue - closedValue)}`}
               </p>
+              {totalProfit > 0 && (
+                <p className="text-xs text-emerald-600 font-medium">
+                  Lucro acumulado: {formatCurrency(totalProfit)}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -305,7 +336,7 @@ export default function Performance() {
                   <p className="text-sm font-medium text-foreground truncate">{seller.name}</p>
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                     <span>Win Rate: <strong className="text-foreground">{seller.winRate}%</strong></span>
-                    <span>Atividades: <strong className="text-foreground">{seller.activities}</strong></span>
+                    <span>Lucro: <strong className="text-emerald-600">{formatCurrency(seller.profit)}</strong></span>
                   </div>
                 </div>
                 <p className="text-sm font-bold text-primary shrink-0">{formatCurrency(seller.closedValue)}</p>
@@ -322,7 +353,7 @@ export default function Performance() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-success" />
-              Receita por Vendedor
+              Receita e Lucro por Vendedor
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -333,11 +364,9 @@ export default function Performance() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="valor" radius={[6, 6, 0, 0]} name="Valor Fechado">
-                    {barData.map((_, i) => (
-                      <Cell key={i} fill={i === 0 ? 'hsl(var(--primary))' : `hsl(var(--primary) / ${0.7 - i * 0.06})`} />
-                    ))}
-                  </Bar>
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="valor" radius={[6, 6, 0, 0]} name="Valor Fechado" fill="hsl(var(--primary))" />
+                  <Bar dataKey="lucro" radius={[6, 6, 0, 0]} name="Lucro" fill="hsl(var(--success))" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

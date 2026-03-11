@@ -12,6 +12,8 @@ import { DealFollowers } from '@/components/DealFollowers';
 import { CommentBox } from '@/components/CommentBox';
 import { FileManager } from '@/components/FileManager';
 import { LossReasonModal } from '@/components/LossReasonModal';
+import { ProfitMarginModal } from '@/components/ProfitMarginModal';
+import { StarRating } from '@/components/StarRating';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -27,9 +29,17 @@ import confetti from 'canvas-confetti';
 import {
   ArrowLeft, Building2, DollarSign, Calendar, Clock, Layers, Eye,
   Activity, ListTodo, MessageCircle, Paperclip, Users, Trash2,
-  Trophy, XCircle,
+  Trophy, XCircle, Percent, FileText,
 } from 'lucide-react';
 import { useFunnelStages } from '@/hooks/useFunnelStages';
+
+const CONTRACT_TYPE_LABELS: Record<string, string> = { recorrente: 'Recorrente', nao_recorrente: 'Não Recorrente' };
+const MARKET_LABELS: Record<string, string> = { publico: 'Público', privado: 'Privado' };
+const BUSINESS_AREA_LABELS: Record<string, string> = {
+  infraestrutura_predial: 'Infraestrutura Predial', missao_critica: 'Missão Crítica',
+  seguranca_eletronica: 'Segurança Eletrônica', inteligencia_predial: 'Inteligência Predial',
+  energia: 'Energia', outro: 'Outro',
+};
 
 function fireConfetti() {
   confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['hsl(190,35%,45%)', 'hsl(150,40%,45%)', 'hsl(38,85%,50%)', '#fff'] });
@@ -54,6 +64,7 @@ export default function DealDetail() {
   const [activitySaving, setActivitySaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [lossModalOpen, setLossModalOpen] = useState(false);
+  const [profitModalOpen, setProfitModalOpen] = useState(false);
 
   const { data: customProps = [] } = useCustomProperties('deals');
   const { data: customValues = {} } = useCustomPropertyValues(id);
@@ -102,6 +113,17 @@ export default function DealDetail() {
     },
   });
 
+  const { data: originLabel } = useQuery({
+    queryKey: ['deal-origin', (deal as any)?.origin_id],
+    queryFn: async () => {
+      const oid = (deal as any)?.origin_id;
+      if (!oid) return null;
+      const { data } = await supabase.from('deal_origins').select('label').eq('id', oid).single();
+      return data?.label || null;
+    },
+    enabled: !!(deal as any)?.origin_id,
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['deal', id] });
     queryClient.invalidateQueries({ queryKey: ['deal-activities', id] });
@@ -111,7 +133,7 @@ export default function DealDetail() {
   const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
     if (!user || !id || newValue === oldValue) return;
     const updateData: any = { [field]: newValue || null };
-    if (field === 'value') updateData[field] = Number(newValue) || 0;
+    if (field === 'value' || field === 'profit_margin') updateData[field] = Number(newValue) || 0;
     const { error } = await supabase.from('deals').update(updateData).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
@@ -132,6 +154,11 @@ export default function DealDetail() {
       setLossModalOpen(true);
       return;
     }
+    // Check profit margin for won
+    if (targetStage?.stage_type === 'won' && !(deal as any).profit_margin) {
+      setProfitModalOpen(true);
+      return;
+    }
     const oldStage = deal.stage;
     const updateData: any = { stage: newStage, loss_reason: null };
     const { error } = await supabase.from('deals').update(updateData).eq('id', id);
@@ -150,19 +177,21 @@ export default function DealDetail() {
 
   const handleMarkWon = async () => {
     if (!user || !id || !deal) return;
+    // Check profit margin
+    if (!(deal as any).profit_margin) {
+      setProfitModalOpen(true);
+      return;
+    }
     const wonKey = wonStage?.key;
     if (wonKey) {
       await handleStageChange(wonKey);
     } else {
-      // No won stage in funnel: just archive internally
       const { error } = await supabase.from('deals').update({ stage: '__won__', loss_reason: null } as any).eq('id', id);
       if (error) { toast.error('Erro ao salvar'); return; }
       await supabase.from('activities').insert({
-        type: 'deal_won',
-        title: 'Negócio marcado como Ganho',
+        type: 'deal_won', title: 'Negócio marcado como Ganho',
         description: `Negócio "${deal.name}" foi marcado como ganho`,
-        company_id: deal.company_id,
-        created_by: user.id,
+        company_id: deal.company_id, created_by: user.id,
       });
       fireConfetti();
       invalidateAll();
@@ -170,8 +199,24 @@ export default function DealDetail() {
     }
   };
 
-  const handleMarkLost = () => {
-    setLossModalOpen(true);
+  const handleMarkLost = () => setLossModalOpen(true);
+
+  const handleProfitConfirm = async (margin: number) => {
+    if (!user || !id || !deal) return;
+    // Save profit margin then proceed to won
+    await supabase.from('deals').update({ profit_margin: margin } as any).eq('id', id);
+    const wonKey = wonStage?.key || '__won__';
+    const { error } = await supabase.from('deals').update({ stage: wonKey, loss_reason: null } as any).eq('id', id);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    await supabase.from('activities').insert({
+      type: 'deal_won', title: 'Negócio marcado como Ganho',
+      description: `Lucro: ${margin}% · Negócio "${deal.name}"`,
+      company_id: deal.company_id, created_by: user.id,
+    });
+    fireConfetti();
+    setProfitModalOpen(false);
+    invalidateAll();
+    toast.success('🎉 Negócio ganho!');
   };
 
   const handleLossConfirm = async (reason: string) => {
@@ -180,11 +225,8 @@ export default function DealDetail() {
     const { error } = await supabase.from('deals').update({ stage: lostKey, loss_reason: reason } as any).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
-      type: 'deal_lost',
-      title: 'Negócio marcado como Perdido',
-      description: `Motivo: ${reason}`,
-      company_id: deal.company_id,
-      created_by: user.id,
+      type: 'deal_lost', title: 'Negócio marcado como Perdido',
+      description: `Motivo: ${reason}`, company_id: deal.company_id, created_by: user.id,
     });
     setLossModalOpen(false);
     invalidateAll();
@@ -196,11 +238,9 @@ export default function DealDetail() {
     if (!user || !id || !deal) return;
     setActivitySaving(true);
     const { error } = await supabase.from('activities').insert({
-      type: activityForm.type,
-      title: activityForm.title.trim(),
+      type: activityForm.type, title: activityForm.title.trim(),
       description: activityForm.description.trim() || null,
-      company_id: deal.company_id,
-      created_by: user.id,
+      company_id: deal.company_id, created_by: user.id,
     });
     setActivitySaving(false);
     if (error) { toast.error('Erro ao registrar atividade'); return; }
@@ -224,10 +264,9 @@ export default function DealDetail() {
 
   const company = deal.companies as { id: string; name: string } | null;
   const formatCurrency = (v: number | null) => v != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : '-';
-
-  // Determine current stage type
   const currentStageData = stagesData.find(s => s.key === deal.stage);
   const isDealClosed = currentStageData?.stage_type === 'won' || currentStageData?.stage_type === 'lost' || deal.stage === '__won__' || deal.stage === '__lost__';
+  const dealAny = deal as any;
 
   return (
     <div className="space-y-4">
@@ -235,6 +274,9 @@ export default function DealDetail() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}><ArrowLeft className="h-5 w-5" /></Button>
           <div>
+            {dealAny.proposal_id && (
+              <p className="text-[10px] font-mono text-muted-foreground">{dealAny.proposal_id}</p>
+            )}
             <h1 className="text-xl font-display font-bold text-foreground">{deal.name}</h1>
             <p className="text-xs text-muted-foreground">Negócio{company ? ` · ${company.name}` : ''}</p>
           </div>
@@ -271,7 +313,7 @@ export default function DealDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
         {/* LEFT: Properties */}
         <div className="space-y-3">
-          <Accordion type="multiple" defaultValue={['basic', 'sales', 'custom']}>
+          <Accordion type="multiple" defaultValue={['basic', 'commercial', 'custom']}>
             <AccordionItem value="basic" className="border-border">
               <Card className="border-0 shadow-none">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
@@ -290,9 +332,7 @@ export default function DealDetail() {
                     <div>
                       <p className="text-muted-foreground text-xs">Estágio</p>
                       <Select value={deal.stage} onValueChange={handleStageChange}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {STAGES.map((s) => (
                             <SelectItem key={s} value={s}>{stageLabels[s] || s}</SelectItem>
@@ -308,6 +348,12 @@ export default function DealDetail() {
                       <p className="text-muted-foreground text-xs">Proprietário</p>
                       <p className="font-medium text-foreground text-sm">{profilesMap[deal.owner_id] || 'Desconhecido'}</p>
                     </div>
+                    {(dealAny.qualification_score ?? 0) > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Qualificação</p>
+                        <StarRating score={dealAny.qualification_score || 0} size="md" />
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Criado em</p>
                       <p className="font-medium text-foreground text-sm">{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
@@ -316,6 +362,64 @@ export default function DealDetail() {
                       <div>
                         <p className="text-muted-foreground text-xs">Motivo de Perda</p>
                         <Badge variant="destructive" className="text-xs">{deal.loss_reason}</Badge>
+                      </div>
+                    )}
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+
+            <AccordionItem value="commercial" className="border-border">
+              <Card className="border-0 shadow-none">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <FileText className="h-3 w-3" />Informações Comerciais
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
+                    {dealAny.orcamentista_id && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Orçamentista Responsável</p>
+                        <p className="font-medium text-foreground text-sm">{profilesMap[dealAny.orcamentista_id] || 'Desconhecido'}</p>
+                      </div>
+                    )}
+                    {dealAny.contract_type && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Tipo de Contrato</p>
+                        <Badge variant="secondary" className="text-xs">{CONTRACT_TYPE_LABELS[dealAny.contract_type] || dealAny.contract_type}</Badge>
+                      </div>
+                    )}
+                    {dealAny.market && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Mercado</p>
+                        <Badge variant="secondary" className="text-xs">{MARKET_LABELS[dealAny.market] || dealAny.market}</Badge>
+                      </div>
+                    )}
+                    {dealAny.business_area && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
+                        <Badge variant="secondary" className="text-xs">{BUSINESS_AREA_LABELS[dealAny.business_area] || dealAny.business_area}</Badge>
+                      </div>
+                    )}
+                    {originLabel && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Origem</p>
+                        <Badge variant="secondary" className="text-xs">{originLabel}</Badge>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-muted-foreground text-xs">Percentual de Lucro (%)</p>
+                      <InlineEdit
+                        value={String(dealAny.profit_margin || '')}
+                        onSave={(v) => handleInlineEdit('profit_margin', 'Percentual de Lucro', String(dealAny.profit_margin || ''), v)}
+                        icon={<Percent className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                      />
+                    </div>
+                    {dealAny.profit_margin && deal.value && (
+                      <div className="bg-muted/50 rounded-lg p-2">
+                        <p className="text-muted-foreground text-xs">Lucro Estimado</p>
+                        <p className="font-bold text-primary text-sm">{formatCurrency((deal.value || 0) * (dealAny.profit_margin / 100))}</p>
                       </div>
                     )}
                   </CardContent>
@@ -444,6 +548,12 @@ export default function DealDetail() {
                 <span className="text-muted-foreground text-xs">Estágio</span>
                 <Badge className={`text-[10px] ${stageColors[deal.stage] || ''}`}>{stageLabels[deal.stage] || deal.stage}</Badge>
               </div>
+              {dealAny.profit_margin && deal.value && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">Lucro</span>
+                  <span className="font-semibold text-emerald-600">{formatCurrency((deal.value || 0) * (dealAny.profit_margin / 100))}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground text-xs">Última atualização</span>
                 <span className="text-xs text-muted-foreground">{new Date(deal.updated_at).toLocaleDateString('pt-BR')}</span>
@@ -458,6 +568,14 @@ export default function DealDetail() {
         dealName={deal.name}
         onCancel={() => setLossModalOpen(false)}
         onConfirm={handleLossConfirm}
+      />
+
+      <ProfitMarginModal
+        open={profitModalOpen}
+        dealName={deal.name}
+        dealValue={deal.value || 0}
+        onCancel={() => setProfitModalOpen(false)}
+        onConfirm={handleProfitConfirm}
       />
     </div>
   );
