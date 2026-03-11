@@ -29,7 +29,7 @@ export function useQualificationQuestions() {
     queryFn: async () => {
       const { data, error } = await supabase.from('qualification_questions').select('*').order('sort_order');
       if (error) throw error;
-      return data as QualificationQuestion[];
+      return data as unknown as QualificationQuestion[];
     },
   });
 }
