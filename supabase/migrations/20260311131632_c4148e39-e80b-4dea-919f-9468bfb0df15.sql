@@ -1,0 +1,1 @@
+ALTER TABLE public.funnel_stages ADD COLUMN IF NOT EXISTS stage_type text NOT NULL DEFAULT 'active' CHECK (stage_type IN ('active', 'won', 'lost'));

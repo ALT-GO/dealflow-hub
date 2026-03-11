@@ -8,6 +8,7 @@ export type FunnelStage = {
   color: string;
   sort_order: number;
   is_system: boolean;
+  stage_type: 'active' | 'won' | 'lost';
 };
 
 export function useFunnelStages() {

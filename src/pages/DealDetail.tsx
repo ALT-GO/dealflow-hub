@@ -11,6 +11,7 @@ import { InlineEdit } from '@/components/InlineEdit';
 import { DealFollowers } from '@/components/DealFollowers';
 import { CommentBox } from '@/components/CommentBox';
 import { FileManager } from '@/components/FileManager';
+import { LossReasonModal } from '@/components/LossReasonModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -21,13 +22,18 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 import {
   ArrowLeft, Building2, DollarSign, Calendar, Clock, Layers, Eye,
-  StickyNote, Activity, ListTodo, MessageCircle, Paperclip, Users, Trash2, Pencil,
+  Activity, ListTodo, MessageCircle, Paperclip, Users, Trash2,
+  Trophy, XCircle,
 } from 'lucide-react';
 import { useFunnelStages } from '@/hooks/useFunnelStages';
+
+function fireConfetti() {
+  confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['hsl(190,35%,45%)', 'hsl(150,40%,45%)', 'hsl(38,85%,50%)', '#fff'] });
+}
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,10 +45,15 @@ export default function DealDetail() {
   const stageColors: Record<string, string> = {};
   stagesData.forEach(s => { stageLabels[s.key] = s.label; stageColors[s.key] = s.color; });
   const STAGES = stagesData.map(s => s.key);
+
+  const wonStage = stagesData.find(s => s.stage_type === 'won');
+  const lostStage = stagesData.find(s => s.stage_type === 'lost');
+
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'meeting', title: '', description: '' });
   const [activitySaving, setActivitySaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [lossModalOpen, setLossModalOpen] = useState(false);
 
   const { data: customProps = [] } = useCustomProperties('deals');
   const { data: customValues = {} } = useCustomPropertyValues(id);
@@ -94,6 +105,7 @@ export default function DealDetail() {
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['deal', id] });
     queryClient.invalidateQueries({ queryKey: ['deal-activities', id] });
+    queryClient.invalidateQueries({ queryKey: ['deals'] });
   };
 
   const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
@@ -115,8 +127,14 @@ export default function DealDetail() {
 
   const handleStageChange = async (newStage: string) => {
     if (!user || !id || !deal) return;
+    const targetStage = stagesData.find(s => s.key === newStage);
+    if (targetStage?.stage_type === 'lost') {
+      setLossModalOpen(true);
+      return;
+    }
     const oldStage = deal.stage;
-    const { error } = await supabase.from('deals').update({ stage: newStage }).eq('id', id);
+    const updateData: any = { stage: newStage, loss_reason: null };
+    const { error } = await supabase.from('deals').update(updateData).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
       type: 'property_changed',
@@ -125,8 +143,52 @@ export default function DealDetail() {
       company_id: deal.company_id,
       created_by: user.id,
     });
+    if (targetStage?.stage_type === 'won') fireConfetti();
     invalidateAll();
-    toast.success('Estágio atualizado!');
+    toast.success(targetStage?.stage_type === 'won' ? '🎉 Negócio ganho!' : 'Estágio atualizado!');
+  };
+
+  const handleMarkWon = async () => {
+    if (!user || !id || !deal) return;
+    const wonKey = wonStage?.key;
+    if (wonKey) {
+      await handleStageChange(wonKey);
+    } else {
+      // No won stage in funnel: just archive internally
+      const { error } = await supabase.from('deals').update({ stage: '__won__', loss_reason: null } as any).eq('id', id);
+      if (error) { toast.error('Erro ao salvar'); return; }
+      await supabase.from('activities').insert({
+        type: 'deal_won',
+        title: 'Negócio marcado como Ganho',
+        description: `Negócio "${deal.name}" foi marcado como ganho`,
+        company_id: deal.company_id,
+        created_by: user.id,
+      });
+      fireConfetti();
+      invalidateAll();
+      toast.success('🎉 Negócio ganho!');
+    }
+  };
+
+  const handleMarkLost = () => {
+    setLossModalOpen(true);
+  };
+
+  const handleLossConfirm = async (reason: string) => {
+    if (!user || !id || !deal) return;
+    const lostKey = lostStage?.key || '__lost__';
+    const { error } = await supabase.from('deals').update({ stage: lostKey, loss_reason: reason } as any).eq('id', id);
+    if (error) { toast.error('Erro ao salvar'); return; }
+    await supabase.from('activities').insert({
+      type: 'deal_lost',
+      title: 'Negócio marcado como Perdido',
+      description: `Motivo: ${reason}`,
+      company_id: deal.company_id,
+      created_by: user.id,
+    });
+    setLossModalOpen(false);
+    invalidateAll();
+    toast.success('Negócio marcado como perdido.');
   };
 
   const handleLogActivity = async (e: React.FormEvent) => {
@@ -163,6 +225,10 @@ export default function DealDetail() {
   const company = deal.companies as { id: string; name: string } | null;
   const formatCurrency = (v: number | null) => v != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : '-';
 
+  // Determine current stage type
+  const currentStageData = stagesData.find(s => s.key === deal.stage);
+  const isDealClosed = currentStageData?.stage_type === 'won' || currentStageData?.stage_type === 'lost' || deal.stage === '__won__' || deal.stage === '__lost__';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -174,6 +240,16 @@ export default function DealDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {!isDealClosed && (
+            <>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkWon}>
+                <Trophy className="h-4 w-4 mr-1" />Marcar como Ganho
+              </Button>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleMarkLost}>
+                <XCircle className="h-4 w-4 mr-1" />Marcar como Perdido
+              </Button>
+            </>
+          )}
           <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
@@ -265,7 +341,6 @@ export default function DealDetail() {
             )}
           </Accordion>
 
-          {/* Followers */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Eye className="h-4 w-4" />Seguidores</CardTitle>
@@ -320,22 +395,10 @@ export default function DealDetail() {
               <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
               <TabsTrigger value="files" className="text-xs gap-1.5"><Paperclip className="h-3.5 w-3.5" />Arquivos</TabsTrigger>
             </TabsList>
-
-            <TabsContent value="timeline" className="mt-3">
-              <ActivityTimeline activities={activities} profiles={profilesMap} />
-            </TabsContent>
-
-            <TabsContent value="comments" className="mt-3">
-              <CommentBox entityType="deal" entityId={id!} />
-            </TabsContent>
-
-            <TabsContent value="tasks" className="mt-3">
-              <TasksChecklist dealId={id} />
-            </TabsContent>
-
-            <TabsContent value="files" className="mt-3">
-              <FileManager entityType="deal" entityId={id!} />
-            </TabsContent>
+            <TabsContent value="timeline" className="mt-3"><ActivityTimeline activities={activities} profiles={profilesMap} /></TabsContent>
+            <TabsContent value="comments" className="mt-3"><CommentBox entityType="deal" entityId={id!} /></TabsContent>
+            <TabsContent value="tasks" className="mt-3"><TasksChecklist dealId={id} /></TabsContent>
+            <TabsContent value="files" className="mt-3"><FileManager entityType="deal" entityId={id!} /></TabsContent>
           </Tabs>
         </div>
 
@@ -389,6 +452,13 @@ export default function DealDetail() {
           </Card>
         </div>
       </div>
+
+      <LossReasonModal
+        open={lossModalOpen}
+        dealName={deal.name}
+        onCancel={() => setLossModalOpen(false)}
+        onConfirm={handleLossConfirm}
+      />
     </div>
   );
 }

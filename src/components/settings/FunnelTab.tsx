@@ -8,10 +8,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { GripVertical, Plus, Trash2, Pencil, Loader2 } from 'lucide-react';
+
+const STAGE_TYPE_LABELS: Record<string, string> = {
+  active: 'Ativa',
+  won: 'Ganha',
+  lost: 'Perdida',
+};
+
+const STAGE_TYPE_COLORS: Record<string, string> = {
+  active: 'bg-muted text-muted-foreground',
+  won: 'bg-emerald-100 text-emerald-700',
+  lost: 'bg-destructive/10 text-destructive',
+};
 
 export function FunnelTab() {
   const { role } = useAuth();
@@ -20,8 +33,9 @@ export function FunnelTab() {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ key: '', label: '', color: 'bg-muted text-muted-foreground' });
+  const [form, setForm] = useState({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' as 'active' | 'won' | 'lost' });
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['funnel-stages'] });
@@ -35,24 +49,38 @@ export function FunnelTab() {
       label: form.label.trim(),
       color: form.color,
       sort_order: maxOrder,
+      stage_type: form.stage_type,
     } as any);
     setSaving(false);
     if (error) { toast.error(error.message.includes('duplicate') ? 'Chave já existe' : 'Erro: ' + error.message); return; }
     toast.success('Estágio criado!');
     setAddOpen(false);
-    setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground' });
+    setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' });
     invalidate();
   };
 
   const handleEdit = async () => {
     if (!editOpen || !form.label.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from('funnel_stages').update({ label: form.label.trim(), color: form.color } as any).eq('id', editOpen);
+    const { error } = await supabase.from('funnel_stages').update({ label: form.label.trim(), color: form.color, stage_type: form.stage_type } as any).eq('id', editOpen);
     setSaving(false);
     if (error) { toast.error('Erro: ' + error.message); return; }
     toast.success('Estágio atualizado!');
     setEditOpen(null);
     invalidate();
+  };
+
+  const handleTryDelete = async (stageId: string) => {
+    const stage = stages.find(s => s.id === stageId);
+    if (!stage) return;
+    // Check if there are deals in this stage
+    const { count, error } = await supabase.from('deals').select('id', { count: 'exact', head: true }).eq('stage', stage.key);
+    if (error) { toast.error('Erro ao verificar negócios'); return; }
+    if (count && count > 0) {
+      setDeleteBlocked(count);
+      return;
+    }
+    setDeleteId(stageId);
   };
 
   const handleDelete = async () => {
@@ -74,8 +102,6 @@ export function FunnelTab() {
     const toIdx = items.findIndex(s => s.id === targetId);
     const [moved] = items.splice(fromIdx, 1);
     items.splice(toIdx, 0, moved);
-
-    // Update sort orders
     const updates = items.map((s, i) => supabase.from('funnel_stages').update({ sort_order: i } as any).eq('id', s.id));
     await Promise.all(updates);
     setDraggedId(null);
@@ -94,7 +120,7 @@ export function FunnelTab() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Estágios do funil de vendas utilizados no pipeline de negócios.</p>
         {role === 'admin' && (
-          <Button size="sm" onClick={() => { setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground' }); setAddOpen(true); }}>
+          <Button size="sm" onClick={() => { setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' }); setAddOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />Novo Estágio
           </Button>
         )}
@@ -115,15 +141,16 @@ export function FunnelTab() {
                 {role === 'admin' && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                 <span className="text-sm font-medium text-foreground w-8">{index + 1}.</span>
                 <Badge className={`${stage.color} border-0 text-xs`}>{stage.label}</Badge>
+                <Badge className={`${STAGE_TYPE_COLORS[stage.stage_type]} border-0 text-[10px]`}>{STAGE_TYPE_LABELS[stage.stage_type]}</Badge>
                 <code className="text-xs text-muted-foreground font-mono ml-auto mr-2">{stage.key}</code>
                 {stage.is_system && <Badge variant="outline" className="text-[10px]">Sistema</Badge>}
                 {role === 'admin' && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color }); setEditOpen(stage.id); }}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color, stage_type: stage.stage_type }); setEditOpen(stage.id); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     {!stage.is_system && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteId(stage.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleTryDelete(stage.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -148,6 +175,17 @@ export function FunnelTab() {
               <Label>Chave (slug)</Label>
               <Input value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} placeholder="demonstracao" />
             </div>
+            <div className="space-y-2">
+              <Label>Tipo de Estágio</Label>
+              <Select value={form.stage_type} onValueChange={(v) => setForm({ ...form, stage_type: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativa</SelectItem>
+                  <SelectItem value="won">Ganha</SelectItem>
+                  <SelectItem value="lost">Perdida</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleAdd} disabled={saving || !form.label.trim() || !form.key.trim()}>
@@ -165,6 +203,17 @@ export function FunnelTab() {
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Estágio</Label>
+              <Select value={form.stage_type} onValueChange={(v) => setForm({ ...form, stage_type: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativa</SelectItem>
+                  <SelectItem value="won">Ganha</SelectItem>
+                  <SelectItem value="lost">Perdida</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -189,6 +238,21 @@ export function FunnelTab() {
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Blocked Delete Info */}
+      <AlertDialog open={deleteBlocked !== null} onOpenChange={(o) => !o && setDeleteBlocked(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Não é possível excluir</AlertDialogTitle>
+            <AlertDialogDescription>
+              Existem {deleteBlocked} negócio(s) neste estágio. Mova-os para outro estágio antes de excluir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Entendi</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

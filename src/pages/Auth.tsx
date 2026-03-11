@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Building2 } from 'lucide-react';
 
 const Auth = () => {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +26,7 @@ const Auth = () => {
       } else {
         await signIn(email, password);
         toast.success('Login realizado com sucesso!');
+        navigate('/', { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message);

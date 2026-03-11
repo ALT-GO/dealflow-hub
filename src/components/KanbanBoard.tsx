@@ -78,28 +78,25 @@ export function KanbanBoard({ filters = {} }: Props) {
   });
 
   const stageProbability = (() => {
-    const totalClosed = allDeals.filter(d => d.stage === 'fechado').length;
+    const wonStages = STAGES.filter(s => s.stage_type === 'won').map(s => s.key);
+    const lostStages = STAGES.filter(s => s.stage_type === 'lost').map(s => s.key);
+    const totalClosed = allDeals.filter(d => wonStages.includes(d.stage)).length;
     const totalAll = allDeals.length;
     if (totalAll === 0) return {} as Record<string, number>;
 
-    const stageWeights: Record<string, number> = {
-      prospeccao: 0.1, qualificacao: 0.3, proposta: 0.5, negociacao: 0.75, fechado: 1.0, perdido: 0,
-    };
-
-    if (totalClosed > 0) {
-      const baseRate = totalClosed / totalAll;
-      const result: Record<string, number> = {};
-      for (const stage of STAGES) {
-        if (stage.key === 'fechado') result[stage.key] = 100;
-        else if (stage.key === 'perdido') result[stage.key] = 0;
-        else result[stage.key] = Math.round(Math.min(baseRate * (stageWeights[stage.key] / 0.1) * 100, 95));
-      }
-      return result;
-    }
-
+    const activeStages = STAGES.filter(s => s.stage_type === 'active');
     const result: Record<string, number> = {};
     for (const stage of STAGES) {
-      result[stage.key] = Math.round(stageWeights[stage.key] * 100);
+      if (stage.stage_type === 'won') { result[stage.key] = 100; continue; }
+      if (stage.stage_type === 'lost') { result[stage.key] = 0; continue; }
+      const idx = activeStages.findIndex(s => s.key === stage.key);
+      const weight = activeStages.length > 1 ? (idx + 1) / activeStages.length : 0.5;
+      if (totalClosed > 0) {
+        const baseRate = totalClosed / totalAll;
+        result[stage.key] = Math.round(Math.min(baseRate * (weight / 0.1) * 100, 95));
+      } else {
+        result[stage.key] = Math.round(weight * 100);
+      }
     }
     return result;
   })();
@@ -130,13 +127,14 @@ export function KanbanBoard({ filters = {} }: Props) {
     const oldStage = deal?.stage || '';
     const updateData: any = { stage };
     if (lossReason) updateData.loss_reason = lossReason;
-    if (stage === 'fechado') updateData.loss_reason = null;
+    const targetStage = STAGES.find(s => s.key === stage);
+    if (targetStage?.stage_type === 'won') updateData.loss_reason = null;
 
     await supabase.from('deals').update(updateData).eq('id', dealId);
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     queryClient.invalidateQueries({ queryKey: ['deals-all-for-probability'] });
 
-    if (stage === 'fechado') {
+    if (targetStage?.stage_type === 'won') {
       fireConfetti();
       toast('🎉 Negócio Fechado!', { description: 'Parabéns pela conquista!' });
     }
@@ -154,17 +152,18 @@ export function KanbanBoard({ filters = {} }: Props) {
     );
   };
 
-  const handleDrop = async (e: React.DragEvent, stage: string) => {
+  const handleDrop = async (e: React.DragEvent, stageKey: string) => {
     e.preventDefault();
     const dealId = e.dataTransfer.getData('dealId');
     const deal = deals.find(d => d.id === dealId);
+    const targetStage = STAGES.find(s => s.key === stageKey);
 
-    if (stage === 'perdido') {
+    if (targetStage?.stage_type === 'lost') {
       setLossModal({ dealId, dealName: deal?.name || '' });
       return;
     }
 
-    await moveDeal(dealId, stage);
+    await moveDeal(dealId, stageKey);
   };
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
@@ -204,7 +203,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                   <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">{formatCurrency(total)}</p>
-                {probability !== undefined && stage.key !== 'perdido' && (
+                {probability !== undefined && stage.stage_type !== 'lost' && (
                   <div className="flex items-center gap-1 mt-1">
                     <TrendingUp className="h-3 w-3 text-muted-foreground" />
                     <span className="text-[10px] font-medium text-muted-foreground">{probability}% probabilidade</span>
@@ -232,7 +231,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                         <Building2 className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{deal.companies?.name || '-'}</span>
                       </div>
-                      {deal.loss_reason && stage.key === 'perdido' && (
+                      {deal.loss_reason && stage.stage_type === 'lost' && (
                         <Badge variant="destructive" className="text-[10px]">
                           {deal.loss_reason}
                         </Badge>
