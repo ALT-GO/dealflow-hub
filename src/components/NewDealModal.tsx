@@ -16,6 +16,8 @@ import { useFunnelStages } from '@/hooks/useFunnelStages';
 export function NewDealModal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: stagesData = [] } = useFunnelStages();
+  const STAGES = stagesData.filter(s => s.key !== 'perdido').map(s => ({ value: s.key, label: s.label }));
   const [open, setOpen] = useState(false);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
