@@ -43,7 +43,7 @@ export function FunnelTab() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteBlocked, setDeleteBlocked] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' as 'active' | 'won' | 'lost' });
+  const [form, setForm] = useState({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' as 'active' | 'won' | 'lost', allowed_roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] as string[] });
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['funnel-stages'] });
