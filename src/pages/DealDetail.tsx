@@ -27,18 +27,7 @@ import {
   ArrowLeft, Building2, DollarSign, Calendar, Clock, Layers, Eye,
   StickyNote, Activity, ListTodo, MessageCircle, Paperclip, Users, Trash2, Pencil,
 } from 'lucide-react';
-
-const stageLabels: Record<string, string> = {
-  prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
-  negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido',
-};
-const stageColors: Record<string, string> = {
-  prospeccao: 'bg-muted text-muted-foreground', qualificacao: 'bg-primary/10 text-primary',
-  proposta: 'bg-accent/10 text-accent', negociacao: 'bg-warning/10 text-warning',
-  fechado: 'bg-success/10 text-success', perdido: 'bg-destructive/10 text-destructive',
-};
-
-const STAGES = ['prospeccao', 'qualificacao', 'proposta', 'negociacao', 'fechado', 'perdido'];
+import { useFunnelStages } from '@/hooks/useFunnelStages';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
