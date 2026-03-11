@@ -236,8 +236,10 @@ export function TeamsTab() {
                     <Select value={inviteForm.role} onValueChange={(v) => setInviteForm({ ...inviteForm, role: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="vendedor">Vendedor</SelectItem>
+                                <SelectItem value="orcamentista">Orçamentista</SelectItem>
+                                <SelectItem value="gerencia">Gerência</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
