@@ -149,7 +149,7 @@ export function KanbanBoard({ filters = {} }: Props) {
       dealId,
       'deal_stage_changed',
       `Negócio "${deal?.name}" mudou de estágio`,
-      `${myName} moveu de ${stageLabels[oldStage] || oldStage} → ${stageLabels[stage] || stage}`,
+      `${myName} moveu de ${stageLabelsMap[oldStage] || oldStage} → ${stageLabelsMap[stage] || stage}`,
       user?.id
     );
   };
