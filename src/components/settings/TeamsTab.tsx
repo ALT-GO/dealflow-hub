@@ -566,7 +566,9 @@ export function TeamsTab() {
                     <TableRow key={inv.id}>
                       <TableCell className="font-medium text-sm text-foreground">{inv.email}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-xs">{inv.role === 'admin' ? 'Admin' : 'Vendedor'}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {inv.role === 'admin' ? 'Admin' : inv.role === 'gerencia' ? 'Gerência' : inv.role === 'orcamentista' ? 'Orçamentista' : 'Vendedor'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={inv.status === 'pending' ? 'outline' : 'secondary'} className="text-xs">

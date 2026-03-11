@@ -105,7 +105,9 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="mb-2 px-2">
             <p className="text-xs text-sidebar-muted truncate">{user?.email}</p>
-            <p className="text-[11px] font-semibold text-sidebar-primary capitalize">{role}</p>
+            <p className="text-[11px] font-semibold text-sidebar-primary capitalize">
+              {role === 'admin' ? 'Admin' : role === 'gerencia' ? 'Gerência' : role === 'orcamentista' ? 'Orçamentista' : 'Vendedor'}
+            </p>
           </div>
         )}
         <Button variant="ghost" size={collapsed ? 'icon' : 'sm'} className="w-full text-sidebar-foreground hover:bg-sidebar-accent rounded-lg text-[13px]" onClick={signOut}>
