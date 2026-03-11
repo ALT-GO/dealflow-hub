@@ -504,6 +504,7 @@ export type Database = {
           key: string
           label: string
           sort_order: number
+          stage_type: string
         }
         Insert: {
           color?: string
@@ -513,6 +514,7 @@ export type Database = {
           key: string
           label: string
           sort_order?: number
+          stage_type?: string
         }
         Update: {
           color?: string
@@ -522,6 +524,7 @@ export type Database = {
           key?: string
           label?: string
           sort_order?: number
+          stage_type?: string
         }
         Relationships: []
       }
