@@ -74,6 +74,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/landing-page" element={<LandingPage />} />
+            <Route path="/solicitar-proposta" element={<ProposalRequest />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </AuthProvider>
