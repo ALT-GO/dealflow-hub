@@ -44,6 +44,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Performance() {
   const { user } = useAuth();
+  const { data: lossReasonsList = [] } = useLossReasons();
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
