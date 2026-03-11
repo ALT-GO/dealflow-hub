@@ -195,6 +195,25 @@ export function FunnelTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Visibilidade por Papel</Label>
+              <div className="space-y-2">
+                {ALL_ROLES.map(r => (
+                  <div key={r.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`add-role-${r.value}`}
+                      checked={form.allowed_roles.includes(r.value)}
+                      disabled={r.value === 'admin'}
+                      onCheckedChange={(checked) => {
+                        if (checked) setForm({ ...form, allowed_roles: [...form.allowed_roles, r.value] });
+                        else setForm({ ...form, allowed_roles: form.allowed_roles.filter(x => x !== r.value) });
+                      }}
+                    />
+                    <label htmlFor={`add-role-${r.value}`} className="text-sm">{r.label}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleAdd} disabled={saving || !form.label.trim() || !form.key.trim()}>
