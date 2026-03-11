@@ -1,4 +1,4 @@
-import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp } from 'lucide-react';
+import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp, CalendarRange } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,7 @@ const navItems = [
   { title: 'Empresas', url: '/companies', icon: Building2 },
   { title: 'Contatos', url: '/contacts', icon: Users },
   { title: 'Performance', url: '/performance', icon: TrendingUp },
+  { title: 'Ocupação Equipe', url: '/ocupacao', icon: CalendarRange },
 ];
 
 const settingsItems = [

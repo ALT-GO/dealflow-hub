@@ -18,6 +18,8 @@ import ContactDetail from "./pages/ContactDetail";
 import Settings from "./pages/Settings";
 import Automations from "./pages/Automations";
 import Performance from "./pages/Performance";
+import EstimatorSchedule from "./pages/EstimatorSchedule";
+import ProposalRequest from "./pages/ProposalRequest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +57,7 @@ function ProtectedRoutes() {
         <Route path="/settings" element={<RoleGuard path="/settings"><Settings /></RoleGuard>} />
         <Route path="/settings/automations" element={<RoleGuard path="/settings/automations"><Automations /></RoleGuard>} />
         <Route path="/performance" element={<RoleGuard path="/performance"><Performance /></RoleGuard>} />
+        <Route path="/ocupacao" element={<EstimatorSchedule />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
@@ -71,6 +74,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/landing-page" element={<LandingPage />} />
+            <Route path="/solicitar-proposta" element={<ProposalRequest />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </AuthProvider>
