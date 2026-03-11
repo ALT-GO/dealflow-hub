@@ -11,8 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { GripVertical, Plus, Trash2, Pencil, Loader2 } from 'lucide-react';
+
+const ALL_ROLES = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'gerencia', label: 'Gerência' },
+  { value: 'orcamentista', label: 'Orçamentista' },
+  { value: 'vendedor', label: 'Vendedor' },
+];
 
 const STAGE_TYPE_LABELS: Record<string, string> = {
   active: 'Ativa',
