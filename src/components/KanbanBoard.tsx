@@ -142,10 +142,8 @@ export function KanbanBoard({ filters = {} }: Props) {
     }
 
     // Notify followers about stage change
-    const stageLabels: Record<string, string> = {
-      prospeccao: 'Prospecção', qualificacao: 'Qualificação', proposta: 'Proposta',
-      negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido',
-    };
+    const stageLabelsMap: Record<string, string> = {};
+    STAGES.forEach(s => { stageLabelsMap[s.key] = s.label; });
     const myName = profiles.find(p => p.user_id === user?.id)?.full_name || 'Alguém';
     await notifyDealFollowers(
       dealId,
