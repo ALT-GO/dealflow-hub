@@ -203,7 +203,6 @@ export function KanbanBoard({ filters = {} }: Props) {
         {STAGES.map((stage) => {
           const stageDeals = deals.filter((d) => d.stage === stage.key);
           const total = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
-          const probability = stageProbability[stage.key];
 
           return (
             <div
@@ -218,12 +217,6 @@ export function KanbanBoard({ filters = {} }: Props) {
                   <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">{formatCurrency(total)}</p>
-                {probability !== undefined && stage.stage_type !== 'lost' && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-[10px] font-medium text-muted-foreground">{probability}% probabilidade</span>
-                  </div>
-                )}
               </div>
               <div className="space-y-2 min-h-[200px] bg-muted/30 rounded-b-xl p-2">
                 {stageDeals.map((deal) => (

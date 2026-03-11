@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Plus, Search, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { CsvImport } from '@/components/CsvImport';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
@@ -143,10 +144,12 @@ export default function Contacts() {
           <h1 className="text-2xl font-display font-bold text-foreground">Contatos</h1>
           <p className="text-muted-foreground text-sm">{contacts.length} contatos cadastrados</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Novo Contato</Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <CsvImport entityType="contacts" onComplete={() => queryClient.invalidateQueries({ queryKey: ['contacts'] })} />
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />Novo Contato</Button>
+            </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Novo Contato</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -201,6 +204,7 @@ export default function Contacts() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <ViewTabs entityType="contacts" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
