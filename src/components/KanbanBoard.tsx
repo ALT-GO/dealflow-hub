@@ -126,7 +126,7 @@ export function KanbanBoard({ filters = {} }: Props) {
     const deal = deals.find(d => d.id === dealId);
     const oldStage = deal?.stage || '';
     const updateData: any = { stage };
-    if (stage === 'fechado') updateData.loss_reason = null;
+    if (lossReason) updateData.loss_reason = lossReason;
     const targetStage = STAGES.find(s => s.key === stage);
     if (targetStage?.stage_type === 'won') updateData.loss_reason = null;
 
