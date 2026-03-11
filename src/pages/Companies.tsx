@@ -105,10 +105,12 @@ export default function Companies() {
           <h1 className="text-2xl font-display font-bold text-foreground">Empresas</h1>
           <p className="text-muted-foreground text-sm">{companies.length} empresas cadastradas</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Nova Empresa</Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <CsvImport entityType="companies" onComplete={() => queryClient.invalidateQueries({ queryKey: ['companies'] })} />
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />Nova Empresa</Button>
+            </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Empresa</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
