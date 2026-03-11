@@ -231,7 +231,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                         <Building2 className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{deal.companies?.name || '-'}</span>
                       </div>
-                      {deal.loss_reason && stage.key === 'perdido' && (
+                      {deal.loss_reason && stage.stage_type === 'lost' && (
                         <Badge variant="destructive" className="text-[10px]">
                           {deal.loss_reason}
                         </Badge>
