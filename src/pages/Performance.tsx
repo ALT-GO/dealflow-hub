@@ -153,7 +153,7 @@ export default function Performance() {
     lossReasonCounts[r] = (lossReasonCounts[r] || 0) + 1;
   });
   const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
-    const found = LOSS_REASONS.find(r => r.value === key);
+    const found = lossReasonsList.find(r => r.value === key);
     return { name: found?.label || key, value: count };
   }).sort((a, b) => b.value - a.value);
 
