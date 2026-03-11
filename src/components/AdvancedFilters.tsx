@@ -205,6 +205,23 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
                 </Select>
               </div>
 
+              {entityType === 'deals' && (
+                <div className="space-y-3">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Qualificação (Estrelas)</Label>
+                  <Select value={(filters as any).minStars || 'all'} onValueChange={(v) => onFiltersChange({ ...filters, minStars: v === 'all' ? '' : v } as any)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="1">⭐ 1+ estrela</SelectItem>
+                      <SelectItem value="2">⭐⭐ 2+ estrelas</SelectItem>
+                      <SelectItem value="3">⭐⭐⭐ 3+ estrelas</SelectItem>
+                      <SelectItem value="4">⭐⭐⭐⭐ 4+ estrelas</SelectItem>
+                      <SelectItem value="5">⭐⭐⭐⭐⭐ 5 estrelas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-4 border-t border-border">
                 {hasFilters && (
                   <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs gap-1">
