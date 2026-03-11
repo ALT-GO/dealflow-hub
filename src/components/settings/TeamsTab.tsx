@@ -420,7 +420,7 @@ export function TeamsTab() {
                           ) : (
                             <Badge variant="secondary" className={m.role === 'admin' ? 'bg-primary/10 text-primary text-xs' : 'bg-accent/10 text-accent text-xs'}>
                               <Shield className="h-3 w-3 mr-1" />
-                              {m.role === 'admin' ? 'Admin' : 'Vendedor'}
+                              {m.role === 'admin' ? 'Admin' : m.role === 'gerencia' ? 'Gerência' : m.role === 'orcamentista' ? 'Orçamentista' : 'Vendedor'}
                             </Badge>
                           )}
                         </TableCell>
