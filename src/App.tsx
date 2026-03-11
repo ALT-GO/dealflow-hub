@@ -57,6 +57,7 @@ function ProtectedRoutes() {
         <Route path="/settings" element={<RoleGuard path="/settings"><Settings /></RoleGuard>} />
         <Route path="/settings/automations" element={<RoleGuard path="/settings/automations"><Automations /></RoleGuard>} />
         <Route path="/performance" element={<RoleGuard path="/performance"><Performance /></RoleGuard>} />
+        <Route path="/ocupacao" element={<EstimatorSchedule />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
