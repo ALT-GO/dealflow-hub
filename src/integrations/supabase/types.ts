@@ -495,6 +495,60 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      loss_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          value?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

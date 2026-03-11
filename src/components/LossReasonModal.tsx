@@ -1,18 +1,13 @@
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useLossReasons } from '@/hooks/useLossReasons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-
-const LOSS_REASONS = [
-  { value: 'preco', label: 'Preço' },
-  { value: 'concorrente', label: 'Concorrente' },
-  { value: 'sem_recurso', label: 'Falta de Recurso' },
-  { value: 'sumiu', label: 'Cliente sumiu' },
-  { value: 'timing', label: 'Timing inadequado' },
-  { value: 'outro', label: 'Outro' },
-];
 
 type Props = {
   open: boolean;
@@ -24,6 +19,7 @@ type Props = {
 export function LossReasonModal({ open, onConfirm, onCancel, dealName }: Props) {
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
+  const { data: lossReasons = [] } = useLossReasons();
 
   const handleConfirm = () => {
     if (!reason) return;
@@ -47,7 +43,7 @@ export function LossReasonModal({ open, onConfirm, onCancel, dealName }: Props) 
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
               <SelectContent>
-                {LOSS_REASONS.map((r) => (
+                {lossReasons.map((r) => (
                   <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -66,5 +62,3 @@ export function LossReasonModal({ open, onConfirm, onCancel, dealName }: Props) 
     </Dialog>
   );
 }
-
-export { LOSS_REASONS };

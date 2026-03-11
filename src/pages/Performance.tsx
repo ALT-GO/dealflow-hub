@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CircularProgress } from '@/components/CircularProgress';
-import { LOSS_REASONS } from '@/components/LossReasonModal';
+import { useLossReasons } from '@/hooks/useLossReasons';
 import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -44,6 +44,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function Performance() {
   const { user } = useAuth();
+  const { data: lossReasonsList = [] } = useLossReasons();
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
@@ -152,7 +153,7 @@ export default function Performance() {
     lossReasonCounts[r] = (lossReasonCounts[r] || 0) + 1;
   });
   const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
-    const found = LOSS_REASONS.find(r => r.value === key);
+    const found = lossReasonsList.find(r => r.value === key);
     return { name: found?.label || key, value: count };
   }).sort((a, b) => b.value - a.value);
 
