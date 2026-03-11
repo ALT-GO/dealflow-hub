@@ -203,7 +203,7 @@ export function KanbanBoard({ filters = {} }: Props) {
                   <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">{formatCurrency(total)}</p>
-                {probability !== undefined && stage.key !== 'perdido' && (
+                {probability !== undefined && stage.stage_type !== 'lost' && (
                   <div className="flex items-center gap-1 mt-1">
                     <TrendingUp className="h-3 w-3 text-muted-foreground" />
                     <span className="text-[10px] font-medium text-muted-foreground">{probability}% probabilidade</span>
