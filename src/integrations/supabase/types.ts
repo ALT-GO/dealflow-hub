@@ -399,42 +399,132 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_origins: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          sort_order: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          sort_order?: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          value?: string
+        }
+        Relationships: []
+      }
+      deal_qualification_answers: {
+        Row: {
+          answer: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          question_id: string
+          score: number
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          question_id: string
+          score?: number
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          question_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_qualification_answers_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_qualification_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "qualification_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
+          business_area: string | null
           close_date: string | null
           company_id: string
           contact_id: string | null
+          contract_type: string | null
           created_at: string
           id: string
           loss_reason: string | null
+          market: string | null
           name: string
+          orcamentista_id: string | null
+          origin_id: string | null
           owner_id: string
+          profit_margin: number | null
+          proposal_id: string | null
+          qualification_score: number | null
           stage: string
           updated_at: string
           value: number | null
         }
         Insert: {
+          business_area?: string | null
           close_date?: string | null
           company_id: string
           contact_id?: string | null
+          contract_type?: string | null
           created_at?: string
           id?: string
           loss_reason?: string | null
+          market?: string | null
           name: string
+          orcamentista_id?: string | null
+          origin_id?: string | null
           owner_id: string
+          profit_margin?: number | null
+          proposal_id?: string | null
+          qualification_score?: number | null
           stage?: string
           updated_at?: string
           value?: number | null
         }
         Update: {
+          business_area?: string | null
           close_date?: string | null
           company_id?: string
           contact_id?: string | null
+          contract_type?: string | null
           created_at?: string
           id?: string
           loss_reason?: string | null
+          market?: string | null
           name?: string
+          orcamentista_id?: string | null
+          origin_id?: string | null
           owner_id?: string
+          profit_margin?: number | null
+          proposal_id?: string | null
+          qualification_score?: number | null
           stage?: string
           updated_at?: string
           value?: number | null
@@ -452,6 +542,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_origin_id_fkey"
+            columns: ["origin_id"]
+            isOneToOne: false
+            referencedRelation: "deal_origins"
             referencedColumns: ["id"]
           },
         ]
@@ -639,6 +736,42 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      qualification_questions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          options: Json | null
+          question: string
+          question_type: string
+          sort_order: number
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          options?: Json | null
+          question: string
+          question_type?: string
+          sort_order?: number
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          options?: Json | null
+          question?: string
+          question_type?: string
+          sort_order?: number
+          weight?: number
         }
         Relationships: []
       }
@@ -873,6 +1006,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_proposal_id: { Args: { company_name: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
