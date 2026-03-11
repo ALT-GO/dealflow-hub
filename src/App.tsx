@@ -18,6 +18,8 @@ import ContactDetail from "./pages/ContactDetail";
 import Settings from "./pages/Settings";
 import Automations from "./pages/Automations";
 import Performance from "./pages/Performance";
+import EstimatorSchedule from "./pages/EstimatorSchedule";
+import ProposalRequest from "./pages/ProposalRequest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
