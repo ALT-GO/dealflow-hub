@@ -42,10 +42,12 @@ function fireConfetti() {
 }
 
 export function KanbanBoard({ filters = {} }: Props) {
-  const { user } = useAuth();
+  const { user, role: userRole } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { data: STAGES = [] } = useFunnelStages();
+  const { data: ALL_STAGES = [] } = useFunnelStages();
+  // Filter stages by user role
+  const STAGES = userRole ? ALL_STAGES.filter(s => s.allowed_roles?.includes(userRole)) : ALL_STAGES;
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
 
   const { data: deals = [], isLoading } = useQuery({
