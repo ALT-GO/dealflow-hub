@@ -200,6 +200,8 @@ export function TeamsTab() {
   };
 
   const admins = members.filter((m) => m.role === 'admin');
+  const managers = members.filter((m) => m.role === 'gerencia');
+  const budgeters = members.filter((m) => m.role === 'orcamentista');
   const sellers = members.filter((m) => m.role === 'vendedor');
   const totalPipeline = members.reduce((sum, m) => sum + m.deal_value, 0);
   const totalDeals = members.reduce((sum, m) => sum + m.deal_count, 0);
@@ -217,7 +219,7 @@ export function TeamsTab() {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-muted-foreground">{members.length} membros · {admins.length} admin(s) · {sellers.length} vendedor(es)</p>
+        <p className="text-sm text-muted-foreground">{members.length} membros · {admins.length} admin(s) · {managers.length} gerência · {budgeters.length} orçamentista(s) · {sellers.length} vendedor(es)</p>
         {role === 'admin' && (
           <div className="flex items-center gap-2">
             <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
@@ -236,8 +238,10 @@ export function TeamsTab() {
                     <Select value={inviteForm.role} onValueChange={(v) => setInviteForm({ ...inviteForm, role: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="vendedor">Vendedor</SelectItem>
+                                <SelectItem value="orcamentista">Orçamentista</SelectItem>
+                                <SelectItem value="gerencia">Gerência</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -410,13 +414,15 @@ export function TeamsTab() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="gerencia">Gerência</SelectItem>
+                                <SelectItem value="orcamentista">Orçamentista</SelectItem>
                                 <SelectItem value="vendedor">Vendedor</SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
                             <Badge variant="secondary" className={m.role === 'admin' ? 'bg-primary/10 text-primary text-xs' : 'bg-accent/10 text-accent text-xs'}>
                               <Shield className="h-3 w-3 mr-1" />
-                              {m.role === 'admin' ? 'Admin' : 'Vendedor'}
+                              {m.role === 'admin' ? 'Admin' : m.role === 'gerencia' ? 'Gerência' : m.role === 'orcamentista' ? 'Orçamentista' : 'Vendedor'}
                             </Badge>
                           )}
                         </TableCell>
@@ -560,7 +566,9 @@ export function TeamsTab() {
                     <TableRow key={inv.id}>
                       <TableCell className="font-medium text-sm text-foreground">{inv.email}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-xs">{inv.role === 'admin' ? 'Admin' : 'Vendedor'}</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {inv.role === 'admin' ? 'Admin' : inv.role === 'gerencia' ? 'Gerência' : inv.role === 'orcamentista' ? 'Orçamentista' : 'Vendedor'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={inv.status === 'pending' ? 'outline' : 'secondary'} className="text-xs">

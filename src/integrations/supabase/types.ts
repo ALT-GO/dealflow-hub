@@ -497,6 +497,7 @@ export type Database = {
       }
       funnel_stages: {
         Row: {
+          allowed_roles: string[]
           color: string
           created_at: string
           id: string
@@ -507,6 +508,7 @@ export type Database = {
           stage_type: string
         }
         Insert: {
+          allowed_roles?: string[]
           color?: string
           created_at?: string
           id?: string
@@ -517,6 +519,7 @@ export type Database = {
           stage_type?: string
         }
         Update: {
+          allowed_roles?: string[]
           color?: string
           created_at?: string
           id?: string
@@ -879,7 +882,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "vendedor"
+      app_role: "admin" | "vendedor" | "gerencia" | "orcamentista"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1007,7 +1010,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "vendedor"],
+      app_role: ["admin", "vendedor", "gerencia", "orcamentista"],
     },
   },
 } as const

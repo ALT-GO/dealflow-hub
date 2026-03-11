@@ -11,8 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { GripVertical, Plus, Trash2, Pencil, Loader2 } from 'lucide-react';
+
+const ALL_ROLES = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'gerencia', label: 'Gerência' },
+  { value: 'orcamentista', label: 'Orçamentista' },
+  { value: 'vendedor', label: 'Vendedor' },
+];
 
 const STAGE_TYPE_LABELS: Record<string, string> = {
   active: 'Ativa',
@@ -35,7 +43,7 @@ export function FunnelTab() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteBlocked, setDeleteBlocked] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' as 'active' | 'won' | 'lost' });
+  const [form, setForm] = useState({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' as 'active' | 'won' | 'lost', allowed_roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] as string[] });
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['funnel-stages'] });
@@ -50,19 +58,20 @@ export function FunnelTab() {
       color: form.color,
       sort_order: maxOrder,
       stage_type: form.stage_type,
+      allowed_roles: form.allowed_roles,
     } as any);
     setSaving(false);
     if (error) { toast.error(error.message.includes('duplicate') ? 'Chave já existe' : 'Erro: ' + error.message); return; }
     toast.success('Estágio criado!');
     setAddOpen(false);
-    setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' });
+    setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active', allowed_roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] });
     invalidate();
   };
 
   const handleEdit = async () => {
     if (!editOpen || !form.label.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from('funnel_stages').update({ label: form.label.trim(), color: form.color, stage_type: form.stage_type } as any).eq('id', editOpen);
+    const { error } = await supabase.from('funnel_stages').update({ label: form.label.trim(), color: form.color, stage_type: form.stage_type, allowed_roles: form.allowed_roles } as any).eq('id', editOpen);
     setSaving(false);
     if (error) { toast.error('Erro: ' + error.message); return; }
     toast.success('Estágio atualizado!');
@@ -120,7 +129,7 @@ export function FunnelTab() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Estágios do funil de vendas utilizados no pipeline de negócios.</p>
         {role === 'admin' && (
-          <Button size="sm" onClick={() => { setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active' }); setAddOpen(true); }}>
+          <Button size="sm" onClick={() => { setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active', allowed_roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] }); setAddOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />Novo Estágio
           </Button>
         )}
@@ -146,7 +155,7 @@ export function FunnelTab() {
                 {stage.is_system && <Badge variant="outline" className="text-[10px]">Sistema</Badge>}
                 {role === 'admin' && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color, stage_type: stage.stage_type }); setEditOpen(stage.id); }}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color, stage_type: stage.stage_type, allowed_roles: stage.allowed_roles || ['admin', 'gerencia', 'orcamentista', 'vendedor'] }); setEditOpen(stage.id); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     {!stage.is_system && (
@@ -186,6 +195,25 @@ export function FunnelTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Visibilidade por Papel</Label>
+              <div className="space-y-2">
+                {ALL_ROLES.map(r => (
+                  <div key={r.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`add-role-${r.value}`}
+                      checked={form.allowed_roles.includes(r.value)}
+                      disabled={r.value === 'admin'}
+                      onCheckedChange={(checked) => {
+                        if (checked) setForm({ ...form, allowed_roles: [...form.allowed_roles, r.value] });
+                        else setForm({ ...form, allowed_roles: form.allowed_roles.filter(x => x !== r.value) });
+                      }}
+                    />
+                    <label htmlFor={`add-role-${r.value}`} className="text-sm">{r.label}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleAdd} disabled={saving || !form.label.trim() || !form.key.trim()}>
@@ -214,6 +242,25 @@ export function FunnelTab() {
                   <SelectItem value="lost">Perdida</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Visibilidade por Papel</Label>
+              <div className="space-y-2">
+                {ALL_ROLES.map(r => (
+                  <div key={r.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`edit-role-${r.value}`}
+                      checked={form.allowed_roles.includes(r.value)}
+                      disabled={r.value === 'admin'}
+                      onCheckedChange={(checked) => {
+                        if (checked) setForm({ ...form, allowed_roles: [...form.allowed_roles, r.value] });
+                        else setForm({ ...form, allowed_roles: form.allowed_roles.filter(x => x !== r.value) });
+                      }}
+                    />
+                    <label htmlFor={`edit-role-${r.value}`} className="text-sm">{r.label}</label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>

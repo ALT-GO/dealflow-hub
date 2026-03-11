@@ -9,6 +9,7 @@ export type FunnelStage = {
   sort_order: number;
   is_system: boolean;
   stage_type: 'active' | 'won' | 'lost';
+  allowed_roles: string[];
 };
 
 export function useFunnelStages() {
