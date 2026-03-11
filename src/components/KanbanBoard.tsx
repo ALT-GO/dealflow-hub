@@ -151,17 +151,18 @@ export function KanbanBoard({ filters = {} }: Props) {
     );
   };
 
-  const handleDrop = async (e: React.DragEvent, stage: string) => {
+  const handleDrop = async (e: React.DragEvent, stageKey: string) => {
     e.preventDefault();
     const dealId = e.dataTransfer.getData('dealId');
     const deal = deals.find(d => d.id === dealId);
+    const targetStage = STAGES.find(s => s.key === stageKey);
 
-    if (stage === 'perdido') {
+    if (targetStage?.stage_type === 'lost') {
       setLossModal({ dealId, dealName: deal?.name || '' });
       return;
     }
 
-    await moveDeal(dealId, stage);
+    await moveDeal(dealId, stageKey);
   };
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
