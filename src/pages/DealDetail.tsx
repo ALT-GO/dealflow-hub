@@ -34,6 +34,11 @@ export default function DealDetail() {
   const navigate = useNavigate();
   const { user, role: userRole } = useAuth();
   const queryClient = useQueryClient();
+  const { data: stagesData = [] } = useFunnelStages();
+  const stageLabels: Record<string, string> = {};
+  const stageColors: Record<string, string> = {};
+  stagesData.forEach(s => { stageLabels[s.key] = s.label; stageColors[s.key] = s.color; });
+  const STAGES = stagesData.map(s => s.key);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityForm, setActivityForm] = useState({ type: 'meeting', title: '', description: '' });
   const [activitySaving, setActivitySaving] = useState(false);
