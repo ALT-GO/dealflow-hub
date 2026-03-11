@@ -219,7 +219,7 @@ export function TeamsTab() {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-muted-foreground">{members.length} membros · {admins.length} admin(s) · {sellers.length} vendedor(es)</p>
+        <p className="text-sm text-muted-foreground">{members.length} membros · {admins.length} admin(s) · {managers.length} gerência · {budgeters.length} orçamentista(s) · {sellers.length} vendedor(es)</p>
         {role === 'admin' && (
           <div className="flex items-center gap-2">
             <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
