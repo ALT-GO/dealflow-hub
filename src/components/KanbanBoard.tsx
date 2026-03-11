@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Building2, DollarSign, Calendar, TrendingUp } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
+import { ProfitMarginModal } from '@/components/ProfitMarginModal';
+import { StarRating } from '@/components/StarRating';
 import { notifyDealFollowers } from '@/components/DealFollowers';
 import { toast } from '@/components/ui/sonner';
 import confetti from 'canvas-confetti';
@@ -25,6 +27,9 @@ type Deal = {
   owner_id: string;
   created_at: string;
   loss_reason: string | null;
+  proposal_id: string | null;
+  qualification_score: number | null;
+  profit_margin: number | null;
   companies: { name: string } | null;
 };
 
@@ -46,16 +51,16 @@ export function KanbanBoard({ filters = {} }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: ALL_STAGES = [] } = useFunnelStages();
-  // Filter stages by user role
   const STAGES = userRole ? ALL_STAGES.filter(s => s.allowed_roles?.includes(userRole)) : ALL_STAGES;
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
+  const [profitModal, setProfitModal] = useState<{ dealId: string; dealName: string; dealValue: number; targetStage: string } | null>(null);
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', filters],
     queryFn: async () => {
       let q = supabase
         .from('deals')
-        .select('id, name, value, stage, close_date, updated_at, created_at, company_id, owner_id, loss_reason, companies(name)')
+        .select('id, name, value, stage, close_date, updated_at, created_at, company_id, owner_id, loss_reason, proposal_id, qualification_score, profit_margin, companies(name)')
         .order('created_at', { ascending: false });
 
       if (filters.ownerId === 'mine' && user) q = q.eq('owner_id', user.id);
@@ -63,6 +68,10 @@ export function KanbanBoard({ filters = {} }: Props) {
       if (filters.createdBefore) q = q.lte('created_at', filters.createdBefore + 'T23:59:59');
       if (filters.minValue) q = q.gte('value', Number(filters.minValue));
       if (filters.maxValue) q = q.lte('value', Number(filters.maxValue));
+      if ((filters as any).minStars) {
+        const minScore = (Number((filters as any).minStars) - 1) * 20 + 1;
+        q = q.gte('qualification_score', minScore);
+      }
 
       const { data, error } = await q;
       if (error) throw error;
@@ -81,11 +90,9 @@ export function KanbanBoard({ filters = {} }: Props) {
 
   const stageProbability = (() => {
     const wonStages = STAGES.filter(s => s.stage_type === 'won').map(s => s.key);
-    const lostStages = STAGES.filter(s => s.stage_type === 'lost').map(s => s.key);
     const totalClosed = allDeals.filter(d => wonStages.includes(d.stage)).length;
     const totalAll = allDeals.length;
     if (totalAll === 0) return {} as Record<string, number>;
-
     const activeStages = STAGES.filter(s => s.stage_type === 'active');
     const result: Record<string, number> = {};
     for (const stage of STAGES) {
@@ -124,11 +131,12 @@ export function KanbanBoard({ filters = {} }: Props) {
     e.dataTransfer.setData('dealId', dealId);
   };
 
-  const moveDeal = async (dealId: string, stage: string, lossReason?: string) => {
+  const moveDeal = async (dealId: string, stage: string, lossReason?: string, profitMargin?: number) => {
     const deal = deals.find(d => d.id === dealId);
     const oldStage = deal?.stage || '';
     const updateData: any = { stage };
     if (lossReason) updateData.loss_reason = lossReason;
+    if (profitMargin !== undefined) updateData.profit_margin = profitMargin;
     const targetStage = STAGES.find(s => s.key === stage);
     if (targetStage?.stage_type === 'won') updateData.loss_reason = null;
 
@@ -141,7 +149,6 @@ export function KanbanBoard({ filters = {} }: Props) {
       toast('🎉 Negócio Fechado!', { description: 'Parabéns pela conquista!' });
     }
 
-    // Notify followers about stage change
     const stageLabelsMap: Record<string, string> = {};
     STAGES.forEach(s => { stageLabelsMap[s.key] = s.label; });
     const myName = profiles.find(p => p.user_id === user?.id)?.full_name || 'Alguém';
@@ -162,6 +169,12 @@ export function KanbanBoard({ filters = {} }: Props) {
 
     if (targetStage?.stage_type === 'lost') {
       setLossModal({ dealId, dealName: deal?.name || '' });
+      return;
+    }
+
+    // Check profit margin for won stages
+    if (targetStage?.stage_type === 'won' && deal && !deal.profit_margin) {
+      setProfitModal({ dealId, dealName: deal.name, dealValue: deal.value || 0, targetStage: stageKey });
       return;
     }
 
@@ -223,7 +236,12 @@ export function KanbanBoard({ filters = {} }: Props) {
                   >
                     <CardContent className="p-3 space-y-2.5">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-bold text-sm text-card-foreground leading-tight">{deal.name}</p>
+                        <div className="min-w-0">
+                          {deal.proposal_id && (
+                            <p className="text-[10px] font-mono text-muted-foreground truncate">{deal.proposal_id}</p>
+                          )}
+                          <p className="font-bold text-sm text-card-foreground leading-tight">{deal.name}</p>
+                        </div>
                         <span
                           className={`flex-shrink-0 mt-1 h-2.5 w-2.5 rounded-full ${getHealthColor(deal.updated_at)}`}
                           title={`Última atualização: ${new Date(deal.updated_at).toLocaleDateString('pt-BR')}`}
@@ -233,6 +251,9 @@ export function KanbanBoard({ filters = {} }: Props) {
                         <Building2 className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{deal.companies?.name || '-'}</span>
                       </div>
+                      {(deal.qualification_score ?? 0) > 0 && (
+                        <StarRating score={deal.qualification_score || 0} />
+                      )}
                       {deal.loss_reason && stage.stage_type === 'lost' && (
                         <Badge variant="destructive" className="text-[10px]">
                           {deal.loss_reason}
@@ -272,12 +293,25 @@ export function KanbanBoard({ filters = {} }: Props) {
         onCancel={() => setLossModal(null)}
         onConfirm={async (reason) => {
           if (lossModal) {
-            await moveDeal(lossModal.dealId, 'perdido', reason);
+            const lostStage = STAGES.find(s => s.stage_type === 'lost');
+            await moveDeal(lossModal.dealId, lostStage?.key || 'perdido', reason);
             setLossModal(null);
           }
         }}
       />
 
+      <ProfitMarginModal
+        open={!!profitModal}
+        dealName={profitModal?.dealName}
+        dealValue={profitModal?.dealValue}
+        onCancel={() => setProfitModal(null)}
+        onConfirm={async (margin) => {
+          if (profitModal) {
+            await moveDeal(profitModal.dealId, profitModal.targetStage, undefined, margin);
+            setProfitModal(null);
+          }
+        }}
+      />
     </>
   );
 }
