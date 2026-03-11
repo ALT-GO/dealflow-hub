@@ -204,6 +204,7 @@ export default function Contacts() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <ViewTabs entityType="contacts" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />

@@ -142,6 +142,7 @@ export default function Companies() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <ViewTabs entityType="companies" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
