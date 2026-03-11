@@ -78,28 +78,25 @@ export function KanbanBoard({ filters = {} }: Props) {
   });
 
   const stageProbability = (() => {
-    const totalClosed = allDeals.filter(d => d.stage === 'fechado').length;
+    const wonStages = STAGES.filter(s => s.stage_type === 'won').map(s => s.key);
+    const lostStages = STAGES.filter(s => s.stage_type === 'lost').map(s => s.key);
+    const totalClosed = allDeals.filter(d => wonStages.includes(d.stage)).length;
     const totalAll = allDeals.length;
     if (totalAll === 0) return {} as Record<string, number>;
 
-    const stageWeights: Record<string, number> = {
-      prospeccao: 0.1, qualificacao: 0.3, proposta: 0.5, negociacao: 0.75, fechado: 1.0, perdido: 0,
-    };
-
-    if (totalClosed > 0) {
-      const baseRate = totalClosed / totalAll;
-      const result: Record<string, number> = {};
-      for (const stage of STAGES) {
-        if (stage.key === 'fechado') result[stage.key] = 100;
-        else if (stage.key === 'perdido') result[stage.key] = 0;
-        else result[stage.key] = Math.round(Math.min(baseRate * (stageWeights[stage.key] / 0.1) * 100, 95));
-      }
-      return result;
-    }
-
+    const activeStages = STAGES.filter(s => s.stage_type === 'active');
     const result: Record<string, number> = {};
     for (const stage of STAGES) {
-      result[stage.key] = Math.round(stageWeights[stage.key] * 100);
+      if (stage.stage_type === 'won') { result[stage.key] = 100; continue; }
+      if (stage.stage_type === 'lost') { result[stage.key] = 0; continue; }
+      const idx = activeStages.findIndex(s => s.key === stage.key);
+      const weight = activeStages.length > 1 ? (idx + 1) / activeStages.length : 0.5;
+      if (totalClosed > 0) {
+        const baseRate = totalClosed / totalAll;
+        result[stage.key] = Math.round(Math.min(baseRate * (weight / 0.1) * 100, 95));
+      } else {
+        result[stage.key] = Math.round(weight * 100);
+      }
     }
     return result;
   })();
