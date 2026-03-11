@@ -200,6 +200,8 @@ export function TeamsTab() {
   };
 
   const admins = members.filter((m) => m.role === 'admin');
+  const managers = members.filter((m) => m.role === 'gerencia');
+  const budgeters = members.filter((m) => m.role === 'orcamentista');
   const sellers = members.filter((m) => m.role === 'vendedor');
   const totalPipeline = members.reduce((sum, m) => sum + m.deal_value, 0);
   const totalDeals = members.reduce((sum, m) => sum + m.deal_count, 0);
