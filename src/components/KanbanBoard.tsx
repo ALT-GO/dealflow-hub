@@ -126,8 +126,9 @@ export function KanbanBoard({ filters = {} }: Props) {
     const deal = deals.find(d => d.id === dealId);
     const oldStage = deal?.stage || '';
     const updateData: any = { stage };
-    if (lossReason) updateData.loss_reason = lossReason;
     if (stage === 'fechado') updateData.loss_reason = null;
+    const targetStage = STAGES.find(s => s.key === stage);
+    if (targetStage?.stage_type === 'won') updateData.loss_reason = null;
 
     await supabase.from('deals').update(updateData).eq('id', dealId);
     queryClient.invalidateQueries({ queryKey: ['deals'] });
