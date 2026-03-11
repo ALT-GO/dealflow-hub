@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Plus, X } from 'lucide-react';
 import type { Filters } from '@/components/AdvancedFilters';
@@ -23,6 +24,7 @@ export function ViewTabs({ entityType, activeTab, onTabChange, currentFilters }:
   const queryClient = useQueryClient();
   const [saveOpen, setSaveOpen] = useState(false);
   const [viewName, setViewName] = useState('');
+  const [deleteViewId, setDeleteViewId] = useState<string | null>(null);
 
   const { data: savedViews = [] } = useQuery({
     queryKey: ['saved-views', entityType],
@@ -57,13 +59,16 @@ export function ViewTabs({ entityType, activeTab, onTabChange, currentFilters }:
     }
   };
 
-  const handleDeleteView = async (viewId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await supabase.from('saved_views').delete().eq('id', viewId);
+  const handleConfirmDeleteView = async () => {
+    if (!deleteViewId) return;
+    await supabase.from('saved_views').delete().eq('id', deleteViewId);
     queryClient.invalidateQueries({ queryKey: ['saved-views', entityType] });
-    if (activeTab === viewId) onTabChange('all', {});
+    if (activeTab === deleteViewId) onTabChange('all', {});
     toast.success('Visualização removida');
+    setDeleteViewId(null);
   };
+
+  const viewToDelete = savedViews.find(v => v.id === deleteViewId);
 
   const tabClass = (isActive: boolean) =>
     `relative px-4 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 border-b-2 ${
@@ -113,7 +118,7 @@ export function ViewTabs({ entityType, activeTab, onTabChange, currentFilters }:
           >
             {v.name}
             <span
-              onClick={(e) => handleDeleteView(v.id, e)}
+              onClick={(e) => { e.stopPropagation(); setDeleteViewId(v.id); }}
               className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10"
             >
               <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
@@ -150,6 +155,24 @@ export function ViewTabs({ entityType, activeTab, onTabChange, currentFilters }:
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteViewId} onOpenChange={(o) => !o && setDeleteViewId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir visualização</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a visualização salva "{viewToDelete?.name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteView} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
