@@ -1,4 +1,4 @@
-import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp, CalendarRange } from 'lucide-react';
+import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp, CalendarRange, FolderOpen } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
