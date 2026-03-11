@@ -134,7 +134,7 @@ export function KanbanBoard({ filters = {} }: Props) {
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     queryClient.invalidateQueries({ queryKey: ['deals-all-for-probability'] });
 
-    if (stage === 'fechado') {
+    if (targetStage?.stage_type === 'won') {
       fireConfetti();
       toast('🎉 Negócio Fechado!', { description: 'Parabéns pela conquista!' });
     }
