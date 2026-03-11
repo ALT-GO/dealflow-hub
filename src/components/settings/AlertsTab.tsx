@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,27 +10,30 @@ import { Bell, Save } from 'lucide-react';
 
 export function AlertsTab() {
   const queryClient = useQueryClient();
-  const [idleDays, setIdleDays] = useState<string>('');
+  const [idleDays, setIdleDays] = useState<string>('180');
   const [saving, setSaving] = useState(false);
 
   const { data: currentSetting } = useQuery({
     queryKey: ['system-settings', 'idle_alert_days'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('system_settings')
+      const { data, error } = await supabase
+        .from('system_settings' as any)
         .select('value')
         .eq('key', 'idle_alert_days')
         .maybeSingle();
-      if (data?.value) setIdleDays(data.value);
-      return data?.value || '180';
+      return (data as any)?.value || '180';
     },
   });
+
+  useEffect(() => {
+    if (currentSetting) setIdleDays(currentSetting);
+  }, [currentSetting]);
 
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase
-      .from('system_settings')
-      .upsert({ key: 'idle_alert_days', value: idleDays || '180' }, { onConflict: 'key' });
+      .from('system_settings' as any)
+      .upsert({ key: 'idle_alert_days', value: idleDays || '180' } as any, { onConflict: 'key' });
     setSaving(false);
     if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
     toast.success('Configuração salva!');

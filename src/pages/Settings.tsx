@@ -8,6 +8,7 @@ import { TeamsTab } from '@/components/settings/TeamsTab';
 import { PermissionsTab } from '@/components/settings/PermissionsTab';
 import { OriginsTab } from '@/components/settings/OriginsTab';
 import { QualificationTab } from '@/components/settings/QualificationTab';
+import { AlertsTab } from '@/components/settings/AlertsTab';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('objects');
@@ -20,7 +21,7 @@ export default function Settings() {
         </div>
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Configurações</h1>
-          <p className="text-sm text-muted-foreground">Gerencie objetos, funis, motivos de perda, equipes, permissões, origens e qualificação</p>
+          <p className="text-sm text-muted-foreground">Gerencie objetos, funis, motivos de perda, equipes, permissões, origens, qualificação e alertas</p>
         </div>
       </div>
 
@@ -33,6 +34,7 @@ export default function Settings() {
           <TabsTrigger value="qualification" className="flex-1 text-xs">Qualificação</TabsTrigger>
           <TabsTrigger value="teams" className="flex-1 text-xs">Equipes</TabsTrigger>
           <TabsTrigger value="permissions" className="flex-1 text-xs">Permissões</TabsTrigger>
+          <TabsTrigger value="alerts" className="flex-1 text-xs">Alertas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="objects"><ObjectsTab /></TabsContent>
@@ -42,6 +44,7 @@ export default function Settings() {
         <TabsContent value="qualification"><QualificationTab /></TabsContent>
         <TabsContent value="teams"><TeamsTab /></TabsContent>
         <TabsContent value="permissions"><PermissionsTab /></TabsContent>
+        <TabsContent value="alerts"><AlertsTab /></TabsContent>
       </Tabs>
     </div>
   );
