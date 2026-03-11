@@ -24,7 +24,9 @@ const queryClient = new QueryClient();
 
 function RoleGuard({ path, children }: { path: string; children: React.ReactNode }) {
   const { canAccess } = usePagePermissions();
-  if (!canAccess(path)) return <Navigate to="/" replace />;
+  if (!canAccess(path)) {
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 
