@@ -412,6 +412,8 @@ export function TeamsTab() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="gerencia">Gerência</SelectItem>
+                                <SelectItem value="orcamentista">Orçamentista</SelectItem>
                                 <SelectItem value="vendedor">Vendedor</SelectItem>
                               </SelectContent>
                             </Select>
