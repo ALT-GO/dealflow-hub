@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CircularProgress } from '@/components/CircularProgress';
-import { LOSS_REASONS } from '@/components/LossReasonModal';
+import { useLossReasons } from '@/hooks/useLossReasons';
 import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
