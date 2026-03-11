@@ -20,6 +20,7 @@ import Automations from "./pages/Automations";
 import Performance from "./pages/Performance";
 import EstimatorSchedule from "./pages/EstimatorSchedule";
 import ProposalRequest from "./pages/ProposalRequest";
+import FileLibrary from "./pages/FileLibrary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
