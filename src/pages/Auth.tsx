@@ -26,6 +26,7 @@ const Auth = () => {
       } else {
         await signIn(email, password);
         toast.success('Login realizado com sucesso!');
+        navigate('/', { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message);
