@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -12,15 +13,6 @@ import { notifyDealFollowers } from '@/components/DealFollowers';
 import { toast } from '@/components/ui/sonner';
 import confetti from 'canvas-confetti';
 import type { Filters } from '@/components/AdvancedFilters';
-
-const STAGES = [
-  { key: 'prospeccao', label: 'Prospecção', color: 'bg-muted' },
-  { key: 'qualificacao', label: 'Qualificação', color: 'bg-secondary' },
-  { key: 'proposta', label: 'Proposta', color: 'bg-accent/10' },
-  { key: 'negociacao', label: 'Negociação', color: 'bg-warning/10' },
-  { key: 'fechado', label: 'Fechado', color: 'bg-success/10' },
-  { key: 'perdido', label: 'Perdido', color: 'bg-destructive/10' },
-];
 
 type Deal = {
   id: string;
