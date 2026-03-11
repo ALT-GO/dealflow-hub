@@ -20,6 +20,7 @@ import Automations from "./pages/Automations";
 import Performance from "./pages/Performance";
 import EstimatorSchedule from "./pages/EstimatorSchedule";
 import ProposalRequest from "./pages/ProposalRequest";
+import FileLibrary from "./pages/FileLibrary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ function ProtectedRoutes() {
         <Route path="/settings/automations" element={<RoleGuard path="/settings/automations"><Automations /></RoleGuard>} />
         <Route path="/performance" element={<RoleGuard path="/performance"><Performance /></RoleGuard>} />
         <Route path="/ocupacao" element={<EstimatorSchedule />} />
+        <Route path="/biblioteca" element={<FileLibrary />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
