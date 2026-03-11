@@ -45,6 +45,7 @@ export function KanbanBoard({ filters = {} }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { data: STAGES = [] } = useFunnelStages();
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
 
   const { data: deals = [], isLoading } = useQuery({
