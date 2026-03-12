@@ -48,10 +48,7 @@ export default function Dashboard() {
     { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
   ];
 
-  const handleTabChange = (tab: ViewTab, tabFilters?: Filters) => {
-    setActiveTab(tab);
-    if (tabFilters) setFilters(tabFilters);
-  };
+  const effectiveFilters = onlyMine ? { ...filters, ownerId: 'mine' } : filters;
 
   return (
     <div className="space-y-6">
