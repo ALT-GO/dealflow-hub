@@ -243,8 +243,8 @@ export default function DealDetail() {
     const { error } = await supabase.from('activities').insert({
       type: activityForm.type, title: activityForm.title.trim(),
       description: activityForm.description.trim() || null,
-      company_id: deal.company_id, created_by: user.id,
-    });
+      company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+    } as any);
     setActivitySaving(false);
     if (error) { toast.error('Erro ao registrar atividade'); return; }
     toast.success('Atividade registrada!');
