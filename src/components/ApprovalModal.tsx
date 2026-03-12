@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SmartDatePicker } from '@/components/SmartDatePicker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useBudgetTeamMembers } from '@/hooks/useBudgetTeamMembers';
 import { toast } from 'sonner';
 import { Building2, DollarSign, Calendar, CheckCircle2, XCircle } from 'lucide-react';
 import { useEstimatorWorkload } from '@/components/EstimatorGantt';
