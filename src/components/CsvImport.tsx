@@ -231,7 +231,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
       // Partial match
       const partial = stageList.find(s => normalize(s.label).includes(n) || n.includes(normalize(s.label)));
       if (partial) return partial.key;
-      return 'prospeccao';
+      return 'appointmentscheduled';
     };
 
     // Build profiles cache for owner/orcamentista matching
