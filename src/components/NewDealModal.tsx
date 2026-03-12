@@ -44,10 +44,6 @@ export function NewDealModal() {
   const { data: origins = [] } = useOrigins();
   const { data: qualQuestions = [] } = useQualificationQuestions();
   const STAGES = stagesData.filter(s => s.stage_type !== 'lost').map(s => ({ value: s.key, label: s.label }));
-  const isBudgetStage = useMemo(() => {
-    const selectedStage = stagesData.find(s => s.key === form.stage);
-    return !!(selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento'));
-  }, [stagesData, form.stage]);
   const [open, setOpen] = useState(false);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
@@ -74,6 +70,10 @@ export function NewDealModal() {
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
   const { data: workloadMap = {} } = useEstimatorWorkload();
+  const isBudgetStage = useMemo(() => {
+    const selectedStage = stagesData.find(s => s.key === form.stage);
+    return !!(selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento'));
+  }, [stagesData, form.stage]);
 
   useEffect(() => {
     if (open) {
