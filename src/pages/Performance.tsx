@@ -409,7 +409,7 @@ export default function Performance() {
 
       {/* Burn-up */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" />Burn-up de Metas — {MONTHS_PT[currentMonth]}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" />Burn-up de Metas — {MONTHS_PT[currentMonth]} <InfoTip text="Gráfico de progresso acumulado. A linha tracejada mostra o ritmo ideal para atingir a meta. A linha sólida mostra o valor realizado dia a dia." /></CardTitle></CardHeader>
         <CardContent>
           {totalGoalValue > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
