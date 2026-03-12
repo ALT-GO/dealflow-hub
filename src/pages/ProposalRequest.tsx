@@ -26,6 +26,8 @@ const STATES = [
   'PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
 ];
 
+const TIPO_NEGOCIO_OPTIONS = ['Novo Cliente', 'Cliente Existente'];
+
 export default function ProposalRequest() {
   const [form, setForm] = useState({
     requester_name: '', requester_email: '',
@@ -33,6 +35,13 @@ export default function ProposalRequest() {
     business_area: '', address: '', state: '', team_type: '', project_phase: '',
     has_team: false, team_description: '', qualification_level: '', target_delivery_date: '',
     orcamentista_id: '',
+    // New fields
+    carbono_zero: false,
+    cortex: false,
+    endereco_execucao: '',
+    estudo_equipe: '',
+    tipo_negocio: '',
+    scope: '',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -104,7 +113,7 @@ export default function ProposalRequest() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1 */}
+          {/* Section 1 - Solicitante */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Seus Dados</CardTitle>
@@ -124,7 +133,7 @@ export default function ProposalRequest() {
             </CardContent>
           </Card>
 
-          {/* Section 2 */}
+          {/* Section 2 - Cliente */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Dados do Cliente</CardTitle>
@@ -156,7 +165,7 @@ export default function ProposalRequest() {
             </CardContent>
           </Card>
 
-          {/* Section 3 */}
+          {/* Section 3 - Solicitação */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Dados da Solicitação</CardTitle>
@@ -174,6 +183,15 @@ export default function ProposalRequest() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
+                  <Label>Tipo de Negócio</Label>
+                  <Select value={form.tipo_negocio} onValueChange={v => set('tipo_negocio', v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_NEGOCIO_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
                   <Label>Estado</Label>
                   <Select value={form.state} onValueChange={v => set('state', v)}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -182,9 +200,13 @@ export default function ProposalRequest() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="address">Endereço</Label>
                   <Input id="address" value={form.address} onChange={e => set('address', e.target.value)} maxLength={200} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="endereco_execucao">Endereço de Execução dos Serviços</Label>
+                  <Input id="endereco_execucao" value={form.endereco_execucao} onChange={e => set('endereco_execucao', e.target.value)} maxLength={300} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Equipe</Label>
@@ -223,6 +245,31 @@ export default function ProposalRequest() {
                     <Textarea id="team_description" value={form.team_description} onChange={e => set('team_description', e.target.value)} maxLength={500} rows={2} />
                   </div>
                 )}
+
+                {/* New toggles */}
+                <div className="space-y-1.5 flex items-end gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={form.carbono_zero} onCheckedChange={v => set('carbono_zero', v)} />
+                    <Label>Carbono Zero?</Label>
+                  </div>
+                </div>
+                <div className="space-y-1.5 flex items-end gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={form.cortex} onCheckedChange={v => set('cortex', v)} />
+                    <Label>Cortex?</Label>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="estudo_equipe">Há um estudo de equipe já definido?</Label>
+                  <Textarea id="estudo_equipe" value={form.estudo_equipe} onChange={e => set('estudo_equipe', e.target.value)} maxLength={500} rows={2} placeholder="Descreva o estudo de equipe, se houver..." />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="scope">Descrição do negócio / serviços</Label>
+                  <Textarea id="scope" value={form.scope} onChange={e => set('scope', e.target.value)} maxLength={2000} rows={3} placeholder="Descreva o escopo dos serviços solicitados..." />
+                </div>
+
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Data de Entrega Desejada</Label>
                   <SmartDatePicker
@@ -232,7 +279,6 @@ export default function ProposalRequest() {
                     placeholder="Selecionar data desejada"
                   />
                 </div>
-                {/* Other date fields intentionally hidden for external form - only target_delivery_date shown */}
               </div>
             </CardContent>
           </Card>
