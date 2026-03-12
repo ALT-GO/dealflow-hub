@@ -47,19 +47,25 @@ function useGlobalEstimatorAvailability() {
     staleTime: 60000,
   });
 
-  // 2. Get all active deals with orcamentista assignments
+  const estimatorIds = estimators.map(e => e.user_id);
+
+  // 2. Get all active deals assigned to any orçamentista — using budget_start_date & proposal_delivery_date
   const { data: dealSpans = [] } = useQuery<DealSpan[]>({
-    queryKey: ['global-deal-spans'],
+    queryKey: ['global-deal-spans', estimatorIds],
     queryFn: async () => {
+      if (estimatorIds.length === 0) return [];
       const { data } = await supabase
         .from('deals')
         .select('orcamentista_id, budget_start_date, proposal_delivery_date, target_delivery_date, close_date, created_at, stage')
-        .not('orcamentista_id', 'is', null);
+        .in('orcamentista_id', estimatorIds);
 
       const spans: DealSpan[] = [];
       for (const deal of (data || []) as any[]) {
         if (['fechado', 'perdido', '__won__', '__lost__'].includes(deal.stage)) continue;
-        const start = deal.budget_start_date ? parseISO(deal.budget_start_date) : parseISO(deal.created_at);
+        // For availability: use budget_start_date (when they start working) → proposal_delivery_date (when they deliver)
+        const start = deal.budget_start_date
+          ? parseISO(deal.budget_start_date)
+          : parseISO(deal.created_at);
         const end = deal.proposal_delivery_date
           ? parseISO(deal.proposal_delivery_date)
           : deal.target_delivery_date
@@ -71,6 +77,7 @@ function useGlobalEstimatorAvailability() {
       }
       return spans;
     },
+    enabled: estimatorIds.length > 0,
     staleTime: 30000,
   });
 

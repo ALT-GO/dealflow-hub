@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface EstimatorGanttProps {
   mini?: boolean;
@@ -49,6 +49,7 @@ const ESTIMATOR_PALETTE = [
 export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   const { user, role } = useAuth();
   const { data: funnelStages = [] } = useFunnelStages();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const totalDays = mini ? 21 : 56;
   const today = useMemo(() => new Date(), []);
@@ -115,8 +116,15 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     deals.filter(d => (d.orcamentista_id === userId || d.owner_id === userId) &&
       !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage));
 
-  const getDealSpan = (deal: GanttDeal) => {
-    const dealStart = deal.budget_start_date ? parseISO(deal.budget_start_date) : parseISO(deal.created_at);
+  /** Determine the bar span based on the user's role context:
+   * - Orçamentista row: budget_start_date → proposal_delivery_date
+   * - Vendedor row: created_at → proposal_delivery_date (when available)
+   */
+  const getDealSpan = (deal: GanttDeal, userId: string) => {
+    const isEstimatorRow = deal.orcamentista_id === userId;
+    const dealStart = isEstimatorRow && deal.budget_start_date
+      ? parseISO(deal.budget_start_date)
+      : parseISO(deal.created_at);
     const dealEnd = deal.proposal_delivery_date
       ? parseISO(deal.proposal_delivery_date)
       : deal.target_delivery_date
@@ -246,7 +254,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
 
                 {/* Deal rows */}
                 {!isCollapsed && userDeals.map((deal) => {
-                  const { start, end } = getDealSpan(deal);
+                  const { start, end } = getDealSpan(deal, usr.user_id);
                   const startOffset = Math.max(0, differenceInDays(start, startDate));
                   const endOffset = Math.min(totalDays - 1, differenceInDays(end, startDate));
                   const visible = endOffset >= 0 && startOffset < totalDays;
@@ -258,7 +266,12 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                     <div key={deal.id} className="flex border-b border-border/50 hover:bg-muted/10 transition-colors">
                       <div className={`${nameColWidth} px-2 py-0.5 text-[11px] border-r border-border flex-shrink-0 flex items-center gap-1.5 pl-7`}>
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: userColor }} />
-                        <span className="truncate text-muted-foreground">{deal.proposal_id || deal.name}</span>
+                        <span
+                          className="truncate text-muted-foreground hover:text-primary hover:underline cursor-pointer"
+                          onClick={() => navigate(`/negocios/${deal.id}`)}
+                        >
+                          {deal.proposal_id || deal.name}
+                        </span>
                       </div>
                       <div className="flex flex-1 relative" style={{ height: ROW_H }}>
                         {days.map((day, i) => {
@@ -272,7 +285,8 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div
-                                className="absolute rounded cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                                className="absolute rounded cursor-pointer hover:brightness-110 hover:scale-y-110 transition-all shadow-sm"
+                                onClick={() => navigate(`/negocios/${deal.id}`)}
                                 style={{
                                   left: `${leftPct}%`,
                                   width: `${Math.max(widthPct, 1.5)}%`,
