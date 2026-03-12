@@ -621,12 +621,16 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             }
           }
           if (companyId) {
+            // Extract email from name field if present (e.g. "Name (email@domain.com)")
+            const extracted = extractNameAndEmail(vals.contact_name);
             const contactRecord: any = {
-              name: vals.contact_name,
+              name: extracted.name,
               company_id: companyId,
               created_by: user.id,
             };
+            // Explicit email field takes priority, then extracted from name
             if (vals.contact_email) contactRecord.email = vals.contact_email;
+            else if (extracted.email) contactRecord.email = extracted.email;
             if (vals.contact_role) contactRecord.role = vals.contact_role;
             if (vals.contact_lead_source) contactRecord.lead_source = vals.contact_lead_source;
             if (vals.contact_status) contactRecord.status = vals.contact_status;
