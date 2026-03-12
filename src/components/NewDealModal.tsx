@@ -121,6 +121,8 @@ export function NewDealModal() {
       scope: form.scope || null,
       budget_start_date: form.budget_start_date || null,
       proposal_delivery_date: form.proposal_delivery_date || null,
+      target_delivery_date: form.target_delivery_date || null,
+      approval_status: 'pending',
     } as any).select('id').single();
 
     if (error) {
