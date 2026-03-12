@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NewDealModal } from '@/components/NewDealModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, Briefcase, DollarSign, LayoutGrid, GanttChart } from 'lucide-react';
+import { Building2, Users, Briefcase, DollarSign, LayoutGrid, GanttChart, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
 import EstimatorGantt from '@/components/EstimatorGantt';
@@ -115,15 +116,25 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         {[
-          { title: 'Negócios', value: String(stats?.deals || 0), avg: null, icon: Briefcase },
-          { title: 'Valor Total', value: formatCompact(dealMetrics?.total || 0), avg: dealMetrics?.totalAvg, icon: DollarSign },
-          { title: 'Valor Ponderado', value: formatCompact(dealMetrics?.weighted || 0), avg: dealMetrics?.weightedAvg, icon: DollarSign },
-          { title: 'Valor Aberto', value: formatCompact(dealMetrics?.open || 0), avg: dealMetrics?.openAvg, icon: DollarSign },
-          { title: 'Valor Fechado', value: formatCompact(dealMetrics?.closed || 0), avg: dealMetrics?.closedAvg, icon: DollarSign },
+          { title: 'Negócios', value: String(stats?.deals || 0), avg: null, icon: Briefcase, tip: 'Quantidade total de negócios no pipeline' },
+          { title: 'Valor Total', value: formatCompact(dealMetrics?.total || 0), avg: dealMetrics?.totalAvg, icon: DollarSign, tip: 'Soma do valor de todos os negócios, independente do estágio' },
+          { title: 'Valor Ponderado', value: formatCompact(dealMetrics?.weighted || 0), avg: dealMetrics?.weightedAvg, icon: DollarSign, tip: 'Valor ajustado pela probabilidade de fechamento baseado na posição no funil' },
+          { title: 'Valor Aberto', value: formatCompact(dealMetrics?.open || 0), avg: dealMetrics?.openAvg, icon: DollarSign, tip: 'Soma do valor dos negócios que ainda estão em andamento no pipeline' },
+          { title: 'Valor Fechado', value: formatCompact(dealMetrics?.closed || 0), avg: dealMetrics?.closedAvg, icon: DollarSign, tip: 'Soma do valor dos negócios que foram ganhos' },
         ].map((m) => (
           <Card key={m.title} className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
-              <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{m.title}</CardTitle>
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{m.title}</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px] text-xs">
+                    {m.tip}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <m.icon className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent className="px-4 pb-4">
