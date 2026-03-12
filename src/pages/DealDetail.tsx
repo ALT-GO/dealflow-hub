@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomProperties, useCustomPropertyValues } from '@/hooks/useCustomProperties';
+import { useBudgetTeamMembers } from '@/hooks/useBudgetTeamMembers';
 import { TasksChecklist } from '@/components/TasksChecklist';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
