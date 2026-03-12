@@ -286,7 +286,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                             <TooltipTrigger asChild>
                               <div
                                 className="absolute rounded cursor-pointer hover:brightness-110 hover:scale-y-110 transition-all shadow-sm"
-                                onClick={() => navigate(`/negocios/${deal.id}`)}
+                                onClick={() => navigate(`/deals/${deal.id}`)}
                                 style={{
                                   left: `${leftPct}%`,
                                   width: `${Math.max(widthPct, 1.5)}%`,
