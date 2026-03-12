@@ -22,6 +22,7 @@ type PropertyDef = {
   required: boolean;
   default?: string;
   isSystem: boolean;
+  displaySection?: string;
 };
 
 type CustomProperty = {
@@ -33,6 +34,7 @@ type CustomProperty = {
   is_required: boolean;
   default_value: string | null;
   dropdown_options: string[] | null;
+  display_section: string;
 };
 
 const SYSTEM_PROPS: Record<string, PropertyDef[]> = {
@@ -75,6 +77,13 @@ const FIELD_TYPES = [
   { value: 'dropdown', label: 'Dropdown' },
 ];
 
+const DISPLAY_SECTIONS = [
+  'Informações do Negócio',
+  'Dados de Orçamentos',
+  'Dados Técnicos',
+  'Resumo',
+];
+
 const ENTITY_LABELS: Record<string, string> = {
   companies: 'Empresas',
   contacts: 'Contatos',
@@ -96,6 +105,7 @@ export function ObjectsTab() {
     is_required: false,
     default_value: '',
     dropdown_options: '',
+    display_section: 'Informações do Negócio',
   });
 
   const { data: customProps = [] } = useQuery({
@@ -123,15 +133,16 @@ export function ObjectsTab() {
       dropdown_options: form.field_type === 'dropdown' && form.dropdown_options
         ? form.dropdown_options.split(',').map((s) => s.trim()).filter(Boolean)
         : null,
+      display_section: activeEntity === 'deals' ? form.display_section : 'Informações do Negócio',
       created_by: user.id,
-    });
+    } as any);
     setSaving(false);
     if (error) {
       toast.error(error.message.includes('unique') ? 'Campo já existe' : 'Erro: ' + error.message);
     } else {
       toast.success('Propriedade criada!');
       setOpen(false);
-      setForm({ field_name: '', field_label: '', field_type: 'text', is_required: false, default_value: '', dropdown_options: '' });
+      setForm({ field_name: '', field_label: '', field_type: 'text', is_required: false, default_value: '', dropdown_options: '', display_section: 'Informações do Negócio' });
       queryClient.invalidateQueries({ queryKey: ['custom-properties'] });
     }
   };
@@ -158,6 +169,7 @@ export function ObjectsTab() {
       required: p.is_required,
       default: p.default_value || undefined,
       isSystem: false,
+      displaySection: p.display_section,
     })),
   ];
 
@@ -214,6 +226,17 @@ export function ObjectsTab() {
                     </SelectContent>
                   </Select>
                 </div>
+                {activeEntity === 'deals' && (
+                  <div className="space-y-2">
+                    <Label>Seção de Exibição</Label>
+                    <Select value={form.display_section} onValueChange={(v) => setForm({ ...form, display_section: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DISPLAY_SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 {form.field_type === 'dropdown' && (
                   <div className="space-y-2">
                     <Label>Opções (separadas por vírgula)</Label>
@@ -267,6 +290,7 @@ export function ObjectsTab() {
                 <TableHead>Campo</TableHead>
                 <TableHead>Nome interno</TableHead>
                 <TableHead>Tipo</TableHead>
+                {activeEntity === 'deals' && <TableHead>Seção</TableHead>}
                 <TableHead>Obrigatório</TableHead>
                 <TableHead>Padrão</TableHead>
                 <TableHead>Origem</TableHead>
@@ -279,6 +303,15 @@ export function ObjectsTab() {
                   <TableCell className="font-medium text-foreground">{p.label}</TableCell>
                   <TableCell><code className="text-muted-foreground bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{p.name}</code></TableCell>
                   <TableCell><Badge variant="secondary" className="text-xs font-normal">{p.type}</Badge></TableCell>
+                  {activeEntity === 'deals' && (
+                    <TableCell>
+                      {p.displaySection ? (
+                        <Badge variant="outline" className="text-[10px]">{p.displaySection}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     {p.required ? (
                       <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">Sim</Badge>
@@ -308,7 +341,7 @@ export function ObjectsTab() {
               ))}
               {filteredProps.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                  <TableCell colSpan={activeEntity === 'deals' ? 8 : 7} className="text-center text-muted-foreground py-8 text-sm">
                     Nenhuma propriedade encontrada
                   </TableCell>
                 </TableRow>

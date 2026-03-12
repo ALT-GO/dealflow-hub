@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCustomProperties, useCustomPropertyValues } from '@/hooks/useCustomProperties';
 import { TasksChecklist } from '@/components/TasksChecklist';
 import { ActivityTimeline } from '@/components/ActivityTimeline';
-import { DynamicFields } from '@/components/DynamicFields';
+import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
 import { InlineEdit } from '@/components/InlineEdit';
 import { DealFollowers } from '@/components/DealFollowers';
 import { CommentBox } from '@/components/CommentBox';
@@ -34,15 +34,21 @@ import {
   Trophy, XCircle, Percent, FileText,
 } from 'lucide-react';
 import { useFunnelStages } from '@/hooks/useFunnelStages';
+import type { CustomProperty } from '@/hooks/useCustomProperties';
 
-const CONTRACT_TYPE_LABELS: Record<string, string> = { recorrente: 'Recorrente', nao_recorrente: 'Não Recorrente' };
-const MARKET_LABELS: Record<string, string> = { publico: 'Público', privado: 'Privado' };
-const BUSINESS_AREA_LABELS: Record<string, string> = {
-  infraestrutura_predial: 'Infraestrutura Predial', missao_critica: 'Missão Crítica',
-  seguranca_eletronica: 'Segurança Eletrônica', inteligencia_predial: 'Inteligência Predial',
-  energia: 'Energia', outro: 'Outro',
-};
-const TIPO_NEGOCIO_LABELS: Record<string, string> = { novo_cliente: 'Novo Cliente', cliente_existente: 'Cliente Existente' };
+// Native deal columns that can be rendered dynamically
+const NATIVE_DEAL_COLUMNS = new Set([
+  'orcamentista_id', 'contract_type', 'market', 'profit_margin',
+  'budget_start_date', 'proposal_delivery_date', 'scope',
+  'carbono_zero', 'cortex', 'tipo_negocio', 'vendedor_externo',
+  'endereco_execucao', 'estudo_equipe',
+  'comissao_carbono_zero', 'comissao_cortex', 'comissao_valor_venda',
+]);
+
+const BOOLEAN_FIELDS = new Set(['carbono_zero', 'cortex']);
+const DATE_FIELDS = new Set(['budget_start_date', 'proposal_delivery_date']);
+const CURRENCY_FIELDS = new Set(['comissao_carbono_zero', 'comissao_cortex', 'comissao_valor_venda']);
+const NUMBER_FIELDS = new Set(['profit_margin']);
 
 function fireConfetti() {
   confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['hsl(190,35%,45%)', 'hsl(150,40%,45%)', 'hsl(38,85%,50%)', '#fff'] });
@@ -127,6 +133,17 @@ export default function DealDetail() {
     enabled: !!(deal as any)?.origin_id,
   });
 
+  // Group custom properties by display_section
+  const sectionGroups = useMemo(() => {
+    const groups: Record<string, CustomProperty[]> = {};
+    customProps.forEach((prop) => {
+      const section = prop.display_section || 'Informações do Negócio';
+      if (!groups[section]) groups[section] = [];
+      groups[section].push(prop);
+    });
+    return groups;
+  }, [customProps]);
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['deal', id] });
     queryClient.invalidateQueries({ queryKey: ['deal-activities', id] });
@@ -136,7 +153,8 @@ export default function DealDetail() {
   const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
     if (!user || !id || newValue === oldValue) return;
     const updateData: any = { [field]: newValue || null };
-    if (['value', 'profit_margin', 'comissao_carbono_zero', 'comissao_cortex', 'comissao_valor_venda'].includes(field)) updateData[field] = Number(newValue) || 0;
+    if (CURRENCY_FIELDS.has(field) || NUMBER_FIELDS.has(field) || field === 'value') updateData[field] = Number(newValue) || 0;
+    if (BOOLEAN_FIELDS.has(field)) updateData[field] = newValue === 'true' || newValue === 'Sim';
     const { error } = await supabase.from('deals').update(updateData).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
@@ -154,26 +172,15 @@ export default function DealDetail() {
   const handleStageChange = async (newStage: string) => {
     if (!user || !id || !deal) return;
     const targetStage = stagesData.find(s => s.key === newStage);
-    if (targetStage?.stage_type === 'lost') {
-      setLossModalOpen(true);
-      return;
-    }
-    // Check profit margin for won
-    if (targetStage?.stage_type === 'won' && !(deal as any).profit_margin) {
-      setProfitModalOpen(true);
-      return;
-    }
+    if (targetStage?.stage_type === 'lost') { setLossModalOpen(true); return; }
+    if (targetStage?.stage_type === 'won' && !(deal as any).profit_margin) { setProfitModalOpen(true); return; }
     const oldStage = deal.stage;
-    const updateData: any = { stage: newStage, loss_reason: null };
-    const { error } = await supabase.from('deals').update(updateData).eq('id', id);
+    const { error } = await supabase.from('deals').update({ stage: newStage, loss_reason: null } as any).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
-      type: 'property_changed',
-      title: `Moveu estágio`,
+      type: 'property_changed', title: `Moveu estágio`,
       description: `De "${stageLabels[oldStage] || oldStage}" para "${stageLabels[newStage] || newStage}"`,
-      company_id: deal.company_id,
-      deal_id: id || null,
-      created_by: user.id,
+      company_id: deal.company_id, deal_id: id || null, created_by: user.id,
     } as any);
     if (targetStage?.stage_type === 'won') fireConfetti();
     invalidateAll();
@@ -182,15 +189,9 @@ export default function DealDetail() {
 
   const handleMarkWon = async () => {
     if (!user || !id || !deal) return;
-    // Check profit margin
-    if (!(deal as any).profit_margin) {
-      setProfitModalOpen(true);
-      return;
-    }
+    if (!(deal as any).profit_margin) { setProfitModalOpen(true); return; }
     const wonKey = wonStage?.key;
-    if (wonKey) {
-      await handleStageChange(wonKey);
-    } else {
+    if (wonKey) { await handleStageChange(wonKey); } else {
       const { error } = await supabase.from('deals').update({ stage: '__won__', loss_reason: null } as any).eq('id', id);
       if (error) { toast.error('Erro ao salvar'); return; }
       await supabase.from('activities').insert({
@@ -198,9 +199,7 @@ export default function DealDetail() {
         description: `Negócio "${deal.name}" foi marcado como ganho`,
         company_id: deal.company_id, deal_id: id || null, created_by: user.id,
       } as any);
-      fireConfetti();
-      invalidateAll();
-      toast.success('🎉 Negócio ganho!');
+      fireConfetti(); invalidateAll(); toast.success('🎉 Negócio ganho!');
     }
   };
 
@@ -208,7 +207,6 @@ export default function DealDetail() {
 
   const handleProfitConfirm = async (margin: number) => {
     if (!user || !id || !deal) return;
-    // Save profit margin then proceed to won
     await supabase.from('deals').update({ profit_margin: margin } as any).eq('id', id);
     const wonKey = wonStage?.key || '__won__';
     const { error } = await supabase.from('deals').update({ stage: wonKey, loss_reason: null } as any).eq('id', id);
@@ -218,10 +216,7 @@ export default function DealDetail() {
       description: `Lucro: ${margin}% · Negócio "${deal.name}"`,
       company_id: deal.company_id, deal_id: id || null, created_by: user.id,
     } as any);
-    fireConfetti();
-    setProfitModalOpen(false);
-    invalidateAll();
-    toast.success('🎉 Negócio ganho!');
+    fireConfetti(); setProfitModalOpen(false); invalidateAll(); toast.success('🎉 Negócio ganho!');
   };
 
   const handleLossConfirm = async (reason: string) => {
@@ -233,9 +228,7 @@ export default function DealDetail() {
       type: 'deal_lost', title: 'Negócio marcado como Perdido',
       description: `Motivo: ${reason}`, company_id: deal.company_id, deal_id: id || null, created_by: user.id,
     } as any);
-    setLossModalOpen(false);
-    invalidateAll();
-    toast.success('Negócio marcado como perdido.');
+    setLossModalOpen(false); invalidateAll(); toast.success('Negócio marcado como perdido.');
   };
 
   const handleLogActivity = async (e: React.FormEvent) => {
@@ -251,16 +244,14 @@ export default function DealDetail() {
     if (error) { toast.error('Erro ao registrar atividade'); return; }
     toast.success('Atividade registrada!');
     setActivityForm({ type: 'meeting', title: '', description: '' });
-    setActivityOpen(false);
-    invalidateAll();
+    setActivityOpen(false); invalidateAll();
   };
 
   const handleDelete = async () => {
     if (!id) return;
     const { error } = await supabase.from('deals').delete().eq('id', id);
     if (error) { toast.error('Erro ao excluir negócio'); return; }
-    toast.success('Negócio excluído!');
-    navigate('/');
+    toast.success('Negócio excluído!'); navigate('/');
   };
 
   if (!deal) {
@@ -272,6 +263,142 @@ export default function DealDetail() {
   const currentStageData = stagesData.find(s => s.key === deal.stage);
   const isDealClosed = currentStageData?.stage_type === 'won' || currentStageData?.stage_type === 'lost' || deal.stage === '__won__' || deal.stage === '__lost__';
   const dealAny = deal as any;
+
+  // Helper to get native deal value for a field
+  const getNativeValue = (fieldName: string): string => {
+    const val = dealAny[fieldName];
+    if (val === null || val === undefined) return '';
+    if (BOOLEAN_FIELDS.has(fieldName)) return val ? 'Sim' : 'Não';
+    return String(val);
+  };
+
+  // Render a single dynamic property field
+  const renderDynamicField = (prop: CustomProperty) => {
+    const isNative = NATIVE_DEAL_COLUMNS.has(prop.field_name);
+    const value = isNative ? getNativeValue(prop.field_name) : (customValues[prop.id] || '');
+
+    // Special rendering for orcamentista_id (user reference)
+    if (prop.field_name === 'orcamentista_id') {
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+          <Select value={dealAny.orcamentista_id || ''} onValueChange={async (v) => {
+            await handleInlineEdit('orcamentista_id', prop.field_label, dealAny.orcamentista_id || '', v);
+          }}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar orçamentista" /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(profilesMap).map(([uid, name]) => (
+                <SelectItem key={uid} value={uid}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    // Boolean fields
+    if (BOOLEAN_FIELDS.has(prop.field_name)) {
+      const boolVal = dealAny[prop.field_name];
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+          <Badge
+            variant={boolVal ? 'default' : 'secondary'}
+            className="text-xs cursor-pointer"
+            onClick={() => handleInlineEdit(prop.field_name, prop.field_label, String(boolVal), String(!boolVal))}
+          >
+            {boolVal ? 'Sim' : 'Não'}
+          </Badge>
+        </div>
+      );
+    }
+
+    // Date fields
+    if (DATE_FIELDS.has(prop.field_name)) {
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+          <DatePickerField
+            value={dealAny[prop.field_name] || ''}
+            onChange={(v) => handleInlineEdit(prop.field_name, prop.field_label, dealAny[prop.field_name] || '', v)}
+            placeholder="Selecionar data"
+            className="h-8 text-xs"
+          />
+        </div>
+      );
+    }
+
+    // Currency fields
+    if (CURRENCY_FIELDS.has(prop.field_name)) {
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label} (R$)</p>
+          <InlineEdit
+            value={String(dealAny[prop.field_name] || '')}
+            onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, String(dealAny[prop.field_name] || ''), v)}
+            icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
+          />
+        </div>
+      );
+    }
+
+    // Number fields
+    if (NUMBER_FIELDS.has(prop.field_name)) {
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+          <InlineEdit
+            value={String(dealAny[prop.field_name] || '')}
+            onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, String(dealAny[prop.field_name] || ''), v)}
+            icon={<Percent className="h-3 w-3 shrink-0 text-muted-foreground" />}
+          />
+        </div>
+      );
+    }
+
+    // Native text fields (inline edit directly on deals table)
+    if (isNative) {
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+          <InlineEdit
+            value={value}
+            onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, value, v)}
+          />
+        </div>
+      );
+    }
+
+    // EAV custom fields (stored in custom_property_values)
+    return (
+      <div key={prop.id}>
+        <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+        <InlineEdit
+          value={value}
+          onSave={async (v) => {
+            await saveCustomPropertyValues(id!, { [prop.id]: v }, supabase);
+            queryClient.invalidateQueries({ queryKey: ['custom-property-values', id] });
+            toast.success('Atualizado!');
+          }}
+        />
+      </div>
+    );
+  };
+
+  // Ordered section keys
+  const SECTION_ORDER = ['Informações do Negócio', 'Dados de Orçamentos', 'Dados Técnicos', 'Resumo'];
+  const sectionsToRender = SECTION_ORDER.filter(s => sectionGroups[s]?.length);
+  // Also include any extra sections not in the predefined order
+  Object.keys(sectionGroups).forEach(s => {
+    if (!SECTION_ORDER.includes(s) && sectionGroups[s]?.length) sectionsToRender.push(s);
+  });
+
+  const SECTION_ICONS: Record<string, React.ReactNode> = {
+    'Informações do Negócio': <Layers className="h-3 w-3" />,
+    'Dados de Orçamentos': <FileText className="h-3 w-3" />,
+    'Dados Técnicos': <Activity className="h-3 w-3" />,
+    'Resumo': <Eye className="h-3 w-3" />,
+  };
 
   return (
     <div className="space-y-4">
@@ -316,13 +443,14 @@ export default function DealDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
-        {/* LEFT: Properties */}
+        {/* LEFT: Properties — Core fields + Dynamic sections */}
         <div className="space-y-3">
-          <Accordion type="multiple" defaultValue={['basic', 'commercial', 'custom']}>
-            <AccordionItem value="basic" className="border-border">
+          <Accordion type="multiple" defaultValue={['core', ...sectionsToRender]}>
+            {/* Core fields that always remain (special widgets) */}
+            <AccordionItem value="core" className="border-border">
               <Card className="border-0 shadow-none">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informações do Negócio</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados Principais</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
@@ -345,12 +473,6 @@ export default function DealDetail() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {dealAny.business_area && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
-                        <Badge variant="secondary" className="text-xs">{BUSINESS_AREA_LABELS[dealAny.business_area] || dealAny.business_area}</Badge>
-                      </div>
-                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Data de Fechamento</p>
                       <DatePickerField
@@ -386,183 +508,48 @@ export default function DealDetail() {
                         <Badge variant="destructive" className="text-xs">{deal.loss_reason}</Badge>
                       </div>
                     )}
-                  </CardContent>
-                </AccordionContent>
-              </Card>
-            </AccordionItem>
-
-            <AccordionItem value="commercial" className="border-border">
-              <Card className="border-0 shadow-none">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <FileText className="h-3 w-3" />Dados de Orçamentos
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
-                    <div>
-                      <p className="text-muted-foreground text-xs">Orçamentista Responsável</p>
-                      <Select value={dealAny.orcamentista_id || ''} onValueChange={async (v) => {
-                        await handleInlineEdit('orcamentista_id', 'Orçamentista Responsável', dealAny.orcamentista_id || '', v);
-                      }}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar orçamentista" /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(profilesMap).map(([uid, name]) => (
-                            <SelectItem key={uid} value={uid}>{name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {dealAny.contract_type && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Tipo de Contrato</p>
-                        <Badge variant="secondary" className="text-xs">{CONTRACT_TYPE_LABELS[dealAny.contract_type] || dealAny.contract_type}</Badge>
-                      </div>
-                    )}
-                    {dealAny.market && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Mercado</p>
-                        <Badge variant="secondary" className="text-xs">{MARKET_LABELS[dealAny.market] || dealAny.market}</Badge>
-                      </div>
-                    )}
                     {originLabel && (
                       <div>
                         <p className="text-muted-foreground text-xs">Origem</p>
                         <Badge variant="secondary" className="text-xs">{originLabel}</Badge>
                       </div>
                     )}
-                    <div>
-                      <p className="text-muted-foreground text-xs">Percentual de Lucro (%)</p>
-                      <InlineEdit
-                        value={String(dealAny.profit_margin || '')}
-                        onSave={(v) => handleInlineEdit('profit_margin', 'Percentual de Lucro', String(dealAny.profit_margin || ''), v)}
-                        icon={<Percent className="h-3 w-3 shrink-0 text-muted-foreground" />}
-                      />
-                    </div>
-                    {dealAny.profit_margin && deal.value && (
+                    {dealAny.business_area && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
+                        <Badge variant="secondary" className="text-xs">{dealAny.business_area}</Badge>
+                      </div>
+                    )}
+                    {/* Computed: Lucro Estimado */}
+                    {dealAny.profit_margin && deal.value ? (
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Lucro Estimado</p>
                         <p className="font-bold text-primary text-sm">{formatCurrency((deal.value || 0) * (dealAny.profit_margin / 100))}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-muted-foreground text-xs">Data Início Orçamento</p>
-                      <DatePickerField
-                        value={dealAny.budget_start_date || ''}
-                        onChange={(v) => handleInlineEdit('budget_start_date', 'Data Início Orçamento', dealAny.budget_start_date || '', v)}
-                        placeholder="Selecionar data"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Data Entrega Proposta</p>
-                      <DatePickerField
-                        value={dealAny.proposal_delivery_date || ''}
-                        onChange={(v) => handleInlineEdit('proposal_delivery_date', 'Data Entrega Proposta', dealAny.proposal_delivery_date || '', v)}
-                        placeholder="Selecionar data"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Escopo</p>
-                      <InlineEdit
-                        value={dealAny.scope || ''}
-                        onSave={(v) => handleInlineEdit('scope', 'Escopo', dealAny.scope || '', v)}
-                      />
-                    </div>
-
-                    {/* New technical fields */}
-                    <Separator className="my-2" />
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dados Técnicos</p>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Carbono Zero</p>
-                      <Badge variant={dealAny.carbono_zero ? 'default' : 'secondary'} className="text-xs">
-                        {dealAny.carbono_zero ? 'Sim' : 'Não'}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Cortex</p>
-                      <Badge variant={dealAny.cortex ? 'default' : 'secondary'} className="text-xs">
-                        {dealAny.cortex ? 'Sim' : 'Não'}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Tipo de Negócio</p>
-                      <InlineEdit
-                        value={TIPO_NEGOCIO_LABELS[dealAny.tipo_negocio] || dealAny.tipo_negocio || ''}
-                        onSave={(v) => handleInlineEdit('tipo_negocio', 'Tipo de Negócio', dealAny.tipo_negocio || '', v)}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Vendedor Externo</p>
-                      <InlineEdit
-                        value={dealAny.vendedor_externo || ''}
-                        onSave={(v) => handleInlineEdit('vendedor_externo', 'Vendedor Externo', dealAny.vendedor_externo || '', v)}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Endereço de Execução</p>
-                      <InlineEdit
-                        value={dealAny.endereco_execucao || ''}
-                        onSave={(v) => handleInlineEdit('endereco_execucao', 'Endereço de Execução', dealAny.endereco_execucao || '', v)}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Estudo de Equipe</p>
-                      <InlineEdit
-                        value={dealAny.estudo_equipe || ''}
-                        onSave={(v) => handleInlineEdit('estudo_equipe', 'Estudo de Equipe', dealAny.estudo_equipe || '', v)}
-                      />
-                    </div>
-
-                    {/* Commission sub-section */}
-                    <Separator className="my-2" />
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Comissões</p>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Comissão Carbono Zero (R$)</p>
-                      <InlineEdit
-                        value={String(dealAny.comissao_carbono_zero || '')}
-                        onSave={(v) => handleInlineEdit('comissao_carbono_zero', 'Comissão Carbono Zero', String(dealAny.comissao_carbono_zero || ''), v)}
-                        icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Comissão Cortex (R$)</p>
-                      <InlineEdit
-                        value={String(dealAny.comissao_cortex || '')}
-                        onSave={(v) => handleInlineEdit('comissao_cortex', 'Comissão Cortex', String(dealAny.comissao_cortex || ''), v)}
-                        icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Comissão Valor de Venda (R$)</p>
-                      <InlineEdit
-                        value={String(dealAny.comissao_valor_venda || '')}
-                        onSave={(v) => handleInlineEdit('comissao_valor_venda', 'Comissão Valor de Venda', String(dealAny.comissao_valor_venda || ''), v)}
-                        icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
-                      />
-                    </div>
+                    ) : null}
                   </CardContent>
                 </AccordionContent>
               </Card>
             </AccordionItem>
 
-            {customProps.length > 0 && (
-              <AccordionItem value="custom" className="border-border">
+            {/* Dynamic sections from custom_properties grouped by display_section */}
+            {sectionsToRender.map((sectionName) => (
+              <AccordionItem key={sectionName} value={sectionName} className="border-border">
                 <Card className="border-0 shadow-none">
                   <AccordionTrigger className="px-4 py-3 hover:no-underline">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Layers className="h-3 w-3" />Campos Customizados
+                      {SECTION_ICONS[sectionName] || <Layers className="h-3 w-3" />}
+                      {sectionName}
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <CardContent className="pt-0 px-4 pb-4">
-                      <DynamicFields properties={customProps} values={customValues} onChange={() => {}} readOnly />
+                    <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
+                      {sectionGroups[sectionName].map(renderDynamicField)}
                     </CardContent>
                   </AccordionContent>
                 </Card>
               </AccordionItem>
-            )}
+            ))}
           </Accordion>
 
           <Card>
@@ -683,20 +670,8 @@ export default function DealDetail() {
         </div>
       </div>
 
-      <LossReasonModal
-        open={lossModalOpen}
-        dealName={deal.name}
-        onCancel={() => setLossModalOpen(false)}
-        onConfirm={handleLossConfirm}
-      />
-
-      <ProfitMarginModal
-        open={profitModalOpen}
-        dealName={deal.name}
-        dealValue={deal.value || 0}
-        onCancel={() => setProfitModalOpen(false)}
-        onConfirm={handleProfitConfirm}
-      />
+      <LossReasonModal open={lossModalOpen} dealName={deal.name} onCancel={() => setLossModalOpen(false)} onConfirm={handleLossConfirm} />
+      <ProfitMarginModal open={profitModalOpen} dealName={deal.name} dealValue={deal.value || 0} onCancel={() => setProfitModalOpen(false)} onConfirm={handleProfitConfirm} />
     </div>
   );
 }
