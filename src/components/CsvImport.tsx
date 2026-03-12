@@ -401,11 +401,101 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     reader.readAsText(file);
   };
 
+  // Scan for duplicates before importing
+  const handleCheckDuplicates = async () => {
+    if (!user) return;
+
+    // Extract all values from rows
+    const allVals = rows.map(row => {
+      const vals: Record<string, string> = {};
+      Object.entries(mapping).forEach(([colIdx, field]) => {
+        if (field && row[Number(colIdx)]) vals[field] = row[Number(colIdx)];
+      });
+      return vals;
+    });
+
+    // Fetch existing data
+    const { data: existingCompanies } = await supabase.from('companies').select('id, name');
+    const companyNames = new Set((existingCompanies || []).map(c => c.name.toLowerCase()));
+
+    const { data: existingContacts } = await supabase.from('contacts').select('id, name, email, company_id, companies(name)');
+    const contactKeys = new Set((existingContacts || []).map((c: any) => `${c.name?.toLowerCase()}|${c.companies?.name?.toLowerCase() || ''}`));
+
+    const { data: existingDeals } = await supabase.from('deals').select('id, name, company_id, companies(name)');
+    const dealKeys = new Set((existingDeals || []).map((d: any) => `${d.name?.toLowerCase()}|${d.companies?.name?.toLowerCase() || ''}`));
+
+    const found: DuplicateItem[] = [];
+    const seenInFile = { companies: new Set<string>(), contacts: new Set<string>(), deals: new Set<string>() };
+
+    allVals.forEach((vals, ri) => {
+      const rowNum = ri + 2;
+
+      // Check company duplicates
+      if (importCompanies && vals.company_name) {
+        const key = vals.company_name.toLowerCase();
+        if (companyNames.has(key)) {
+          found.push({ row: rowNum, type: 'company', name: vals.company_name, existingInfo: 'Empresa já cadastrada no sistema', action: 'skip' });
+        } else if (seenInFile.companies.has(key)) {
+          found.push({ row: rowNum, type: 'company', name: vals.company_name, existingInfo: 'Duplicada nesta planilha', action: 'skip' });
+        }
+        seenInFile.companies.add(key);
+      }
+
+      // Check contact duplicates
+      if (importContacts && vals.contact_name) {
+        const companyName = vals.company_name || '';
+        const key = `${vals.contact_name.toLowerCase()}|${companyName.toLowerCase()}`;
+        if (contactKeys.has(key)) {
+          found.push({ row: rowNum, type: 'contact', name: vals.contact_name, existingInfo: `Contato já cadastrado${companyName ? ` na empresa "${companyName}"` : ''}`, action: 'skip' });
+        } else if (seenInFile.contacts.has(key)) {
+          found.push({ row: rowNum, type: 'contact', name: vals.contact_name, existingInfo: 'Duplicado nesta planilha', action: 'skip' });
+        }
+        seenInFile.contacts.add(key);
+      }
+
+      // Check deal duplicates
+      if (importDeals && vals.deal_name) {
+        const companyName = vals.company_name || '';
+        const key = `${vals.deal_name.toLowerCase()}|${companyName.toLowerCase()}`;
+        if (dealKeys.has(key)) {
+          found.push({ row: rowNum, type: 'deal', name: vals.deal_name, existingInfo: `Negócio já cadastrado${companyName ? ` na empresa "${companyName}"` : ''}`, action: 'skip' });
+        } else if (seenInFile.deals.has(key)) {
+          found.push({ row: rowNum, type: 'deal', name: vals.deal_name, existingInfo: 'Duplicado nesta planilha', action: 'skip' });
+        }
+        seenInFile.deals.add(key);
+      }
+    });
+
+    if (found.length > 0) {
+      setDuplicates(found);
+      setStep('duplicates');
+    } else {
+      handleImport();
+    }
+  };
+
+  // Build skip sets from duplicate decisions
+  const getSkipSets = () => {
+    const skipCompanies = new Set<string>();
+    const skipContacts = new Set<string>();
+    const skipDeals = new Set<string>();
+    duplicates.forEach(d => {
+      if (d.action === 'skip') {
+        const key = `${d.row}`;
+        if (d.type === 'company') skipCompanies.add(key);
+        if (d.type === 'contact') skipContacts.add(key);
+        if (d.type === 'deal') skipDeals.add(key);
+      }
+    });
+    return { skipCompanies, skipContacts, skipDeals };
+  };
+
   const handleImport = async () => {
     if (!user) return;
     setStep('importing');
     let success = 0;
     const allErrors: ImportError[] = [];
+    const { skipCompanies, skipContacts, skipDeals } = getSkipSets();
 
     // Build company cache
     const { data: existingCompanies } = await supabase.from('companies').select('id, name');
