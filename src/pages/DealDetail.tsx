@@ -214,8 +214,8 @@ export default function DealDetail() {
     await supabase.from('activities').insert({
       type: 'deal_won', title: 'Negócio marcado como Ganho',
       description: `Lucro: ${margin}% · Negócio "${deal.name}"`,
-      company_id: deal.company_id, created_by: user.id,
-    });
+      company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+    } as any);
     fireConfetti();
     setProfitModalOpen(false);
     invalidateAll();
