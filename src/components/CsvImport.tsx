@@ -134,6 +134,12 @@ function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
+function truncateWords(s: string, maxWords = 10): string {
+  const words = s.split(/\s+/);
+  if (words.length <= maxWords) return s;
+  return words.slice(0, maxWords).join(' ') + '…';
+}
+
 function autoDetect(headers: string[]): FieldMapping {
   // All fields default to "ignore" (empty string)
   const map: FieldMapping = {};
