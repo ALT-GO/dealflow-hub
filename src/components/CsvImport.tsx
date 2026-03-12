@@ -737,6 +737,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     setMapping({});
     setImportResult({ success: 0, errors: 0 });
     setImportErrors([]);
+    setDuplicates([]);
     setImportCompanies(true);
     setImportContacts(entityType === 'contacts' || entityType === 'deals');
     setImportDeals(entityType === 'deals');
