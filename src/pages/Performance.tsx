@@ -132,6 +132,13 @@ export default function Performance() {
   const filteredDeals = allDeals.filter(d => {
     if (filterArea !== 'all' && d.business_area !== filterArea) return false;
     if (filterMarket !== 'all' && d.market !== filterMarket) return false;
+    if (filterValueRange !== 'all') {
+      const v = Number(d.value) || 0;
+      if (filterValueRange === '0-50k' && v > 50000) return false;
+      if (filterValueRange === '50k-500k' && (v < 50000 || v > 500000)) return false;
+      if (filterValueRange === '500k-5m' && (v < 500000 || v > 5000000)) return false;
+      if (filterValueRange === '5m+' && v < 5000000) return false;
+    }
     return true;
   });
 
