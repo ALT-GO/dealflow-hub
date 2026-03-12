@@ -171,21 +171,117 @@ function getEntityLabel(entityType: CsvImportProps['entityType']) {
   return 'Negócios';
 }
 
-/** Try to parse a date string to ISO format */
+/** Try to parse a date string to ISO format (yyyy-mm-dd). Handles:
+ * - ISO: 2024-01-15, 2024-01-15T10:00:00
+ * - BR: 15/01/2024, 15-01-2024
+ * - US: 01/15/2024, 1/15/2024 (when day > 12, detected as US)
+ * - Compact: 15012024, 20240115
+ * - Written: "15 jan 2024", "January 15, 2024"
+ * - Excel serial number
+ */
 function parseDate(input: string): string | null {
   if (!input?.trim()) return null;
   const s = input.trim();
-  // Try ISO format directly
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
-  // Try dd/mm/yyyy or dd-mm-yyyy
-  const brMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-  if (brMatch) return `${brMatch[3]}-${brMatch[2].padStart(2, '0')}-${brMatch[1].padStart(2, '0')}`;
-  // Try mm/dd/yyyy
-  const usMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-  if (usMatch) return `${usMatch[3]}-${usMatch[1].padStart(2, '0')}-${usMatch[2].padStart(2, '0')}`;
-  // Try Date parse as fallback
+
+  // ISO format: 2024-01-15 or 2024-01-15T...
+  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(s)) {
+    const [y, m, d] = s.substring(0, 10).split('-').map(Number);
+    if (y > 1900 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  // Compact 8-digit: 15012024 (ddmmyyyy) or 20240115 (yyyymmdd)
+  const compactMatch = s.match(/^(\d{8})$/);
+  if (compactMatch) {
+    const digits = compactMatch[1];
+    // Try yyyymmdd first
+    const y1 = parseInt(digits.substring(0, 4));
+    const m1 = parseInt(digits.substring(4, 6));
+    const d1 = parseInt(digits.substring(6, 8));
+    if (y1 > 1900 && m1 >= 1 && m1 <= 12 && d1 >= 1 && d1 <= 31) {
+      return `${y1}-${String(m1).padStart(2, '0')}-${String(d1).padStart(2, '0')}`;
+    }
+    // Try ddmmyyyy
+    const d2 = parseInt(digits.substring(0, 2));
+    const m2 = parseInt(digits.substring(2, 4));
+    const y2 = parseInt(digits.substring(4, 8));
+    if (y2 > 1900 && m2 >= 1 && m2 <= 12 && d2 >= 1 && d2 <= 31) {
+      return `${y2}-${String(m2).padStart(2, '0')}-${String(d2).padStart(2, '0')}`;
+    }
+  }
+
+  // Separated format: dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, mm/dd/yyyy, etc.
+  const sepMatch = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (sepMatch) {
+    const a = parseInt(sepMatch[1]);
+    const b = parseInt(sepMatch[2]);
+    const y = parseInt(sepMatch[3]);
+    if (y > 1900) {
+      // If first number > 12, it must be a day (BR: dd/mm/yyyy)
+      if (a > 12 && b >= 1 && b <= 12) {
+        return `${y}-${String(b).padStart(2, '0')}-${String(a).padStart(2, '0')}`;
+      }
+      // If second number > 12, it must be a day (US: mm/dd/yyyy)
+      if (b > 12 && a >= 1 && a <= 12) {
+        return `${y}-${String(a).padStart(2, '0')}-${String(b).padStart(2, '0')}`;
+      }
+      // Ambiguous (both <= 12): default to dd/mm/yyyy (BR convention)
+      if (a >= 1 && a <= 31 && b >= 1 && b <= 12) {
+        return `${y}-${String(b).padStart(2, '0')}-${String(a).padStart(2, '0')}`;
+      }
+    }
+  }
+
+  // yyyy/mm/dd or yyyy.mm.dd
+  const ymdSep = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if (ymdSep) {
+    const y = parseInt(ymdSep[1]);
+    const m = parseInt(ymdSep[2]);
+    const d = parseInt(ymdSep[3]);
+    if (y > 1900 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  // Excel serial number (e.g. 45302 = a date after 1900)
+  const numVal = Number(s);
+  if (!isNaN(numVal) && numVal > 30000 && numVal < 100000) {
+    const excelEpoch = new Date(1899, 11, 30);
+    const d = new Date(excelEpoch.getTime() + numVal * 86400000);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().substring(0, 10);
+    }
+  }
+
+  // Written dates: "15 jan 2024", "January 15, 2024", "jan 15 2024"
+  const monthMap: Record<string, string> = {
+    jan: '01', janeiro: '01', january: '01', feb: '02', fev: '02', fevereiro: '02', february: '02',
+    mar: '03', marco: '03', março: '03', march: '03', apr: '04', abr: '04', abril: '04', april: '04',
+    may: '05', mai: '05', maio: '05', jun: '06', junho: '06', june: '06',
+    jul: '07', julho: '07', july: '07', aug: '08', ago: '08', agosto: '08', august: '08',
+    sep: '09', set: '09', setembro: '09', september: '09', oct: '10', out: '10', outubro: '10', october: '10',
+    nov: '11', novembro: '11', november: '11', dec: '12', dez: '12', dezembro: '12', december: '12',
+  };
+  const norm = s.toLowerCase().replace(/[,\.]/g, ' ').replace(/\s+/g, ' ').trim();
+  // "15 jan 2024" or "jan 15 2024"
+  const writtenMatch = norm.match(/^(\d{1,2})\s+([a-zçã]+)\s+(\d{4})$/) || norm.match(/^([a-zçã]+)\s+(\d{1,2})\s+(\d{4})$/);
+  if (writtenMatch) {
+    let dayStr: string, monthStr: string, yearStr: string;
+    if (/^\d/.test(writtenMatch[1])) {
+      dayStr = writtenMatch[1]; monthStr = writtenMatch[2]; yearStr = writtenMatch[3];
+    } else {
+      monthStr = writtenMatch[1]; dayStr = writtenMatch[2]; yearStr = writtenMatch[3];
+    }
+    const mNum = monthMap[monthStr];
+    if (mNum) {
+      return `${yearStr}-${mNum}-${dayStr.padStart(2, '0')}`;
+    }
+  }
+
+  // Fallback: Date.parse
   const d = new Date(s);
-  if (!isNaN(d.getTime())) return d.toISOString().substring(0, 10);
+  if (!isNaN(d.getTime()) && d.getFullYear() > 1900) return d.toISOString().substring(0, 10);
   return null;
 }
 
