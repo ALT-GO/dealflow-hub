@@ -525,8 +525,8 @@ export default function DealDetail() {
                       }}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar orçamentista" /></SelectTrigger>
                         <SelectContent>
-                          {Object.entries(profilesMap).map(([uid, name]) => (
-                            <SelectItem key={uid} value={uid}>{name}</SelectItem>
+                          {budgetMembers.map(m => (
+                            <SelectItem key={m.user_id} value={m.user_id}>{m.full_name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
