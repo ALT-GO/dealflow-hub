@@ -325,7 +325,8 @@ export function NewDealModal() {
               {(() => {
                 const selectedStage = stagesData.find(s => s.key === form.stage);
                 const isBudgetStage = selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento');
-                return isBudgetStage ? (
+                if (!isBudgetStage) return null;
+                return (
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
                     <SmartDatePicker
@@ -335,7 +336,7 @@ export function NewDealModal() {
                       placeholder="Selecionar data"
                     />
                   </div>
-                ) : null;
+                );
               })()}
             </div>
             <div className="space-y-1.5 mt-3">
