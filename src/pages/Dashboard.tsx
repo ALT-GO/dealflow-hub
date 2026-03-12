@@ -98,7 +98,6 @@ export default function Dashboard() {
           filters={filters}
           onFiltersChange={setFilters}
         />
-        </div>
         <div className="mt-4">
           {viewMode === 'kanban' ? (
             <KanbanBoard filters={filters} />
