@@ -412,12 +412,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
   // Check if required fields are mapped for enabled categories
   const canImport = useMemo(() => {
-    const mapped = Object.values(mapping);
-    if (importCompanies && !mapped.includes('company_name')) return false;
-    if (importContacts && !mapped.includes('contact_name')) return false;
-    if (importDeals && !mapped.includes('deal_name')) return false;
     return importCompanies || importContacts || importDeals;
-  }, [mapping, importCompanies, importContacts, importDeals]);
+  }, [importCompanies, importContacts, importDeals]);
 
   // Group fields for the mapping UI
   const getFieldsForSelect = () => {
