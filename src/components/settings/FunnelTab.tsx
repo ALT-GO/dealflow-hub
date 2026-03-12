@@ -177,11 +177,9 @@ export function FunnelTab() {
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color, stage_type: stage.stage_type, visibility: rolesToVisibility(stage.allowed_roles || ['admin','gerencia','orcamentista','vendedor']) }); setEditOpen(stage.id); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    {!stage.is_system && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleTryDelete(stage.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleTryDelete(stage.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 )}
               </div>
