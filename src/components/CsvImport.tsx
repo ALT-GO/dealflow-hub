@@ -37,7 +37,7 @@ const CONTACT_FIELDS = [
 const DEAL_FIELDS = [
   { value: 'deal_name', label: 'Nome do Negócio', required: true },
   { value: 'deal_value', label: 'Valor' },
-  { value: 'deal_stage', label: 'Estágio' },
+  { value: 'deal_stage', label: 'Etapa do Funil' },
   { value: 'deal_business_area', label: 'Área de Negócio' },
   { value: 'deal_market', label: 'Mercado' },
   { value: 'deal_contract_type', label: 'Tipo de Contrato' },
@@ -54,10 +54,12 @@ const DEAL_FIELDS = [
   { value: 'deal_qualification_level', label: 'Nível de Qualificação' },
   { value: 'deal_carbono_zero', label: 'Carbono Zero?' },
   { value: 'deal_cortex', label: 'Cortex?' },
-  { value: 'deal_estudo_equipe', label: 'Cliente possui equipe?' },
+  { value: 'deal_estudo_equipe', label: 'Há estudo de equipe definido?' },
   { value: 'deal_profit_margin', label: 'Margem de Lucro (%)' },
   { value: 'deal_origin_id', label: 'Origem (ID)' },
   { value: 'deal_loss_reason', label: 'Motivo de Perda' },
+  { value: 'deal_owner', label: 'Proprietário do Negócio' },
+  { value: 'deal_orcamentista', label: 'Orçamentista Responsável' },
 ];
 
 const ALL_FIELDS = [
@@ -98,8 +100,12 @@ const DETECT_MAP: Record<string, string> = {
   'carbono zero': 'deal_carbono_zero', 'carbono': 'deal_carbono_zero',
   'cortex': 'deal_cortex',
   'cliente possui equipe': 'deal_estudo_equipe', 'possui equipe': 'deal_estudo_equipe', 'estudo equipe': 'deal_estudo_equipe',
+  'ha estudo de equipe': 'deal_estudo_equipe', 'estudo de equipe': 'deal_estudo_equipe',
   'margem': 'deal_profit_margin', 'margem de lucro': 'deal_profit_margin', 'profit margin': 'deal_profit_margin',
   'motivo de perda': 'deal_loss_reason', 'motivo perda': 'deal_loss_reason', 'loss reason': 'deal_loss_reason',
+  'proprietario': 'deal_owner', 'owner': 'deal_owner', 'responsavel': 'deal_owner', 'proprietario do negocio': 'deal_owner',
+  'orcamentista': 'deal_orcamentista', 'estimator': 'deal_orcamentista', 'orcamentista responsavel': 'deal_orcamentista',
+  'etapa do funil': 'deal_stage', 'funil': 'deal_stage', 'pipeline': 'deal_stage',
 };
 
 function parseCSV(text: string): string[][] {
@@ -223,6 +229,42 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     const { data: existingCompanies } = await supabase.from('companies').select('id, name');
     const companyMap = new Map<string, string>((existingCompanies || []).map(c => [c.name.toLowerCase(), c.id]));
 
+    // Build funnel stages cache for stage matching
+    const { data: funnelStages } = await supabase.from('funnel_stages').select('key, label').order('sort_order');
+    const stageList = funnelStages || [];
+    const resolveStage = (input: string | undefined): string => {
+      if (!input?.trim()) return 'prospeccao';
+      const n = normalize(input);
+      // Match by label (case-insensitive, accent-insensitive)
+      const byLabel = stageList.find(s => normalize(s.label) === n);
+      if (byLabel) return byLabel.key;
+      // Match by key
+      const byKey = stageList.find(s => s.key === n);
+      if (byKey) return byKey.key;
+      // Partial match
+      const partial = stageList.find(s => normalize(s.label).includes(n) || n.includes(normalize(s.label)));
+      if (partial) return partial.key;
+      return 'prospeccao';
+    };
+
+    // Build profiles cache for owner/orcamentista matching
+    const { data: profiles } = await supabase.from('profiles').select('user_id, full_name');
+    const profileList = profiles || [];
+    const resolveUser = (input: string | undefined): string | null => {
+      if (!input?.trim()) return null;
+      const n = normalize(input);
+      // Exact name match
+      const exact = profileList.find(p => p.full_name && normalize(p.full_name) === n);
+      if (exact) return exact.user_id;
+      // Partial match
+      const partial = profileList.find(p => p.full_name && (normalize(p.full_name).includes(n) || n.includes(normalize(p.full_name))));
+      if (partial) return partial.user_id;
+      // Email-like match
+      const byEmail = profileList.find(p => p.full_name && p.full_name.toLowerCase() === input.trim().toLowerCase());
+      if (byEmail) return byEmail.user_id;
+      return null;
+    };
+
     for (let ri = 0; ri < rows.length; ri++) {
       const row = rows[ri];
       try {
@@ -309,7 +351,9 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               const parsed = parseFloat(vals.deal_value.replace(/[^\d.,]/g, '').replace(',', '.'));
               dealRecord.value = isNaN(parsed) ? 0 : parsed;
             }
-            if (vals.deal_stage) dealRecord.stage = vals.deal_stage;
+            // Stage — resolve to valid funnel key or fallback to 'prospeccao'
+            dealRecord.stage = resolveStage(vals.deal_stage);
+
             if (vals.deal_business_area) dealRecord.business_area = vals.deal_business_area;
             if (vals.deal_market) dealRecord.market = vals.deal_market;
             if (vals.deal_contract_type) dealRecord.contract_type = vals.deal_contract_type;
@@ -334,6 +378,12 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             // Boolean fields — parse "sim", "yes", "true", "1" as true
             if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
             if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
+            // Owner — resolve user by name/email or keep current user
+            const resolvedOwner = resolveUser(vals.deal_owner);
+            if (resolvedOwner) dealRecord.owner_id = resolvedOwner;
+            // Orcamentista — resolve user by name/email
+            const resolvedOrc = resolveUser(vals.deal_orcamentista);
+            if (resolvedOrc) dealRecord.orcamentista_id = resolvedOrc;
             const { error: dErr } = await supabase.from('deals').insert(dealRecord);
             if (dErr) {
               details.push(`Linha ${ri + 2}: Erro negócio "${vals.deal_name}"`);
