@@ -216,7 +216,7 @@ export function KanbanBoard({ filters = {} }: Props) {
               onDrop={(e) => handleDrop(e, stage.key)}
               onDragOver={handleDragOver}
             >
-              <div className={`rounded-t-xl px-4 py-3 ${stage.color}`}>
+              <div className={`rounded-t-xl px-4 py-3 ${stage.stage_type === 'won' ? 'bg-emerald-100' : stage.stage_type === 'lost' ? 'bg-rose-100' : stage.color}`}>
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-sm text-foreground">{stage.label}</h3>
                   <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
