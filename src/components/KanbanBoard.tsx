@@ -245,7 +245,7 @@ export function KanbanBoard({ filters = {} }: Props) {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-3 px-3 sm:mx-0 sm:px-0">
         {STAGES.map((stage) => {
           const stageDeals = sortDeals(deals.filter((d) => d.stage === stage.key));
           const total = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
@@ -253,7 +253,7 @@ export function KanbanBoard({ filters = {} }: Props) {
           return (
             <div
               key={stage.key}
-              className="flex-shrink-0 w-72"
+              className="flex-shrink-0 w-64 sm:w-72"
               onDrop={(e) => handleDrop(e, stage.key)}
               onDragOver={handleDragOver}
             >

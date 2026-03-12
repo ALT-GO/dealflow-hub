@@ -89,66 +89,65 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Negócios</h1>
-          <p className="text-muted-foreground text-sm">Pipeline de vendas e negócios em andamento</p>
+          <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Negócios</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Pipeline de vendas e negócios em andamento</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* View Toggle */}
           <div className="flex items-center bg-muted rounded-lg p-0.5">
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"
-              className="h-8 px-3 text-xs gap-1.5 rounded-md"
+              className="h-8 px-2 sm:px-3 text-xs gap-1 sm:gap-1.5 rounded-md"
               onClick={() => setViewMode('kanban')}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              Kanban
+              <span className="hidden sm:inline">Kanban</span>
             </Button>
             <Button
               variant={viewMode === 'gantt' ? 'default' : 'ghost'}
               size="sm"
-              className="h-8 px-3 text-xs gap-1.5 rounded-md"
+              className="h-8 px-2 sm:px-3 text-xs gap-1 sm:gap-1.5 rounded-md"
               onClick={() => setViewMode('gantt')}
             >
               <GanttChart className="h-3.5 w-3.5" />
-              Visão Gantt
+              <span className="hidden sm:inline">Visão Gantt</span>
             </Button>
           </div>
           <NewDealModal />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {[
           { title: 'Negócios', value: String(stats?.deals || 0), avg: null, icon: Briefcase, tip: 'Quantidade total de negócios no pipeline' },
           { title: 'Valor Total', value: formatCompact(dealMetrics?.total || 0), avg: dealMetrics?.totalAvg, icon: DollarSign, tip: 'Soma do valor de todos os negócios, independente do estágio' },
-          { title: 'Valor Ponderado', value: formatCompact(dealMetrics?.weighted || 0), avg: dealMetrics?.weightedAvg, icon: DollarSign, tip: 'Valor ajustado pela probabilidade de fechamento baseado na posição no funil' },
-          { title: 'Valor Aberto', value: formatCompact(dealMetrics?.open || 0), avg: dealMetrics?.openAvg, icon: DollarSign, tip: 'Soma do valor dos negócios que ainda estão em andamento no pipeline' },
-          { title: 'Valor Fechado', value: formatCompact(dealMetrics?.closed || 0), avg: dealMetrics?.closedAvg, icon: DollarSign, tip: 'Soma do valor dos negócios que foram ganhos' },
+          { title: 'V. Ponderado', value: formatCompact(dealMetrics?.weighted || 0), avg: dealMetrics?.weightedAvg, icon: DollarSign, tip: 'Valor ajustado pela probabilidade de fechamento baseado na posição no funil' },
+          { title: 'V. Aberto', value: formatCompact(dealMetrics?.open || 0), avg: dealMetrics?.openAvg, icon: DollarSign, tip: 'Soma do valor dos negócios que ainda estão em andamento no pipeline' },
+          { title: 'V. Fechado', value: formatCompact(dealMetrics?.closed || 0), avg: dealMetrics?.closedAvg, icon: DollarSign, tip: 'Soma do valor dos negócios que foram ganhos' },
         ].map((m) => (
           <Card key={m.title} className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
-              <div className="flex items-center gap-1.5">
-                <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{m.title}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 sm:pt-4 px-3 sm:px-4">
+              <div className="flex items-center gap-1 min-w-0">
+                <CardTitle className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{m.title}</CardTitle>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+                    <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground/60 cursor-help shrink-0" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[200px] text-xs">
                     {m.tip}
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <m.icon className="h-4 w-4 text-primary" />
+              <m.icon className="h-4 w-4 text-primary shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <p className="text-xl font-bold text-primary">{m.value}</p>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <p className="text-base sm:text-xl font-bold text-primary truncate">{m.value}</p>
               {m.avg != null && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Média por negócio<br />
-                  <span className="font-medium">{formatCompact(m.avg || 0)}</span>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
+                  Média: <span className="font-medium">{formatCompact(m.avg || 0)}</span>
                 </p>
               )}
             </CardContent>
