@@ -170,8 +170,9 @@ export default function DealDetail() {
       title: `Moveu estágio`,
       description: `De "${stageLabels[oldStage] || oldStage}" para "${stageLabels[newStage] || newStage}"`,
       company_id: deal.company_id,
+      deal_id: id || null,
       created_by: user.id,
-    });
+    } as any);
     if (targetStage?.stage_type === 'won') fireConfetti();
     invalidateAll();
     toast.success(targetStage?.stage_type === 'won' ? '🎉 Negócio ganho!' : 'Estágio atualizado!');
