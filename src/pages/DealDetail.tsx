@@ -397,35 +397,35 @@ export default function DealDetail() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')}><ArrowLeft className="h-5 w-5" /></Button>
-          <div>
-            {dealAny.proposal_id && <p className="text-[10px] font-mono text-muted-foreground">{dealAny.proposal_id}</p>}
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-display font-bold text-foreground">{deal.name}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/')}><ArrowLeft className="h-5 w-5" /></Button>
+          <div className="min-w-0">
+            {dealAny.proposal_id && <p className="text-[10px] font-mono text-muted-foreground truncate">{dealAny.proposal_id}</p>}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-display font-bold text-foreground truncate">{deal.name}</h1>
               {(dealAny.qualification_score ?? 0) > 0 && (
                 <StarRating score={dealAny.qualification_score || 0} size="md" />
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Negócio{company ? ` · ${company.name}` : ''}</p>
+            <p className="text-xs text-muted-foreground truncate">Negócio{company ? ` · ${company.name}` : ''}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {!isDealClosed && (
             <>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleMarkWon}>
-                <Trophy className="h-4 w-4 mr-1" />Marcar como Ganho
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs" onClick={handleMarkWon}>
+                <Trophy className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Marcar como </span>Ganho
               </Button>
-              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleMarkLost}>
-                <XCircle className="h-4 w-4 mr-1" />Marcar como Perdido
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 text-xs" onClick={handleMarkLost}>
+                <XCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Marcar como </span>Perdido
               </Button>
             </>
           )}
           <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
-                <Trash2 className="h-4 w-4 mr-1" />Excluir
+              <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10 text-xs">
+                <Trash2 className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Excluir</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-sm">
