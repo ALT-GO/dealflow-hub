@@ -259,12 +259,7 @@ export function NewDealModal() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Tipo de Contrato</Label>
-                <Select value={form.contract_type} onValueChange={(v) => setForm({ ...form, contract_type: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {CONTRACT_TYPES.map(ct => <SelectItem key={ct.value} value={ct.value}>{ct.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.contract_type} onChange={(v) => setForm({ ...form, contract_type: v })} options={CONTRACT_TYPES} placeholder="Selecione..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Mercado</Label>
