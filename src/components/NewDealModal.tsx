@@ -245,12 +245,7 @@ export function NewDealModal() {
             {contacts.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Contato</Label>
-                <Select value={form.contact_id} onValueChange={(v) => setForm({ ...form, contact_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o contato" /></SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.contact_id} onChange={(v) => setForm({ ...form, contact_id: v })} options={contacts.map(c => ({ value: c.id, label: c.name }))} placeholder="Selecione o contato" />
               </div>
             )}
           </div>
