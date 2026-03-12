@@ -48,6 +48,7 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
   const [rejectMode, setRejectMode] = useState(false);
   const [newDate, setNewDate] = useState('');
   const [selectedOrcamentista, setSelectedOrcamentista] = useState('');
+  const { data: workloadMap = {} } = useEstimatorWorkload();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['profiles-list'],
