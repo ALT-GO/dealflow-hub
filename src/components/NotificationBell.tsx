@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Bell, AtSign, Briefcase, ListTodo, Check, CheckCheck } from 'lucide-react';
+import { Bell, AtSign, Briefcase, ListTodo, Check, CheckCheck, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { ApprovalModal } from '@/components/ApprovalModal';
 
 interface Notification {
   id: string;
@@ -26,12 +27,16 @@ const typeIcons: Record<string, typeof AtSign> = {
   mention: AtSign,
   deal_assigned: Briefcase,
   task_due: ListTodo,
+  approval_request: ShieldCheck,
+  approval_result: ShieldCheck,
 };
 
 const typeColors: Record<string, string> = {
   mention: 'bg-primary/10 text-primary',
   deal_assigned: 'bg-success/10 text-success',
   task_due: 'bg-warning/10 text-warning',
+  approval_request: 'bg-amber-500/10 text-amber-600',
+  approval_result: 'bg-emerald-500/10 text-emerald-600',
 };
 
 export function NotificationBell() {
