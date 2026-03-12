@@ -522,67 +522,58 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
               {/* Mapped fields count */}
               <p className="text-xs text-muted-foreground">
-                {Object.values(mapping).filter(v => v).length} campo(s) mapeado(s). Vincule as colunas da planilha aos campos do sistema na tabela abaixo.
+                {Object.values(mapping).filter(v => v).length} campo(s) mapeado(s). Vincule as colunas da planilha aos campos do sistema abaixo.
               </p>
 
-              {/* Preview with mapping */}
-              <div className="border rounded-lg overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {headers.map((h, i) => (
-                        <TableHead key={i} className="text-xs whitespace-nowrap font-semibold text-foreground">{h}</TableHead>
-                      ))}
-                    </TableRow>
-                    <TableRow className="bg-muted/30">
-                      {headers.map((h, i) => {
-                        const category = mapping[i]?.startsWith('company_') ? 'company'
-                          : mapping[i]?.startsWith('contact_') ? 'contact'
-                          : mapping[i]?.startsWith('deal_') ? 'deal' : null;
-                        const catColor = category === 'company' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                          : category === 'contact' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                          : category === 'deal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          : '';
-                        const catLabel = category === 'company' ? 'Emp' : category === 'contact' ? 'Con' : category === 'deal' ? 'Neg' : '';
+              {/* Vertical field mapping list */}
+              <div className="border rounded-lg divide-y max-h-[45vh] overflow-y-auto">
+                {headers.map((h, i) => {
+                  const category = mapping[i]?.startsWith('company_') ? 'company'
+                    : mapping[i]?.startsWith('contact_') ? 'contact'
+                    : mapping[i]?.startsWith('deal_') ? 'deal' : null;
+                  const catColor = category === 'company' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                    : category === 'contact' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : category === 'deal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                    : '';
+                  const catLabel = category === 'company' ? 'Empresa' : category === 'contact' ? 'Contato' : category === 'deal' ? 'Negócio' : '';
+                  // Sample values from first 2 rows
+                  const samples = rows.slice(0, 2).map(r => r[i]).filter(Boolean);
 
-                        return (
-                          <TableHead key={i} className="p-1">
-                            <div className="flex items-center gap-1">
-                              {category && <Badge className={`text-[8px] px-1 shrink-0 ${catColor}`}>{catLabel}</Badge>}
-                              <Select value={mapping[i] || 'ignore'} onValueChange={(v) => setMapping(prev => ({ ...prev, [i]: v === 'ignore' ? '' : v }))}>
-                                <SelectTrigger className="h-7 text-[11px] min-w-[130px] border-dashed">
-                                  <SelectValue placeholder="— Ignorar —" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="ignore">— Ignorar —</SelectItem>
-                                  {getFieldsForHeader(h).map(group => (
-                                    <SelectGroup key={group.key}>
-                                      <SelectLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{group.key}</SelectLabel>
-                                      {group.fields.map(f => (
-                                        <SelectItem key={f.value} value={f.value}>
-                                          {f.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectGroup>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </TableHead>
-                        );
-                      })}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.slice(0, 3).map((row, ri) => (
-                      <TableRow key={ri}>
-                        {row.map((cell, ci) => (
-                          <TableCell key={ci} className="text-xs whitespace-nowrap max-w-[150px] truncate">{cell}</TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  return (
+                    <div key={i} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate" title={h}>{h}</p>
+                        {samples.length > 0 && (
+                          <p className="text-[11px] text-muted-foreground truncate" title={samples.join(' | ')}>
+                            ex: {samples.join(' | ')}
+                          </p>
+                        )}
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {category && <Badge className={`text-[9px] px-1.5 ${catColor}`}>{catLabel}</Badge>}
+                        <Select value={mapping[i] || 'ignore'} onValueChange={(v) => setMapping(prev => ({ ...prev, [i]: v === 'ignore' ? '' : v }))}>
+                          <SelectTrigger className="h-8 w-48 text-xs border-dashed">
+                            <SelectValue placeholder="— Ignorar —" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ignore">— Ignorar —</SelectItem>
+                            {getFieldsForHeader(h).map(group => (
+                              <SelectGroup key={group.key}>
+                                <SelectLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{group.key}</SelectLabel>
+                                {group.fields.map(f => (
+                                  <SelectItem key={f.value} value={f.value}>
+                                    {f.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Validation messages */}
