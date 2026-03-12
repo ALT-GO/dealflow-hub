@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Upload, FileSpreadsheet, ArrowRight, Building2, Users, Briefcase, CheckCircle2, AlertTriangle, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, ArrowRight, Building2, Users, Briefcase, CheckCircle2, AlertTriangle, Download, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
