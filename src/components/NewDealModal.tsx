@@ -263,12 +263,7 @@ export function NewDealModal() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Mercado</Label>
-                <Select value={form.market} onValueChange={(v) => setForm({ ...form, market: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {MARKETS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.market} onChange={(v) => setForm({ ...form, market: v })} options={MARKETS} placeholder="Selecione..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Área de Negócio</Label>
