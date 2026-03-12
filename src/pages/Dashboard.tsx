@@ -113,15 +113,32 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {statCards.map((stat) => (
-          <Card key={stat.title} className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <Card className="border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Negócios</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-card-foreground">{stats?.deals || 0}</p>
+          </CardContent>
+        </Card>
+        {[
+          { title: 'Valor Total de Negócio', value: dealMetrics?.total, avg: dealMetrics?.totalAvg, color: 'text-foreground' },
+          { title: 'Valor Ponderado de Negócio', value: dealMetrics?.weighted, avg: dealMetrics?.weightedAvg, color: 'text-primary' },
+          { title: 'Valor de Negócio Aberto', value: dealMetrics?.open, avg: dealMetrics?.openAvg, color: 'text-sky-600' },
+          { title: 'Valor de Negócio Fechado', value: dealMetrics?.closed, avg: dealMetrics?.closedAvg, color: 'text-emerald-600' },
+        ].map((m) => (
+          <Card key={m.title} className="border-border">
+            <CardHeader className="pb-1 pt-4 px-4">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{m.title}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
+            <CardContent className="px-4 pb-4">
+              <p className={`text-xl font-bold ${m.color}`}>{formatCompact(m.value || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Média por negócio<br />
+                <span className="font-medium">{formatCompact(m.avg || 0)}</span>
+              </p>
             </CardContent>
           </Card>
         ))}
