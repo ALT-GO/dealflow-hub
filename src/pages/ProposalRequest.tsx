@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle2, Send, CalendarRange } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import EstimatorGantt from '@/components/EstimatorGantt';
+import { DatePickerField } from '@/components/DatePickerField';
 
 const BUSINESS_AREAS = [
   'Infraestrutura Predial',
