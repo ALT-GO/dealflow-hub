@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join("\n");
 
     // 6. Create deal
-    const { error: dealError } = await supabase.from("deals").insert({
+    const { data: newDeal, error: dealError } = await supabase.from("deals").insert({
       name: `Proposta - ${client_company.trim()}`,
       proposal_id: proposalId,
       company_id: companyId,
@@ -120,6 +120,8 @@ Deno.serve(async (req) => {
       value: 0,
       business_area: business_area || null,
       market: null,
+      target_delivery_date: target_delivery_date || null,
+      approval_status: "pending",
     });
     if (dealError) throw dealError;
 
