@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       market: null,
       target_delivery_date: target_delivery_date || null,
       approval_status: "pending",
-    });
+    }).select("id").single();
     if (dealError) throw dealError;
 
     // 7. Log an activity with the full description
