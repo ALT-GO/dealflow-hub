@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
     const {
       requester_name, requester_email,
       client_name, client_role, client_email, client_phone, client_company,
-      business_area, address, state, team_type, project_phase,
+      client_address,
+      business_area, state, team_type,
       has_team, team_description, qualification_level, target_delivery_date,
       orcamentista_id,
-      // New fields
       carbono_zero, cortex, endereco_execucao, estudo_equipe, tipo_negocio, scope,
     } = body;
 
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 1. Find or create company
+    // 1. Find or create company — save address and phone to company
     const { data: existingCompany } = await supabase
       .from("companies")
       .select("id")
@@ -53,17 +53,27 @@ Deno.serve(async (req) => {
     let companyId: string;
     if (existingCompany) {
       companyId = existingCompany.id;
+      // Update company with address/phone if provided
+      const companyUpdate: Record<string, string> = {};
+      if (client_address?.trim()) companyUpdate.domain = client_address.trim(); // using domain field for address
+      if (client_phone?.trim()) companyUpdate.phone = client_phone.trim();
+      if (Object.keys(companyUpdate).length > 0) {
+        await supabase.from("companies").update(companyUpdate).eq("id", companyId);
+      }
     } else {
+      const insertData: Record<string, any> = { name: client_company.trim() };
+      if (client_phone?.trim()) insertData.phone = client_phone.trim();
+      if (client_address?.trim()) insertData.domain = client_address.trim();
       const { data: newCompany, error: companyError } = await supabase
         .from("companies")
-        .insert({ name: client_company.trim() })
+        .insert(insertData)
         .select("id")
         .single();
       if (companyError) throw companyError;
       companyId = newCompany.id;
     }
 
-    // 2. Create contact
+    // 2. Create contact — save phone to contact too
     const { data: newContact, error: contactError } = await supabase
       .from("contacts")
       .insert({
@@ -104,17 +114,17 @@ Deno.serve(async (req) => {
     const descParts = [
       `Solicitante: ${requester_name.trim()} (${requester_email.trim()})`,
       client_phone ? `Telefone: ${client_phone}` : null,
-      address ? `Endereço: ${address}` : null,
+      client_address ? `Endereço: ${client_address}` : null,
       state ? `Estado: ${state}` : null,
       team_type ? `Equipe: ${team_type}` : null,
-      project_phase ? `Fase do projeto: ${project_phase}` : null,
       has_team ? `Cliente possui equipe: Sim — ${team_description || 'Não informado'}` : `Cliente possui equipe: Não`,
       qualification_level ? `Nível de qualificação: ${qualification_level}` : null,
     ].filter(Boolean).join("\n");
 
-    // 6. Create deal — map requester_name → vendedor_externo, scope → scope
+    // 6. Create deal — name = [Company] - [Contact]
+    const dealName = `${client_company.trim()} - ${client_name.trim()}`;
     const { data: newDeal, error: dealError } = await supabase.from("deals").insert({
-      name: `Proposta - ${client_company.trim()}`,
+      name: dealName,
       proposal_id: proposalId,
       company_id: companyId,
       contact_id: newContact.id,
@@ -126,7 +136,6 @@ Deno.serve(async (req) => {
       target_delivery_date: target_delivery_date || null,
       orcamentista_id: orcamentista_id || null,
       approval_status: "pending",
-      // New fields
       vendedor_externo: requester_name.trim(),
       scope: scope?.trim() || null,
       carbono_zero: !!carbono_zero,
@@ -159,7 +168,7 @@ Deno.serve(async (req) => {
               await supabase.from("notifications").insert({
                 user_id: tm.user_id,
                 type: "approval_request",
-                title: `Aprovação pendente: Proposta - ${client_company.trim()}`,
+                title: `Aprovação pendente: ${dealName}`,
                 description: `Nova solicitação de proposta aguarda aprovação.`,
                 entity_type: "deal",
                 entity_id: newDeal.id,
