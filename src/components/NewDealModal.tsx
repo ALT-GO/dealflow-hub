@@ -53,7 +53,6 @@ export function NewDealModal() {
     close_date: '',
     company_id: '',
     contact_id: '',
-    orcamentista_id: '',
     contract_type: '',
     market: '',
     business_area: '',
