@@ -549,10 +549,16 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                                 <SelectValue placeholder="Selecione o campo" />
                               </SelectTrigger>
                               <SelectContent>
-                                {selectFields.map(f => (
-                                  <SelectItem key={f.value || 'ignore'} value={f.value || 'ignore'}>
-                                    {f.group ? `${f.group} → ${f.label}` : f.label}
-                                  </SelectItem>
+                                <SelectItem value="ignore">— Ignorar —</SelectItem>
+                                {getFieldsForHeader(h).map(group => (
+                                  <SelectGroup key={group.key}>
+                                    <SelectLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{group.key}</SelectLabel>
+                                    {group.fields.map(f => (
+                                      <SelectItem key={f.value} value={f.value}>
+                                        {f.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
                                 ))}
                               </SelectContent>
                             </Select>
