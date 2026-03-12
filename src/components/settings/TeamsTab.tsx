@@ -50,7 +50,8 @@ export function TeamsTab() {
   const now = new Date();
   const [goalForm, setGoalForm] = useState({
     user_id: '',
-    month: String(now.getMonth() + 1),
+    periodicity: 'monthly',
+    period_start: '1',
     year: String(now.getFullYear()),
     target_value: '',
     target_deals_count: '',
@@ -114,14 +115,13 @@ export function TeamsTab() {
     },
   });
 
-  // Fetch goals
+  // Fetch goals for current year
   const { data: goals = [] } = useQuery({
-    queryKey: ['sales-goals', now.getMonth() + 1, now.getFullYear()],
+    queryKey: ['sales-goals', now.getFullYear()],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales_goals')
         .select('*')
-        .eq('month', now.getMonth() + 1)
         .eq('year', now.getFullYear());
       if (error) throw error;
       return data;
@@ -142,17 +142,19 @@ export function TeamsTab() {
     e.preventDefault();
     if (!user) return;
     setGoalSaving(true);
+    // Delete existing goal for same user/periodicity/period/year
     await supabase.from('sales_goals').delete()
       .eq('user_id', goalForm.user_id)
-      .eq('month', Number(goalForm.month))
       .eq('year', Number(goalForm.year));
     const { error } = await supabase.from('sales_goals').insert({
       user_id: goalForm.user_id,
-      month: Number(goalForm.month),
+      month: Number(goalForm.period_start),
       year: Number(goalForm.year),
       target_value: Number(goalForm.target_value) || 0,
       target_deals_count: Number(goalForm.target_deals_count) || 0,
-    });
+      periodicity: goalForm.periodicity,
+      period_start: Number(goalForm.period_start),
+    } as any);
     setGoalSaving(false);
     if (error) { toast.error('Erro ao definir meta: ' + error.message); }
     else { toast.success('Meta definida!'); setGoalOpen(false); queryClient.invalidateQueries({ queryKey: ['sales-goals'] }); }
@@ -265,12 +267,12 @@ export function TeamsTab() {
                 <Button size="sm"><Target className="h-4 w-4 mr-2" />Definir Meta</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Definir Meta Mensal</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Definir Meta</DialogTitle></DialogHeader>
                 <form onSubmit={handleSetGoal} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Vendedor</Label>
+                    <Label>Membro</Label>
                     <Select value={goalForm.user_id} onValueChange={(v) => setGoalForm({ ...goalForm, user_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecionar vendedor" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
                       <SelectContent>
                         {members.map((m) => (
                           <SelectItem key={m.user_id} value={m.user_id}>
@@ -280,16 +282,56 @@ export function TeamsTab() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Periodicidade</Label>
+                    <Select value={goalForm.periodicity} onValueChange={(v) => setGoalForm({ ...goalForm, periodicity: v, period_start: '1' })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Mensal</SelectItem>
+                        <SelectItem value="quarterly">Trimestral</SelectItem>
+                        <SelectItem value="semiannual">Semestral</SelectItem>
+                        <SelectItem value="annual">Anual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Mês</Label>
-                      <Select value={goalForm.month} onValueChange={(v) => setGoalForm({ ...goalForm, month: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {goalForm.periodicity === 'monthly' && (
+                      <div className="space-y-2">
+                        <Label>Mês</Label>
+                        <Select value={goalForm.period_start} onValueChange={(v) => setGoalForm({ ...goalForm, period_start: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {MONTHS.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {goalForm.periodicity === 'quarterly' && (
+                      <div className="space-y-2">
+                        <Label>Trimestre</Label>
+                        <Select value={goalForm.period_start} onValueChange={(v) => setGoalForm({ ...goalForm, period_start: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1º Trimestre</SelectItem>
+                            <SelectItem value="4">2º Trimestre</SelectItem>
+                            <SelectItem value="7">3º Trimestre</SelectItem>
+                            <SelectItem value="10">4º Trimestre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {goalForm.periodicity === 'semiannual' && (
+                      <div className="space-y-2">
+                        <Label>Semestre</Label>
+                        <Select value={goalForm.period_start} onValueChange={(v) => setGoalForm({ ...goalForm, period_start: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1º Semestre</SelectItem>
+                            <SelectItem value="7">2º Semestre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Ano</Label>
                       <Input type="number" value={goalForm.year} onChange={(e) => setGoalForm({ ...goalForm, year: e.target.value })} />
