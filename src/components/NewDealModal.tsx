@@ -228,7 +228,7 @@ export function NewDealModal() {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Etapa</Label>
               <Select value={form.stage} onValueChange={(v) => setForm({ ...form, stage: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger>
                 <SelectContent>
                   {STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
