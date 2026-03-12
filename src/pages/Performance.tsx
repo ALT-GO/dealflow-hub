@@ -230,7 +230,19 @@ export default function Performance() {
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+  const InfoTip = ({ text }: { text: string }) => (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help shrink-0" />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+        {text}
+      </TooltipContent>
+    </UITooltip>
+  );
+
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
