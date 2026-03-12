@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProperties } from '@/hooks/useCustomProperties';
 import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
@@ -56,6 +57,9 @@ export function NewDealModal() {
     market: '',
     business_area: '',
     origin_id: '',
+    scope: '',
+    budget_start_date: '',
+    proposal_delivery_date: '',
   });
   const [qualAnswers, setQualAnswers] = useState<Record<string, string>>({});
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -112,6 +116,9 @@ export function NewDealModal() {
       business_area: form.business_area || null,
       origin_id: form.origin_id || null,
       qualification_score: score,
+      scope: form.scope || null,
+      budget_start_date: form.budget_start_date || null,
+      proposal_delivery_date: form.proposal_delivery_date || null,
     } as any).select('id').single();
 
     if (error) {
@@ -147,7 +154,7 @@ export function NewDealModal() {
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '' });
+    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '' });
     setCustomValues({});
     setQualAnswers({});
   };
@@ -268,6 +275,18 @@ export function NewDealModal() {
                 <Label className="text-xs text-muted-foreground">Data de Fechamento</Label>
                 <Input type="date" value={form.close_date} onChange={(e) => setForm({ ...form, close_date: e.target.value })} />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Data Início Orçamento</Label>
+                <Input type="date" value={form.budget_start_date} onChange={(e) => setForm({ ...form, budget_start_date: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Data Entrega Proposta</Label>
+                <Input type="date" value={form.proposal_delivery_date} onChange={(e) => setForm({ ...form, proposal_delivery_date: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-3">
+              <Label className="text-xs text-muted-foreground">Escopo</Label>
+              <Textarea placeholder="Descreva o escopo do projeto..." value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} rows={3} />
             </div>
           </div>
 
