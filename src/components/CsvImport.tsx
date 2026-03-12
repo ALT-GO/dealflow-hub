@@ -351,7 +351,9 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               const parsed = parseFloat(vals.deal_value.replace(/[^\d.,]/g, '').replace(',', '.'));
               dealRecord.value = isNaN(parsed) ? 0 : parsed;
             }
-            if (vals.deal_stage) dealRecord.stage = vals.deal_stage;
+            // Stage — resolve to valid funnel key or fallback to 'prospeccao'
+            dealRecord.stage = resolveStage(vals.deal_stage);
+
             if (vals.deal_business_area) dealRecord.business_area = vals.deal_business_area;
             if (vals.deal_market) dealRecord.market = vals.deal_market;
             if (vals.deal_contract_type) dealRecord.contract_type = vals.deal_contract_type;
