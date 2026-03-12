@@ -548,8 +548,12 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         // 1. Import Company
         if (importCompanies && vals.company_name) {
           const existing = companyMap.get(vals.company_name.toLowerCase());
+          const shouldSkipCompany = skipCompanies.has(`${rowNum}`);
           if (existing) {
             companyId = existing;
+          } else if (shouldSkipCompany) {
+            // Marked as skip by user — still use existing if found, otherwise skip creation
+            companyId = companyMap.get(vals.company_name.toLowerCase()) || null;
           } else {
             const companyRecord: any = {
               name: vals.company_name,
