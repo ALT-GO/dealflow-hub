@@ -566,14 +566,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               {/* Validation messages */}
               {!canImport && (
                 <p className="text-xs text-destructive">
-                  {!(importCompanies || importContacts || importDeals)
-                    ? 'Ative pelo menos uma categoria para importar.'
-                    : 'Mapeie os campos obrigatórios: ' +
-                      [
-                        importCompanies && !Object.values(mapping).includes('company_name') ? '"Nome da Empresa"' : '',
-                        importContacts && !Object.values(mapping).includes('contact_name') ? '"Nome do Contato"' : '',
-                        importDeals && !Object.values(mapping).includes('deal_name') ? '"Nome do Negócio"' : '',
-                      ].filter(Boolean).join(', ')}
+                  Ative pelo menos uma categoria para importar.
                 </p>
               )}
 
