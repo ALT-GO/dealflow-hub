@@ -477,7 +477,7 @@ export default function Performance() {
 
       {/* Loss Analysis */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios. Ajuda a identificar padrões e tomar ações corretivas para reduzir perdas futuras." /></CardTitle></CardHeader>
         <CardContent>
           {lossData.length > 0 ? (
             <div className="flex flex-col lg:flex-row items-center gap-6">
