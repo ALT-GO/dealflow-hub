@@ -303,6 +303,10 @@ export function FunnelTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Cor</Label>
+              <ColorPicker value={form.color} onChange={(v) => setForm({ ...form, color: v })} />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleEdit} disabled={saving || !form.label.trim()}>
