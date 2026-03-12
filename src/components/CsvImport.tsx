@@ -1006,6 +1006,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             </div>
           )}
 
+          {step === 'importing' && (
             <div className="py-12 text-center space-y-3">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
               <p className="text-sm text-muted-foreground">Importando registros...</p>
