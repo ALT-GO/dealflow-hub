@@ -11,7 +11,8 @@ import { useLossReasons } from '@/hooks/useLossReasons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock } from 'lucide-react';
+import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info } from 'lucide-react';
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell, PieChart, Pie,
@@ -229,7 +230,19 @@ export default function Performance() {
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+  const InfoTip = ({ text }: { text: string }) => (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help shrink-0" />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
+        {text}
+      </TooltipContent>
+    </UITooltip>
+  );
+
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
@@ -287,7 +300,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Fechado no Mês</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Fechado no Mês <InfoTip text="Valor total dos negócios fechados (ganhos) no mês atual. Considera apenas negócios no estágio 'Fechado'." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(closedValue)}</p>
               </div>
             </div>
@@ -298,7 +311,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center"><Percent className="h-5 w-5 text-emerald-600" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Lucro Total</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Lucro Total <InfoTip text="Soma do lucro estimado dos negócios fechados no mês, calculado como Valor × Margem de Lucro (%). A margem média é a média das margens individuais." /></p>
                 <p className="text-xl font-display font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
                 {avgProfitMargin > 0 && <p className="text-[10px] text-muted-foreground">Margem média: {avgProfitMargin.toFixed(1)}%</p>}
               </div>
@@ -310,7 +323,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Target className="h-5 w-5 text-primary" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Taxa de Fechamento</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Taxa de Fechamento <InfoTip text="Percentual de propostas enviadas que resultaram em fechamento no período selecionado. Fórmula: Negócios Fechados ÷ Propostas Enviadas × 100." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{winRate.toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">{closedInPeriod.length}/{proposalsSent.length} propostas</p>
               </div>
@@ -322,7 +335,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center"><Activity className="h-5 w-5 text-accent" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Prob. Histórica</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Prob. Histórica <InfoTip text="Probabilidade histórica de fechar negócios baseada em todo o histórico. Fórmula: Total de Ganhos ÷ (Ganhos + Perdidos) × 100." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{historicalProb.toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">{historicalWon.length}/{historicalTotal.length} finalizados</p>
               </div>
@@ -336,7 +349,7 @@ export default function Performance() {
                 <Zap className={`h-5 w-5 ${forecastVsGoal >= 100 ? 'text-success' : forecastVsGoal >= 70 ? 'text-primary' : 'text-warning'}`} />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Previsão (Forecast)</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Previsão (Forecast) <InfoTip text="Estimativa de receita do mês: valor já fechado + pipeline ativo ponderado pela probabilidade histórica de fechamento." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(forecast)}</p>
                 <p className="text-[10px] text-muted-foreground">{forecastVsGoal}% da meta</p>
               </div>
@@ -354,7 +367,7 @@ export default function Performance() {
                 <CheckSquare className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Negócios sem tarefas pendentes</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Negócios sem tarefas pendentes <InfoTip text="Negócios ativos que não possuem nenhuma tarefa pendente. Clique para ver a lista e agir." /></p>
                 <p className="text-2xl font-display font-bold text-warning">{dealsWithNoTasks.length}</p>
               </div>
             </div>
@@ -367,7 +380,7 @@ export default function Performance() {
                 <Clock className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Tarefas em atraso</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Tarefas em atraso <InfoTip text="Total de tarefas não concluídas com data de vencimento ultrapassada. Clique para ver detalhes." /></p>
                 <p className="text-2xl font-display font-bold text-destructive">{overdueTasks.length}</p>
                 <p className="text-[10px] text-muted-foreground">Em {overdueDeals.length} negócio(s)</p>
               </div>
@@ -396,7 +409,7 @@ export default function Performance() {
 
       {/* Burn-up */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" />Burn-up de Metas — {MONTHS_PT[currentMonth]}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" />Burn-up de Metas — {MONTHS_PT[currentMonth]} <InfoTip text="Gráfico de progresso acumulado. A linha tracejada mostra o ritmo ideal para atingir a meta. A linha sólida mostra o valor realizado dia a dia." /></CardTitle></CardHeader>
         <CardContent>
           {totalGoalValue > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
@@ -419,7 +432,7 @@ export default function Performance() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Leaderboard */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" />Leaderboard de Vendas</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" />Leaderboard de Vendas <InfoTip text="Ranking dos vendedores ordenado por valor total fechado. Exibe Win Rate (taxa de conversão) e lucro individual." /></CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {leaderboard.slice(0, 10).map((seller, idx) => (
               <div key={seller.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
@@ -441,7 +454,7 @@ export default function Performance() {
 
         {/* Bar chart */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor <InfoTip text="Comparativo visual entre o valor total fechado e o lucro estimado de cada vendedor. Útil para identificar quem gera mais margem." /></CardTitle></CardHeader>
           <CardContent>
             {barData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -464,7 +477,7 @@ export default function Performance() {
 
       {/* Loss Analysis */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios. Ajuda a identificar padrões e tomar ações corretivas para reduzir perdas futuras." /></CardTitle></CardHeader>
         <CardContent>
           {lossData.length > 0 ? (
             <div className="flex flex-col lg:flex-row items-center gap-6">
@@ -558,5 +571,6 @@ export default function Performance() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
