@@ -587,7 +587,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
         // 2. Import Contact
         let contactId: string | null = null;
-        if (importContacts && vals.contact_name) {
+        const shouldSkipContact = skipContacts.has(`${rowNum}`);
+        if (importContacts && vals.contact_name && !shouldSkipContact) {
           if (!companyId) {
             if (vals.company_name) {
               const { data: newC } = await supabase.from('companies').insert({ name: vals.company_name, created_by: user.id }).select('id').single();
