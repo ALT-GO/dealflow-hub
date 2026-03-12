@@ -201,7 +201,6 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
               <SmartDatePicker
                 value={newDate}
                 onChange={setNewDate}
-                estimatorId={selectedOrcamentista || deal.orcamentista_id || undefined}
                 placeholder="Nova data de entrega"
               />
             </div>
