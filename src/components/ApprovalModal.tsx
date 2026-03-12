@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Building2, DollarSign, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import { useEstimatorWorkload } from '@/components/EstimatorGantt';
 
 interface Deal {
   id: string;
