@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,7 @@ import { useLossReasons } from '@/hooks/useLossReasons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
 import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -45,6 +46,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const BUSINESS_AREAS = ['Infraestrutura Predial', 'Missão Crítica', 'Segurança Eletrônica', 'Inteligência Predial', 'Energia', 'Outro'];
+
+/** Simple linear regression: returns slope (m) and intercept (b) */
+function linearRegression(data: number[]): { m: number; b: number } {
+  const n = data.length;
+  if (n < 2) return { m: 0, b: data[0] || 0 };
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += i;
+    sumY += data[i];
+    sumXY += i * data[i];
+    sumXX += i * i;
+  }
+  const m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const b = (sumY - m * sumX) / n;
+  return { m, b };
+}
 
 export default function Performance() {
   const { user } = useAuth();
@@ -129,8 +146,8 @@ export default function Performance() {
   };
   const periodStart = getStartDate();
 
-  // Apply filters
-  const filteredDeals = allDeals.filter(d => {
+  // Apply global filters to ALL data
+  const filteredDeals = useMemo(() => allDeals.filter(d => {
     if (filterArea !== 'all' && d.business_area !== filterArea) return false;
     if (filterMarket !== 'all' && d.market !== filterMarket) return false;
     if (filterValueRange !== 'all') {
@@ -141,40 +158,38 @@ export default function Performance() {
       if (filterValueRange === '5m+' && v < 5000000) return false;
     }
     return true;
-  });
+  }), [allDeals, filterArea, filterMarket, filterValueRange]);
 
-  const periodDeals = filteredDeals.filter(d => new Date(d.updated_at) >= periodStart);
+  const periodDeals = useMemo(() => filteredDeals.filter(d => new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
 
   const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-  const closedThisMonth = filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth);
-  const closedValue = closedThisMonth.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
+  const closedInPeriod = useMemo(() => filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
+  const closedValue = closedInPeriod.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
-  // === NEW KPIs ===
-  // Win Rate: proposals sent (stage >= proposta) vs closed
+  // Win Rate
   const proposalsSent = periodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
-  const closedInPeriod = periodDeals.filter(d => d.stage === 'fechado');
   const winRate = proposalsSent.length > 0 ? (closedInPeriod.length / proposalsSent.length) * 100 : 0;
 
-  // Historical probability by area/market
-  const historicalWon = allDeals.filter(d => d.stage === 'fechado');
-  const historicalTotal = allDeals.filter(d => d.stage === 'fechado' || d.stage === 'perdido');
+  // Historical probability (also filtered)
+  const historicalWon = filteredDeals.filter(d => d.stage === 'fechado');
+  const historicalTotal = filteredDeals.filter(d => d.stage === 'fechado' || d.stage === 'perdido');
   const historicalProb = historicalTotal.length > 0 ? (historicalWon.length / historicalTotal.length) * 100 : 0;
 
   // Profit
-  const totalProfit = closedThisMonth.reduce((s: number, d: any) => {
+  const totalProfit = closedInPeriod.reduce((s: number, d: any) => {
     const margin = Number(d.profit_margin) || 0;
     const value = Number(d.value) || 0;
     return s + (value * margin / 100);
   }, 0);
-  const avgProfitMargin = closedThisMonth.length > 0
-    ? closedThisMonth.reduce((s: number, d: any) => s + (Number(d.profit_margin) || 0), 0) / closedThisMonth.length
+  const avgProfitMargin = closedInPeriod.length > 0
+    ? closedInPeriod.reduce((s: number, d: any) => s + (Number(d.profit_margin) || 0), 0) / closedInPeriod.length
     : 0;
 
   const totalGoalValue = goals.reduce((s: number, g: any) => s + (Number(g.target_value) || 0), 0);
   const goalPercent = totalGoalValue > 0 ? (closedValue / totalGoalValue) * 100 : 0;
 
-  // Actionable metrics
-  const activeDeals = allDeals.filter(d => d.stage !== 'fechado' && d.stage !== 'perdido');
+  // Actionable metrics (filtered)
+  const activeDeals = filteredDeals.filter(d => d.stage !== 'fechado' && d.stage !== 'perdido');
   const dealIdsWithPendingTasks = new Set(allTasks.filter(t => !t.completed && t.deal_id).map(t => t.deal_id));
   const dealsWithNoTasks = activeDeals.filter(d => !dealIdsWithPendingTasks.has(d.id));
 
@@ -185,6 +200,7 @@ export default function Performance() {
   // Burn-up
   const burnUpData: any[] = [];
   let cumulative = 0;
+  const closedThisMonth = filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth);
   for (let day = 1; day <= daysInMonth; day++) {
     if (day <= currentDay) {
       const dayDeals = closedThisMonth.filter((d: any) => new Date(d.updated_at).getDate() <= day && new Date(d.updated_at).getMonth() === currentMonth - 1);
@@ -197,10 +213,10 @@ export default function Performance() {
     });
   }
 
-  // Leaderboard
-  const ownerIds = [...new Set(allDeals.map((d: any) => d.owner_id))];
+  // Leaderboard (filtered)
+  const ownerIds = [...new Set(filteredDeals.map((d: any) => d.owner_id))];
   const leaderboard = ownerIds.map(ownerId => {
-    const userDeals = allDeals.filter((d: any) => d.owner_id === ownerId);
+    const userDeals = filteredDeals.filter((d: any) => d.owner_id === ownerId);
     const closedDeals = userDeals.filter((d: any) => d.stage === 'fechado');
     const cv = closedDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
     const profit = closedDeals.reduce((s: number, d: any) => s + ((Number(d.value) || 0) * (Number(d.profit_margin) || 0) / 100), 0);
@@ -210,13 +226,13 @@ export default function Performance() {
     return { userId: ownerId, name: profile?.full_name || 'Sem nome', closedValue: cv, profit, winRate: wr, activities: userActivities, totalDeals: userDeals.length };
   }).sort((a, b) => b.closedValue - a.closedValue);
 
-  // Forecast using historical probability
-  const pipelineDeals = allDeals.filter((d: any) => d.stage !== 'fechado' && d.stage !== 'perdido');
+  // Forecast (filtered)
+  const pipelineDeals = filteredDeals.filter((d: any) => d.stage !== 'fechado' && d.stage !== 'perdido');
   const forecast = closedValue + pipelineDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0) * (historicalProb / 100), 0);
   const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
 
-  // Loss analysis
-  const lostDeals = allDeals.filter((d: any) => d.stage === 'perdido' && d.loss_reason);
+  // Loss analysis (filtered)
+  const lostDeals = filteredDeals.filter((d: any) => d.stage === 'perdido' && d.loss_reason);
   const lossReasonCounts: Record<string, number> = {};
   lostDeals.forEach((d: any) => { lossReasonCounts[d.loss_reason!] = (lossReasonCounts[d.loss_reason!] || 0) + 1; });
   const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
@@ -226,18 +242,18 @@ export default function Performance() {
   }).sort((a, b) => b.value - a.value);
   const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
-  // Revenue by tipo_negocio (donut)
-  const revenueByTipo = (() => {
+  // Revenue by tipo_negocio (filtered)
+  const revenueByTipo = useMemo(() => {
     const map: Record<string, number> = {};
     filteredDeals.filter(d => d.stage === 'fechado').forEach((d: any) => {
       const key = d.tipo_negocio || 'Não informado';
       map[key] = (map[key] || 0) + (Number(d.value) || 0);
     });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  })();
+  }, [filteredDeals]);
 
-  // Ranking de Parceiros Externos
-  const parceirosRanking = (() => {
+  // Ranking de Vendedores Externos (filtered)
+  const parceirosRanking = useMemo(() => {
     const map: Record<string, { total: number; won: number; count: number }> = {};
     filteredDeals.forEach((d: any) => {
       const v = d.vendedor_externo?.trim();
@@ -252,11 +268,37 @@ export default function Performance() {
     return Object.entries(map)
       .map(([name, s]) => ({ name, total: s.total, winRate: s.count > 0 ? Math.round((s.won / s.count) * 100) : 0, deals: s.count, won: s.won }))
       .sort((a, b) => b.total - a.total);
-  })();
+  }, [filteredDeals]);
 
   const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+  // Monthly revenue evolution with trendline (filtered)
+  const monthlyRevenueData = useMemo(() => {
+    const monthlyData: { month: string; receita: number; negocios: number; tendencia?: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(currentYear, currentMonth - 1 - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const closed = filteredDeals.filter((deal: any) => {
+        if (deal.stage !== 'fechado') return false;
+        const u = new Date(deal.updated_at);
+        return u.getFullYear() === y && u.getMonth() === m;
+      });
+      const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]}/${String(y).slice(2)}`;
+      monthlyData.push({ month: label, receita: closed.reduce((s: number, deal: any) => s + (Number(deal.value) || 0), 0), negocios: closed.length });
+    }
+
+    // Calculate linear regression trendline
+    const values = monthlyData.map(d => d.receita);
+    const { m, b } = linearRegression(values);
+    monthlyData.forEach((d, i) => {
+      d.tendencia = Math.max(0, Math.round(m * i + b));
+    });
+
+    return monthlyData;
+  }, [filteredDeals, currentYear, currentMonth]);
 
   const InfoTip = ({ text }: { text: string }) => (
     <UITooltip>
@@ -282,42 +324,54 @@ export default function Performance() {
             <p className="text-sm text-muted-foreground">{MONTHS_PT[currentMonth]} {currentYear} · Dia {currentDay} de {daysInMonth}</p>
           </div>
         </div>
-        {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
-          <Select value={filterArea} onValueChange={setFilterArea}>
-            <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Áreas</SelectItem>
-              {BUSINESS_AREAS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterMarket} onValueChange={setFilterMarket}>
-            <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Mercados</SelectItem>
-              <SelectItem value="Público">Público</SelectItem>
-              <SelectItem value="Privado">Privado</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterPeriod} onValueChange={setFilterPeriod}>
-            <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">Mês Atual</SelectItem>
-              <SelectItem value="quarter">Trimestre</SelectItem>
-              <SelectItem value="year">Ano</SelectItem>
-              <SelectItem value="all">Todo Período</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterValueRange} onValueChange={setFilterValueRange}>
-            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Faixas</SelectItem>
-              <SelectItem value="0-50k">Até R$ 50k</SelectItem>
-              <SelectItem value="50k-500k">R$ 50k – 500k</SelectItem>
-              <SelectItem value="500k-5m">R$ 500k – 5M</SelectItem>
-              <SelectItem value="5m+">Acima de R$ 5M</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Filters with Labels */}
+        <div className="flex gap-3 flex-wrap items-end">
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Área de Negócio</Label>
+            <Select value={filterArea} onValueChange={setFilterArea}>
+              <SelectTrigger className="w-44 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Áreas</SelectItem>
+                {BUSINESS_AREAS.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Mercado</Label>
+            <Select value={filterMarket} onValueChange={setFilterMarket}>
+              <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="Público">Público</SelectItem>
+                <SelectItem value="Privado">Privado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Período</Label>
+            <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+              <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Mês Atual</SelectItem>
+                <SelectItem value="quarter">Trimestre</SelectItem>
+                <SelectItem value="year">Ano</SelectItem>
+                <SelectItem value="all">Todo Período</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Faixa de Valor</Label>
+            <Select value={filterValueRange} onValueChange={setFilterValueRange}>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Faixas</SelectItem>
+                <SelectItem value="0-50k">Até R$ 50k</SelectItem>
+                <SelectItem value="50k-500k">R$ 50k – 500k</SelectItem>
+                <SelectItem value="500k-5m">R$ 500k – 5M</SelectItem>
+                <SelectItem value="5m+">Acima de R$ 5M</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -328,7 +382,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">Fechado no Mês <InfoTip text="Valor total dos negócios fechados (ganhos) no mês atual. Considera apenas negócios no estágio 'Fechado'." /></p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Fechado no Período <InfoTip text="Valor total dos negócios fechados (ganhos) no período selecionado. Reage a todos os filtros globais." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(closedValue)}</p>
               </div>
             </div>
@@ -339,7 +393,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center"><Percent className="h-5 w-5 text-emerald-600" /></div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">Lucro Total <InfoTip text="Soma do lucro estimado dos negócios fechados no mês, calculado como Valor × Margem de Lucro (%). A margem média é a média das margens individuais." /></p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Lucro Total <InfoTip text="Soma do lucro estimado dos negócios fechados no período, calculado como Valor × Margem de Lucro (%)." /></p>
                 <p className="text-xl font-display font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
                 {avgProfitMargin > 0 && <p className="text-[10px] text-muted-foreground">Margem média: {avgProfitMargin.toFixed(1)}%</p>}
               </div>
@@ -351,7 +405,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Target className="h-5 w-5 text-primary" /></div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">Taxa de Fechamento <InfoTip text="Percentual de propostas enviadas que resultaram em fechamento no período selecionado. Fórmula: Negócios Fechados ÷ Propostas Enviadas × 100." /></p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Taxa de Fechamento <InfoTip text="Percentual de propostas enviadas que resultaram em fechamento no período selecionado." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{winRate.toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">{closedInPeriod.length}/{proposalsSent.length} propostas</p>
               </div>
@@ -363,7 +417,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center"><Activity className="h-5 w-5 text-accent" /></div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">Prob. Histórica <InfoTip text="Probabilidade histórica de fechar negócios baseada em todo o histórico. Fórmula: Total de Ganhos ÷ (Ganhos + Perdidos) × 100." /></p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Prob. Histórica <InfoTip text="Probabilidade histórica de fechar negócios baseada em todo o histórico filtrado." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{historicalProb.toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">{historicalWon.length}/{historicalTotal.length} finalizados</p>
               </div>
@@ -377,7 +431,7 @@ export default function Performance() {
                 <Zap className={`h-5 w-5 ${forecastVsGoal >= 100 ? 'text-success' : forecastVsGoal >= 70 ? 'text-primary' : 'text-warning'}`} />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">Previsão (Forecast) <InfoTip text="Estimativa de receita do mês: valor já fechado + pipeline ativo ponderado pela probabilidade histórica de fechamento." /></p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Previsão (Forecast) <InfoTip text="Estimativa de receita: valor já fechado + pipeline ativo ponderado pela probabilidade histórica." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(forecast)}</p>
                 <p className="text-[10px] text-muted-foreground">{forecastVsGoal}% da meta</p>
               </div>
@@ -457,29 +511,16 @@ export default function Performance() {
         </CardContent>
       </Card>
 
-      {/* Monthly Revenue Evolution */}
+      {/* Monthly Revenue Evolution with Trendline */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />Evolução Mensal da Receita <InfoTip text="Comparativo mês a mês da receita fechada nos últimos 12 meses. Permite identificar tendências de crescimento ou queda." /></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />Evolução Mensal da Receita <InfoTip text="Comparativo mês a mês da receita fechada nos últimos 12 meses com linha de tendência (regressão linear). Reage a todos os filtros globais." /></CardTitle></CardHeader>
         <CardContent>
           {(() => {
-            const monthlyData: { month: string; receita: number; negocios: number }[] = [];
-            for (let i = 11; i >= 0; i--) {
-              const d = new Date(currentYear, currentMonth - 1 - i, 1);
-              const y = d.getFullYear();
-              const m = d.getMonth();
-              const closed = allDeals.filter((deal: any) => {
-                if (deal.stage !== 'fechado') return false;
-                const u = new Date(deal.updated_at);
-                return u.getFullYear() === y && u.getMonth() === m;
-              });
-              const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]}/${String(y).slice(2)}`;
-              monthlyData.push({ month: label, receita: closed.reduce((s: number, deal: any) => s + (Number(deal.value) || 0), 0), negocios: closed.length });
-            }
-            const hasData = monthlyData.some(m => m.receita > 0);
+            const hasData = monthlyRevenueData.some(m => m.receita > 0);
             if (!hasData) return <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Sem dados de receita nos últimos 12 meses</div>;
             return (
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyData}>
+                <LineChart data={monthlyRevenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis yAxisId="left" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
@@ -487,6 +528,7 @@ export default function Performance() {
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                   <Line yAxisId="left" type="monotone" dataKey="receita" stroke="hsl(var(--primary))" name="Receita" strokeWidth={2.5} dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+                  <Line yAxisId="left" type="monotone" dataKey="tendencia" stroke="hsl(var(--destructive))" name="Linha de Tendência" strokeWidth={2} strokeDasharray="6 3" dot={false} />
                   <Line yAxisId="right" type="monotone" dataKey="negocios" stroke="hsl(var(--success))" name="Negócios Fechados" strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--success))' }} strokeDasharray="4 4" />
                 </LineChart>
               </ResponsiveContainer>
@@ -498,7 +540,7 @@ export default function Performance() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Leaderboard */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" />Leaderboard de Vendas <InfoTip text="Ranking dos vendedores ordenado por valor total fechado. Exibe Win Rate (taxa de conversão) e lucro individual." /></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" />Leaderboard de Vendas <InfoTip text="Ranking dos vendedores ordenado por valor total fechado. Reage a todos os filtros globais." /></CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {leaderboard.slice(0, 10).map((seller, idx) => (
               <div key={seller.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
@@ -520,7 +562,7 @@ export default function Performance() {
 
         {/* Bar chart */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor <InfoTip text="Comparativo visual entre o valor total fechado e o lucro estimado de cada vendedor. Útil para identificar quem gera mais margem." /></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor <InfoTip text="Comparativo visual entre o valor total fechado e o lucro estimado de cada vendedor." /></CardTitle></CardHeader>
           <CardContent>
             {barData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -541,11 +583,11 @@ export default function Performance() {
         </Card>
       </div>
 
-      {/* Revenue by Tipo de Negócio + Ranking Parceiros Externos */}
+      {/* Revenue by Tipo de Negócio + Ranking Vendedores Externos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: Origem de Receita */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por tipo de negócio (Novo Cliente vs Cliente Existente). Ajuda a entender de onde vem a receita da empresa." /></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por tipo de negócio (Novo Cliente vs Cliente Existente). Reage a todos os filtros globais." /></CardTitle></CardHeader>
           <CardContent>
             {revenueByTipo.length > 0 ? (
               <div className="flex flex-col lg:flex-row items-center gap-6">
@@ -587,16 +629,16 @@ export default function Performance() {
           </CardContent>
         </Card>
 
-        {/* Table: Ranking de Parceiros Externos */}
+        {/* Table: Ranking de Vendedores Externos */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Handshake className="h-4 w-4 text-primary" />Ranking de Parceiros Externos <InfoTip text="Ranking dos vendedores externos (parceiros) ordenado por valor total fechado. Exibe taxa de conversão e total de negócios indicados." /></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Handshake className="h-4 w-4 text-primary" />Ranking de Vendedores Externos <InfoTip text="Ranking dos vendedores externos ordenado por valor total fechado. Reage a todos os filtros globais." /></CardTitle></CardHeader>
           <CardContent>
             {parceirosRanking.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">#</TableHead>
-                    <TableHead className="text-xs">Parceiro</TableHead>
+                    <TableHead className="text-xs">Vendedor</TableHead>
                     <TableHead className="text-xs text-right">Valor Fechado</TableHead>
                     <TableHead className="text-xs text-right">Win Rate</TableHead>
                     <TableHead className="text-xs text-right">Negócios</TableHead>
@@ -625,7 +667,7 @@ export default function Performance() {
 
       {/* Loss Analysis */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios. Ajuda a identificar padrões e tomar ações corretivas para reduzir perdas futuras." /></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios. Reage a todos os filtros globais." /></CardTitle></CardHeader>
         <CardContent>
           {lossData.length > 0 ? (
             <div className="flex flex-col lg:flex-row items-center gap-6">
