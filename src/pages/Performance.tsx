@@ -59,6 +59,7 @@ export default function Performance() {
   const [filterArea, setFilterArea] = useState<string>('all');
   const [filterMarket, setFilterMarket] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('month');
+  const [filterValueRange, setFilterValueRange] = useState<string>('all');
 
   // Modals
   const [showNoTasks, setShowNoTasks] = useState(false);
