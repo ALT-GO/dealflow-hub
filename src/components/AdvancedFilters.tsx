@@ -60,7 +60,7 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
 
   const handleClear = () => {
     onFiltersChange({});
-    onViewSelect(null);
+    onViewSelect?.(null);
   };
 
   const handleSaveView = async () => {
