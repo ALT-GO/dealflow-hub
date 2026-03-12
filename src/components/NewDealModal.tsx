@@ -277,18 +277,6 @@ export function NewDealModal() {
                 <Label className="text-xs text-muted-foreground">Origem</Label>
                 <NativeSelect value={form.origin_id} onChange={(v) => setForm({ ...form, origin_id: v })} options={origins.map(o => ({ value: o.id, label: o.label }))} placeholder="Selecione..." />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Data de Fechamento</Label>
-                <DatePickerField value={form.close_date} onChange={(v) => setForm({ ...form, close_date: v })} placeholder="Selecionar data" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Data Início Orçamento</Label>
-                <DatePickerField value={form.budget_start_date} onChange={(v) => setForm({ ...form, budget_start_date: v })} placeholder="Selecionar data" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Data Entrega Proposta</Label>
-                <DatePickerField value={form.proposal_delivery_date} onChange={(v) => setForm({ ...form, proposal_delivery_date: v })} placeholder="Selecionar data" />
-              </div>
               {isBudgetStage && (
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
