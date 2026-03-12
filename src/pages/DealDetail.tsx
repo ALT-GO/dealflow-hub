@@ -97,11 +97,11 @@ export default function DealDetail() {
   const { data: activities = [] } = useQuery({
     queryKey: ['deal-activities', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('activities').select('*').eq('company_id', deal?.company_id!).order('activity_date', { ascending: false });
+      const { data, error } = await supabase.from('activities').select('*').eq('deal_id', id!).order('activity_date', { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!deal?.company_id,
+    enabled: !!id,
   });
 
   const { data: profilesMap = {} } = useQuery({
