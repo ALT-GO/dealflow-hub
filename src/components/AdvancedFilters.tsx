@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Filter, X, Save, Trash2 } from 'lucide-react';
 import { DatePickerField } from '@/components/DatePickerField';
-import { useAuth } from '@/hooks/useAuth';
 
 export type Filters = {
   minValue?: string;
