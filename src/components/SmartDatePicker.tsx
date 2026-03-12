@@ -26,43 +26,17 @@ type DealSpan = {
   end: Date;
 };
 
-/** Fetch all orçamentistas and their deal spans for unified availability */
+/** Fetch all orçamentistas and their deal spans via SECURITY DEFINER function (works for unauthenticated users too) */
 function useGlobalEstimatorAvailability() {
-  // 1. Get all users with orçamentista role
-  const { data: estimators = [] } = useQuery<EstimatorProfile[]>({
-    queryKey: ['orcamentista-profiles'],
+  const { data, isLoading } = useQuery<{ estimators: EstimatorProfile[]; dealSpans: DealSpan[] }>({
+    queryKey: ['estimator-availability-rpc'],
     queryFn: async () => {
-      const { data: roleRows } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'orcamentista');
-      if (!roleRows || roleRows.length === 0) return [];
-      const userIds = roleRows.map(r => r.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', userIds);
-      return (profiles || []) as EstimatorProfile[];
-    },
-    staleTime: 60000,
-  });
-
-  const estimatorIds = estimators.map(e => e.user_id);
-
-  // 2. Get all active deals assigned to any orçamentista — using budget_start_date & proposal_delivery_date
-  const { data: dealSpans = [] } = useQuery<DealSpan[]>({
-    queryKey: ['global-deal-spans', estimatorIds],
-    queryFn: async () => {
-      if (estimatorIds.length === 0) return [];
-      const { data } = await supabase
-        .from('deals')
-        .select('orcamentista_id, budget_start_date, proposal_delivery_date, target_delivery_date, close_date, created_at, stage')
-        .in('orcamentista_id', estimatorIds);
-
+      const { data: result, error } = await supabase.rpc('get_estimator_availability');
+      if (error || !result) return { estimators: [], dealSpans: [] };
+      const raw = result as any;
+      const estimators: EstimatorProfile[] = raw.estimators || [];
       const spans: DealSpan[] = [];
-      for (const deal of (data || []) as any[]) {
-        if (['fechado', 'perdido', '__won__', '__lost__'].includes(deal.stage)) continue;
-        // For availability: use budget_start_date (when they start working) → proposal_delivery_date (when they deliver)
+      for (const deal of (raw.deals || [])) {
         const start = deal.budget_start_date
           ? parseISO(deal.budget_start_date)
           : parseISO(deal.created_at);
@@ -75,13 +49,12 @@ function useGlobalEstimatorAvailability() {
               : addDays(start, 14);
         spans.push({ orcamentista_id: deal.orcamentista_id, start: startOfDay(start), end: startOfDay(end) });
       }
-      return spans;
+      return { estimators, dealSpans: spans };
     },
-    enabled: estimatorIds.length > 0,
     staleTime: 30000,
   });
 
-  return { estimators, dealSpans };
+  return { estimators: data?.estimators || [], dealSpans: data?.dealSpans || [], isLoading };
 }
 
 /** For a given date, count how many concurrent deals each estimator has */
