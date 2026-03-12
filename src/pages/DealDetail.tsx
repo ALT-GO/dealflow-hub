@@ -357,15 +357,6 @@ export default function DealDetail() {
                       />
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs">Data de Entrega Desejada</p>
-                      <DatePickerField
-                        value={dealAny.target_delivery_date || ''}
-                        onChange={(v) => handleInlineEdit('target_delivery_date', 'Data de Entrega Desejada', dealAny.target_delivery_date || '', v)}
-                        placeholder="Selecionar data"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div>
                       <p className="text-muted-foreground text-xs">Status de Aprovação</p>
                       <Badge variant={dealAny.approval_status === 'approved' ? 'default' : dealAny.approval_status === 'rejected' ? 'destructive' : 'secondary'} className="text-xs">
                         {dealAny.approval_status === 'approved' ? 'Aprovado' : dealAny.approval_status === 'rejected' ? 'Reprovado' : 'Pendente'}
