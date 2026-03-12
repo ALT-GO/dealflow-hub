@@ -571,5 +571,6 @@ export default function Performance() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
