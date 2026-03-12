@@ -115,14 +115,13 @@ export function TeamsTab() {
     },
   });
 
-  // Fetch goals
+  // Fetch goals for current year
   const { data: goals = [] } = useQuery({
-    queryKey: ['sales-goals', now.getMonth() + 1, now.getFullYear()],
+    queryKey: ['sales-goals', now.getFullYear()],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sales_goals')
         .select('*')
-        .eq('month', now.getMonth() + 1)
         .eq('year', now.getFullYear());
       if (error) throw error;
       return data;
