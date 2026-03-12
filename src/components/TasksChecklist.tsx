@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { DatePickerField } from '@/components/DatePickerField';
 import { Plus, CheckSquare, Calendar, UserCircle } from 'lucide-react';
 
 type Task = {
