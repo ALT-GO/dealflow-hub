@@ -63,7 +63,6 @@ function getEstimatorLoadsForDate(
   dealSpans: DealSpan[],
   estimatorIds: string[],
 ): { busyEstimators: Set<string>; freeEstimators: string[] } {
-): { busyEstimators: Set<string>; freeEstimators: string[] } {
   const busyEstimators = new Set<string>();
   const countByEstimator: Record<string, number> = {};
 
