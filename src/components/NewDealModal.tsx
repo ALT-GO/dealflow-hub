@@ -17,6 +17,7 @@ import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { useOrigins } from '@/components/settings/OriginsTab';
 import { useQualificationQuestions } from '@/components/settings/QualificationTab';
 import { QualificationForm, calculateScore } from '@/components/QualificationForm';
+import { useEstimatorWorkload } from '@/components/EstimatorGantt';
 
 const CONTRACT_TYPES = [
   { value: 'recorrente', label: 'Recorrente' },
@@ -67,6 +68,7 @@ export function NewDealModal() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
+  const { data: workloadMap = {} } = useEstimatorWorkload();
 
   useEffect(() => {
     if (open) {
@@ -257,7 +259,17 @@ export function NewDealModal() {
                 <Select value={form.orcamentista_id} onValueChange={(v) => setForm({ ...form, orcamentista_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.full_name || p.user_id}</SelectItem>)}
+                    {profiles.map((p) => {
+                      const count = workloadMap[p.user_id] || 0;
+                      return (
+                        <SelectItem key={p.user_id} value={p.user_id}>
+                          <span className="flex items-center justify-between w-full gap-2">
+                            <span>{p.full_name || p.user_id}</span>
+                            {count > 0 && <span className="text-[10px] text-muted-foreground ml-1">({count} {count === 1 ? 'projeto ativo' : 'projetos ativos'})</span>}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

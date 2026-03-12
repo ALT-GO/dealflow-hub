@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Building2, DollarSign, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import { useEstimatorWorkload } from '@/components/EstimatorGantt';
 
 interface Deal {
   id: string;
@@ -47,6 +48,7 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
   const [rejectMode, setRejectMode] = useState(false);
   const [newDate, setNewDate] = useState('');
   const [selectedOrcamentista, setSelectedOrcamentista] = useState('');
+  const { data: workloadMap = {} } = useEstimatorWorkload();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['profiles-list'],
@@ -169,9 +171,17 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
                 <Select value={selectedOrcamentista} onValueChange={setSelectedOrcamentista}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {profiles.map(p => (
-                      <SelectItem key={p.user_id} value={p.user_id}>{p.full_name || p.user_id}</SelectItem>
-                    ))}
+                    {profiles.map(p => {
+                      const count = workloadMap[p.user_id] || 0;
+                      return (
+                        <SelectItem key={p.user_id} value={p.user_id}>
+                          <span className="flex items-center gap-2">
+                            <span>{p.full_name || p.user_id}</span>
+                            {count > 0 && <span className="text-[10px] text-muted-foreground">({count} {count === 1 ? 'projeto' : 'projetos'})</span>}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

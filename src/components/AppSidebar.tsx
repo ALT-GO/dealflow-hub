@@ -22,7 +22,6 @@ const navItems = [
   { title: 'Empresas', url: '/companies', icon: Building2 },
   { title: 'Contatos', url: '/contacts', icon: Users },
   { title: 'Performance', url: '/performance', icon: TrendingUp },
-  { title: 'Ocupação Equipe', url: '/ocupacao', icon: CalendarRange },
   { title: 'Biblioteca', url: '/biblioteca', icon: FolderOpen },
 ];
 
