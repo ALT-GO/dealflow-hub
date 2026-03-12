@@ -788,6 +788,35 @@ export default function Performance() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Deals without recent activity */}
+      <Dialog open={showNoActivity} onOpenChange={setShowNoActivity}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-orange-500" />Negócios sem Atividades Recentes</DialogTitle></DialogHeader>
+          {dealsNoRecentActivity.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow><TableHead>Negócio</TableHead><TableHead>Empresa</TableHead><TableHead className="text-right">Dias sem atividade</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {dealsNoRecentActivity.map((d: any) => (
+                  <TableRow key={d.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setShowNoActivity(false); navigate(`/deals/${d.id}`); }}>
+                    <TableCell className="font-medium text-primary">{d.proposal_id || d.name}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{d.companies?.name || '-'}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={d.daysSinceActivity > 30 ? 'destructive' : 'secondary'} className="text-[10px]">
+                        {d.daysSinceActivity} dias
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-muted-foreground py-6 text-sm">Todos os negócios têm atividades recentes 🎉</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
     </TooltipProvider>
   );
