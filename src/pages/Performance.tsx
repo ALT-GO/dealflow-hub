@@ -82,13 +82,14 @@ export default function Performance() {
   // Modals
   const [showNoTasks, setShowNoTasks] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
+  const [showNoActivity, setShowNoActivity] = useState(false);
 
   const { data: allDeals = [] } = useQuery({
     queryKey: ['perf-deals'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, owner_id, created_at, updated_at, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, companies(name)');
+        .select('id, name, value, stage, owner_id, created_at, updated_at, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, companies(name)');
       if (error) throw error;
       return data as any[];
     },
@@ -196,6 +197,20 @@ export default function Performance() {
   const todayStr = now.toISOString().split('T')[0];
   const overdueTasks = allTasks.filter(t => !t.completed && t.due_date && t.due_date < todayStr);
   const overdueDeals = [...new Set(overdueTasks.filter(t => t.deal_id).map(t => t.deal_id))];
+
+  // Deals without recent activity (>7 days)
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const dealsNoRecentActivity = useMemo(() => activeDeals
+    .map(d => {
+      const lastAct = d.last_activity_at ? new Date(d.last_activity_at) : null;
+      if (lastAct && lastAct >= sevenDaysAgo) return null;
+      const refDate = lastAct || new Date(d.created_at);
+      const diffDays = Math.floor((now.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24));
+      return { ...d, daysSinceActivity: diffDays };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.daysSinceActivity - a.daysSinceActivity) as any[],
+  [activeDeals, sevenDaysAgo]);
 
   // Burn-up
   const burnUpData: any[] = [];
@@ -441,7 +456,7 @@ export default function Performance() {
       </div>
 
       {/* Actionable metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="cursor-pointer hover:border-warning/50 transition-colors" onClick={() => setShowNoTasks(true)}>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
@@ -465,6 +480,19 @@ export default function Performance() {
                 <p className="text-xs text-muted-foreground flex items-center gap-1">Tarefas em atraso <InfoTip text="Total de tarefas não concluídas com data de vencimento ultrapassada. Clique para ver detalhes." /></p>
                 <p className="text-2xl font-display font-bold text-destructive">{overdueTasks.length}</p>
                 <p className="text-[10px] text-muted-foreground">Em {overdueDeals.length} negócio(s)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-orange-500/50 transition-colors" onClick={() => setShowNoActivity(true)}>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Sem atividades recentes <InfoTip text="Negócios ativos que estão há mais de 7 dias sem nenhuma atividade registrada. Clique para ver a lista." /></p>
+                <p className="text-2xl font-display font-bold text-orange-500">{dealsNoRecentActivity.length}</p>
               </div>
             </div>
           </CardContent>
@@ -757,6 +785,35 @@ export default function Performance() {
             </Table>
           ) : (
             <p className="text-center text-muted-foreground py-6 text-sm">Nenhuma tarefa em atraso 🎉</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Deals without recent activity */}
+      <Dialog open={showNoActivity} onOpenChange={setShowNoActivity}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-orange-500" />Negócios sem Atividades Recentes</DialogTitle></DialogHeader>
+          {dealsNoRecentActivity.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow><TableHead>Negócio</TableHead><TableHead>Empresa</TableHead><TableHead className="text-right">Dias sem atividade</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {dealsNoRecentActivity.map((d: any) => (
+                  <TableRow key={d.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setShowNoActivity(false); navigate(`/deals/${d.id}`); }}>
+                    <TableCell className="font-medium text-primary">{d.proposal_id || d.name}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{d.companies?.name || '-'}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={d.daysSinceActivity > 30 ? 'destructive' : 'secondary'} className="text-[10px]">
+                        {d.daysSinceActivity} dias
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-muted-foreground py-6 text-sm">Todos os negócios têm atividades recentes 🎉</p>
           )}
         </DialogContent>
       </Dialog>
