@@ -35,13 +35,50 @@ export default function Dashboard() {
     },
   });
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  const { data: dealMetrics } = useQuery({
+    queryKey: ['deal-metrics'],
+    queryFn: async () => {
+      const { data: deals } = await supabase.from('deals').select('value, stage');
+      const { data: stages } = await supabase.from('funnel_stages').select('key, stage_type');
+      if (!deals || !stages) return null;
 
-  const statCards = [
-    { title: 'Negócios', value: stats?.deals || 0, icon: Briefcase },
-    { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
-  ];
+      const closedKeys = stages.filter(s => s.stage_type === 'won').map(s => s.key);
+      const lostKeys = stages.filter(s => s.stage_type === 'lost').map(s => s.key);
+
+      const all = deals;
+      const open = deals.filter(d => !closedKeys.includes(d.stage) && !lostKeys.includes(d.stage));
+      const closed = deals.filter(d => closedKeys.includes(d.stage));
+
+      const sum = (arr: typeof deals) => arr.reduce((s, d) => s + (d.value || 0), 0);
+      const avg = (arr: typeof deals) => arr.length ? sum(arr) / arr.length : 0;
+
+      // Valor ponderado: peso por posição no funil (simplificado)
+      const activeStages = stages
+        .filter(s => s.stage_type === 'normal')
+        .sort((a, b) => a.key.localeCompare(b.key));
+      const totalStages = activeStages.length || 1;
+      const stageWeights: Record<string, number> = {};
+      activeStages.forEach((s, i) => { stageWeights[s.key] = (i + 1) / totalStages; });
+      closedKeys.forEach(k => { stageWeights[k] = 1; });
+
+      const weighted = deals
+        .filter(d => !lostKeys.includes(d.stage))
+        .reduce((s, d) => s + (d.value || 0) * (stageWeights[d.stage] || 0.5), 0);
+
+      return {
+        total: sum(all), totalAvg: avg(all), count: all.length,
+        weighted, weightedAvg: all.length ? weighted / all.filter(d => !lostKeys.includes(d.stage)).length : 0,
+        open: sum(open), openAvg: avg(open),
+        closed: sum(closed), closedAvg: avg(closed),
+      };
+    },
+  });
+
+  const formatCompact = (val: number) => {
+    if (val >= 1_000_000) return `R$ ${(val / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} mi`;
+    if (val >= 1_000) return `R$ ${(val / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} mil`;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  };
 
   return (
     <div className="space-y-6">
