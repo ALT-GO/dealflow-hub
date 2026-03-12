@@ -489,11 +489,14 @@ export default function Performance() {
                 {lossData.map((item, i) => (
                   <div key={item.name} className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="text-sm text-foreground">{item.name}</span>
-                    <Badge variant="secondary" className="text-[10px] ml-auto">{item.value}</Badge>
+                    <span className="text-sm text-foreground flex-1">{item.name}</span>
+                    <span className="text-xs text-muted-foreground">{formatCurrency(item.lostValue)}</span>
+                    <Badge variant="secondary" className="text-[10px] ml-1">{item.value}</Badge>
                   </div>
                 ))}
-                <p className="text-[10px] text-muted-foreground pt-2">Total: {lostDeals.length} negócio{lostDeals.length > 1 ? 's' : ''}</p>
+                <div className="border-t border-border pt-2 mt-2">
+                  <p className="text-xs text-muted-foreground">Total: {lostDeals.length} negócio{lostDeals.length > 1 ? 's' : ''} · <strong className="text-destructive">{formatCurrency(totalLostValue)}</strong></p>
+                </div>
               </div>
             </div>
           ) : (
