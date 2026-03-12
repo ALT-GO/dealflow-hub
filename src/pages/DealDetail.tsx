@@ -58,6 +58,7 @@ export default function DealDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: stagesData = [] } = useFunnelStages();
+  const { data: budgetMembers = [] } = useBudgetTeamMembers();
   const stageLabels: Record<string, string> = {};
   const stageColors: Record<string, string> = {};
   stagesData.forEach(s => { stageLabels[s.key] = s.label; stageColors[s.key] = s.color; });
