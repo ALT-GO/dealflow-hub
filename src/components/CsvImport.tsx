@@ -343,13 +343,17 @@ function generateErrorsPDF(errors: ImportError[]) {
 export function CsvImport({ entityType, onComplete }: CsvImportProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'upload' | 'map' | 'importing' | 'done'>('upload');
+  const [step, setStep] = useState<'upload' | 'map' | 'duplicates' | 'importing' | 'done'>('upload');
   const [rows, setRows] = useState<string[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<FieldMapping>({});
   const [importResult, setImportResult] = useState({ success: 0, errors: 0 });
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Duplicate detection state
+  type DuplicateItem = { row: number; type: 'company' | 'contact' | 'deal'; name: string; existingInfo: string; action: 'skip' | 'import' };
+  const [duplicates, setDuplicates] = useState<DuplicateItem[]>([]);
 
   // Toggles for what to import
   const [importCompanies, setImportCompanies] = useState(true);
