@@ -41,9 +41,9 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     queryFn: async () => {
       const { data } = await supabase
         .from('deals')
-        .select('id, name, proposal_id, orcamentista_id, created_at, close_date, stage, company_id')
+        .select('id, name, proposal_id, orcamentista_id, budget_start_date, proposal_delivery_date, created_at, close_date, stage, company_id')
         .not('orcamentista_id', 'is', null);
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
@@ -54,8 +54,8 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   };
 
   const getDealSpan = (deal: any) => {
-    const dealStart = parseISO(deal.created_at);
-    const dealEnd = deal.close_date ? parseISO(deal.close_date) : addDays(dealStart, 14); // default 2 weeks
+    const dealStart = deal.budget_start_date ? parseISO(deal.budget_start_date) : parseISO(deal.created_at);
+    const dealEnd = deal.proposal_delivery_date ? parseISO(deal.proposal_delivery_date) : (deal.close_date ? parseISO(deal.close_date) : addDays(dealStart, 14));
     return { start: dealStart, end: dealEnd };
   };
 
