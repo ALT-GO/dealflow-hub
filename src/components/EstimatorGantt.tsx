@@ -268,7 +268,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: userColor }} />
                         <span
                           className="truncate text-muted-foreground hover:text-primary hover:underline cursor-pointer"
-                          onClick={() => navigate(`/negocios/${deal.id}`)}
+                          onClick={() => navigate(`/deals/${deal.id}`)}
                         >
                           {deal.proposal_id || deal.name}
                         </span>
