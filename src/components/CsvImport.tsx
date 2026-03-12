@@ -704,31 +704,46 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             // Resolve owner and orcamentista
             const resolvedOwner = resolveUser(vals.deal_owner);
             if (vals.deal_owner && !resolvedOwner) {
-              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Usuário não encontrado: "${vals.deal_owner}". Usando o usuário atual.` });
+              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Usuário não encontrado: "${vals.deal_owner}". Será atribuído automaticamente quando cadastrado.` });
             }
             const resolvedOrc = resolveUser(vals.deal_orcamentista);
             if (vals.deal_orcamentista && !resolvedOrc) {
-              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Orçamentista', message: `Usuário não encontrado: "${vals.deal_orcamentista}". Importado sem orçamentista.` });
+              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Orçamentista', message: `Usuário não encontrado: "${vals.deal_orcamentista}". Será atribuído automaticamente quando cadastrado.` });
             }
             if (resolvedOrc) dealRecord.orcamentista_id = resolvedOrc;
 
             // Admins can set any owner; others must use themselves
             dealRecord.owner_id = resolvedOwner || user.id;
             const { data: newDeal, error: dErr } = await supabase.from('deals').insert(dealRecord).select('id').single();
+            let insertedDealId: string | null = newDeal?.id || null;
             if (dErr) {
               // If RLS fails (non-admin setting different owner), retry with current user
               if (dErr.message.includes('row-level security') && dealRecord.owner_id !== user.id) {
                 dealRecord.owner_id = user.id;
-                const { error: retryErr } = await supabase.from('deals').insert(dealRecord);
+                const { data: retryDeal, error: retryErr } = await supabase.from('deals').insert(dealRecord).select('id').single();
                 if (retryErr) {
                   rowHasError = true;
                   allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${retryErr.message}` });
                 } else {
-                  allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Negócio "${vals.deal_name}" importado com o usuário atual como proprietário (sem permissão para atribuir a outro).` });
+                  insertedDealId = retryDeal?.id || null;
                 }
               } else {
                 rowHasError = true;
                 allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${dErr.message}` });
+              }
+            }
+
+            // Save pending user assignments for unresolved users
+            if (insertedDealId) {
+              const pendingInserts: any[] = [];
+              if (vals.deal_owner && !resolvedOwner) {
+                pendingInserts.push({ user_name: vals.deal_owner.trim(), entity_type: 'deal', entity_id: insertedDealId, field_name: 'owner_id' });
+              }
+              if (vals.deal_orcamentista && !resolvedOrc) {
+                pendingInserts.push({ user_name: vals.deal_orcamentista.trim(), entity_type: 'deal', entity_id: insertedDealId, field_name: 'orcamentista_id' });
+              }
+              if (pendingInserts.length > 0) {
+                await supabase.from('pending_user_assignments').insert(pendingInserts);
               }
             }
           } else {
