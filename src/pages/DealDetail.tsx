@@ -349,11 +349,21 @@ export default function DealDetail() {
                     )}
                     <div>
                       <p className="text-muted-foreground text-xs">Data de Fechamento</p>
-                      <InlineEdit value={deal.close_date || ''} onSave={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)} icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />} />
+                      <DatePickerField
+                        value={deal.close_date || ''}
+                        onChange={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)}
+                        placeholder="Selecionar data"
+                        className="h-8 text-xs"
+                      />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Data de Entrega Desejada</p>
-                      <InlineEdit value={dealAny.target_delivery_date || ''} onSave={(v) => handleInlineEdit('target_delivery_date', 'Data de Entrega Desejada', dealAny.target_delivery_date || '', v)} icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />} />
+                      <DatePickerField
+                        value={dealAny.target_delivery_date || ''}
+                        onChange={(v) => handleInlineEdit('target_delivery_date', 'Data de Entrega Desejada', dealAny.target_delivery_date || '', v)}
+                        placeholder="Selecionar data"
+                        className="h-8 text-xs"
+                      />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Status de Aprovação</p>
