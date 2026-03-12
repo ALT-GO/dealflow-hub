@@ -85,9 +85,6 @@ export function NewDealModal() {
       supabase.from('companies').select('id, name').order('name').then(({ data }) => {
         if (data) setCompanies(data);
       });
-      supabase.from('profiles').select('user_id, full_name').then(({ data }) => {
-        if (data) setProfiles(data);
-      });
     }
   }, [open]);
 
