@@ -34,7 +34,7 @@ type ContactResult = {
   email: string | null;
   role: string | null;
   company_id: string;
-  companies: { name: string; phone: string | null } | null;
+  companies: { name: string; phone: string | null; domain: string | null } | null;
 };
 
 export default function ProposalRequest() {
