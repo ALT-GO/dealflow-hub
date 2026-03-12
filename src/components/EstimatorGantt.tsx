@@ -254,7 +254,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
 
                 {/* Deal rows */}
                 {!isCollapsed && userDeals.map((deal) => {
-                  const { start, end } = getDealSpan(deal);
+                  const { start, end } = getDealSpan(deal, usr.user_id);
                   const startOffset = Math.max(0, differenceInDays(start, startDate));
                   const endOffset = Math.min(totalDays - 1, differenceInDays(end, startDate));
                   const visible = endOffset >= 0 && startOffset < totalDays;
@@ -266,7 +266,12 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                     <div key={deal.id} className="flex border-b border-border/50 hover:bg-muted/10 transition-colors">
                       <div className={`${nameColWidth} px-2 py-0.5 text-[11px] border-r border-border flex-shrink-0 flex items-center gap-1.5 pl-7`}>
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: userColor }} />
-                        <span className="truncate text-muted-foreground">{deal.proposal_id || deal.name}</span>
+                        <span
+                          className="truncate text-muted-foreground hover:text-primary hover:underline cursor-pointer"
+                          onClick={() => navigate(`/negocios/${deal.id}`)}
+                        >
+                          {deal.proposal_id || deal.name}
+                        </span>
                       </div>
                       <div className="flex flex-1 relative" style={{ height: ROW_H }}>
                         {days.map((day, i) => {
@@ -280,7 +285,8 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div
-                                className="absolute rounded cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                                className="absolute rounded cursor-pointer hover:brightness-110 hover:scale-y-110 transition-all shadow-sm"
+                                onClick={() => navigate(`/negocios/${deal.id}`)}
                                 style={{
                                   left: `${leftPct}%`,
                                   width: `${Math.max(widthPct, 1.5)}%`,
