@@ -372,6 +372,11 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               if (d) companyRecord.created_at = d;
               else allErrors.push({ row: rowNum, entity: 'Empresa', field: 'Data de Criação', message: `Formato de data inválido: "${vals.company_created_at}"` });
             }
+            if (vals.company_last_activity_at) {
+              const d = parseDate(vals.company_last_activity_at);
+              if (d) companyRecord.last_activity_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Empresa', field: 'Última Atividade', message: `Formato de data inválido: "${vals.company_last_activity_at}"` });
+            }
             const { data: newC, error: cErr } = await supabase.from('companies').insert(companyRecord).select('id').single();
             if (cErr) {
               rowHasError = true;
