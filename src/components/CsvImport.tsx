@@ -86,6 +86,20 @@ const DETECT_MAP: Record<string, string> = {
   'tipo de contrato': 'deal_contract_type', 'contrato': 'deal_contract_type',
   'escopo': 'deal_scope', 'scope': 'deal_scope',
   'data fechamento': 'deal_close_date', 'close date': 'deal_close_date', 'data de fechamento': 'deal_close_date',
+  'data entrega': 'deal_target_delivery_date', 'data de entrega': 'deal_target_delivery_date', 'prazo': 'deal_target_delivery_date',
+  'data proposta': 'deal_proposal_delivery_date', 'entrega proposta': 'deal_proposal_delivery_date',
+  'data inicio orcamento': 'deal_budget_start_date', 'inicio orcamento': 'deal_budget_start_date',
+  'vendedor externo': 'deal_vendedor_externo', 'vendedor': 'deal_vendedor_externo', 'parceiro': 'deal_vendedor_externo',
+  'tipo de negocio': 'deal_tipo_negocio', 'tipo negocio': 'deal_tipo_negocio',
+  'endereco execucao': 'deal_endereco_execucao', 'endereco de execucao': 'deal_endereco_execucao', 'local': 'deal_endereco_execucao',
+  'estado': 'deal_state', 'uf': 'deal_state', 'state': 'deal_state',
+  'tipo de equipe': 'deal_team_type', 'equipe': 'deal_team_type', 'team type': 'deal_team_type',
+  'nivel de qualificacao': 'deal_qualification_level', 'qualificacao': 'deal_qualification_level',
+  'carbono zero': 'deal_carbono_zero', 'carbono': 'deal_carbono_zero',
+  'cortex': 'deal_cortex',
+  'cliente possui equipe': 'deal_estudo_equipe', 'possui equipe': 'deal_estudo_equipe', 'estudo equipe': 'deal_estudo_equipe',
+  'margem': 'deal_profit_margin', 'margem de lucro': 'deal_profit_margin', 'profit margin': 'deal_profit_margin',
+  'motivo de perda': 'deal_loss_reason', 'motivo perda': 'deal_loss_reason', 'loss reason': 'deal_loss_reason',
 };
 
 function parseCSV(text: string): string[][] {
