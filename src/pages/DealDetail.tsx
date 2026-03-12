@@ -346,6 +346,23 @@ export default function DealDetail() {
       );
     }
 
+    if (prop.field_name === 'tipo_negocio') {
+      return (
+        <div key={prop.id}>
+          <p className="text-muted-foreground text-xs">{prop.field_label}</p>
+          <Select value={dealAny.tipo_negocio || ''} onValueChange={async (v) => {
+            await handleInlineEdit('tipo_negocio', prop.field_label, dealAny.tipo_negocio || '', v);
+          }}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="novo_cliente">Novo Cliente</SelectItem>
+              <SelectItem value="cliente_existente">Cliente Existente</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
     if (isNative) {
       return (
         <div key={prop.id}>
