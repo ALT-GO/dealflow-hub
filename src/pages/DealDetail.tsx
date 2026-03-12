@@ -472,6 +472,39 @@ export default function DealDetail() {
                       <p className="text-muted-foreground text-xs">Criado em</p>
                       <p className="font-medium text-foreground text-sm">{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
                     </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Vendedor Externo</p>
+                      <InlineEdit value={dealAny.vendedor_externo || ''} onSave={(v) => handleInlineEdit('vendedor_externo', 'Vendedor Externo', dealAny.vendedor_externo || '', v)} />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Orçamentista Responsável</p>
+                      <Select value={dealAny.orcamentista_id || ''} onValueChange={async (v) => {
+                        await handleInlineEdit('orcamentista_id', 'Orçamentista Responsável', dealAny.orcamentista_id || '', v);
+                      }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar orçamentista" /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(profilesMap).map(([uid, name]) => (
+                            <SelectItem key={uid} value={uid}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Data Entrega Proposta</p>
+                      <DatePickerField value={dealAny.proposal_delivery_date || ''} onChange={(v) => handleInlineEdit('proposal_delivery_date', 'Data Entrega Proposta', dealAny.proposal_delivery_date || '', v)} placeholder="Selecionar data" className="h-8 text-xs" />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Tipo de Negócio</p>
+                      <Select value={dealAny.tipo_negocio || ''} onValueChange={async (v) => {
+                        await handleInlineEdit('tipo_negocio', 'Tipo de Negócio', dealAny.tipo_negocio || '', v);
+                      }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar tipo" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="novo_cliente">Novo Cliente</SelectItem>
+                          <SelectItem value="cliente_existente">Cliente Existente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     {deal.loss_reason && (
                       <div>
                         <p className="text-muted-foreground text-xs">Motivo de Perda</p>
@@ -488,24 +521,6 @@ export default function DealDetail() {
                 </AccordionContent>
               </Card>
             </AccordionItem>
-
-            {/* Dynamic: Informações do Negócio section only */}
-            {infoFields.length > 0 && (
-              <AccordionItem value="info-section" className="border-border">
-                <Card className="border-0 shadow-none">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Layers className="h-3 w-3" />Informações do Negócio
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
-                      {infoFields.map(renderDynamicField)}
-                    </CardContent>
-                  </AccordionContent>
-                </Card>
-              </AccordionItem>
-            )}
           </Accordion>
         </div>
 
