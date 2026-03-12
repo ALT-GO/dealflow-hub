@@ -863,6 +863,8 @@ export type Database = {
           created_at: string
           id: string
           month: number
+          period_start: number
+          periodicity: string
           target_deals_count: number
           target_value: number
           updated_at: string
@@ -873,6 +875,8 @@ export type Database = {
           created_at?: string
           id?: string
           month: number
+          period_start?: number
+          periodicity?: string
           target_deals_count?: number
           target_value?: number
           updated_at?: string
@@ -883,6 +887,8 @@ export type Database = {
           created_at?: string
           id?: string
           month?: number
+          period_start?: number
+          periodicity?: string
           target_deals_count?: number
           target_value?: number
           updated_at?: string
