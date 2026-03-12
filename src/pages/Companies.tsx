@@ -100,16 +100,16 @@ export default function Companies() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Empresas</h1>
-          <p className="text-muted-foreground text-sm">{companies.length} empresas cadastradas</p>
+          <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Empresas</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">{companies.length} empresas cadastradas</p>
         </div>
         <div className="flex gap-2">
           <CsvImport entityType="companies" onComplete={() => queryClient.invalidateQueries({ queryKey: ['companies'] })} />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Nova Empresa</Button>
+              <Button size="sm" className="text-xs sm:text-sm"><Plus className="h-4 w-4 mr-1 sm:mr-2" /><span className="hidden sm:inline">Nova </span>Empresa</Button>
             </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Empresa</DialogTitle></DialogHeader>
