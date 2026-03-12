@@ -66,7 +66,6 @@ export function NewDealModal() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
-  const { data: workloadMap = {} } = useEstimatorWorkload();
   const isBudgetStage = useMemo(() => {
     const selectedStage = stagesData.find(s => s.key === form.stage);
     if (!selectedStage) return false;
