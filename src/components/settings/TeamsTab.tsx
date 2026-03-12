@@ -492,59 +492,30 @@ export function TeamsTab() {
         {/* Teams Tab */}
         <TabsContent value="teams">
           <div className="space-y-4">
-            {role === 'admin' && (
-              <div className="flex justify-end">
-                <Dialog open={teamOpen} onOpenChange={setTeamOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm"><Plus className="h-4 w-4 mr-2" />Nova Equipe</Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-sm">
-                    <DialogHeader><DialogTitle>Criar Equipe</DialogTitle></DialogHeader>
-                    <form onSubmit={handleCreateTeam} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Nome da equipe</Label>
-                        <Input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Ex: Vendas, Marketing" required maxLength={50} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {teams.map((team) => (
+                <Card key={team.id}>
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
                       </div>
-                      <Button type="submit" className="w-full" disabled={teamSaving}>{teamSaving ? 'Criando...' : 'Criar Equipe'}</Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            )}
-
-            {teams.length === 0 ? (
+                      <div>
+                        <p className="font-medium text-sm text-foreground">{team.name}</p>
+                        <p className="text-xs text-muted-foreground">{team.member_count} membro(s)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {teams.length === 0 && (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">Nenhuma equipe criada</p>
-                  <p className="text-xs text-muted-foreground mt-1">Crie equipes para organizar seus vendedores</p>
+                  <p className="text-muted-foreground">As equipes serão criadas automaticamente</p>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {teams.map((team) => (
-                  <Card key={team.id}>
-                    <CardContent className="pt-5 pb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm text-foreground">{team.name}</p>
-                            <p className="text-xs text-muted-foreground">{team.member_count} membro(s)</p>
-                          </div>
-                        </div>
-                        {role === 'admin' && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteTeam(team.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
             )}
           </div>
         </TabsContent>
