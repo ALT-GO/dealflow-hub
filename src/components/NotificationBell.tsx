@@ -108,8 +108,10 @@ export function NotificationBell() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from('notifications').update({ is_read: true } as any).eq('user_id', user.id).eq('is_read', false);
+    // Delete all notifications for this user
+    await supabase.from('notifications').delete().eq('user_id', user.id);
     queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    toast.success('Todas as notificações foram limpas');
   };
 
   const handleClick = async (n: Notification) => {
