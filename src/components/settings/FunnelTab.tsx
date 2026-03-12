@@ -45,6 +45,42 @@ const STAGE_TYPE_COLORS: Record<string, string> = {
   lost: 'bg-destructive/10 text-destructive',
 };
 
+const COLOR_OPTIONS = [
+  { value: 'bg-muted text-muted-foreground', label: 'Cinza', swatch: 'bg-gray-400' },
+  { value: 'bg-blue-100 text-blue-800', label: 'Azul', swatch: 'bg-blue-500' },
+  { value: 'bg-sky-100 text-sky-800', label: 'Céu', swatch: 'bg-sky-500' },
+  { value: 'bg-indigo-100 text-indigo-800', label: 'Índigo', swatch: 'bg-indigo-500' },
+  { value: 'bg-violet-100 text-violet-800', label: 'Violeta', swatch: 'bg-violet-500' },
+  { value: 'bg-purple-100 text-purple-800', label: 'Roxo', swatch: 'bg-purple-500' },
+  { value: 'bg-pink-100 text-pink-800', label: 'Rosa', swatch: 'bg-pink-500' },
+  { value: 'bg-rose-100 text-rose-800', label: 'Rosê', swatch: 'bg-rose-500' },
+  { value: 'bg-red-100 text-red-800', label: 'Vermelho', swatch: 'bg-red-500' },
+  { value: 'bg-orange-100 text-orange-800', label: 'Laranja', swatch: 'bg-orange-500' },
+  { value: 'bg-amber-100 text-amber-800', label: 'Âmbar', swatch: 'bg-amber-500' },
+  { value: 'bg-yellow-100 text-yellow-800', label: 'Amarelo', swatch: 'bg-yellow-500' },
+  { value: 'bg-lime-100 text-lime-800', label: 'Lima', swatch: 'bg-lime-500' },
+  { value: 'bg-green-100 text-green-800', label: 'Verde', swatch: 'bg-green-500' },
+  { value: 'bg-emerald-100 text-emerald-800', label: 'Esmeralda', swatch: 'bg-emerald-500' },
+  { value: 'bg-teal-100 text-teal-800', label: 'Teal', swatch: 'bg-teal-500' },
+  { value: 'bg-cyan-100 text-cyan-800', label: 'Ciano', swatch: 'bg-cyan-500' },
+];
+
+function ColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="grid grid-cols-8 gap-1.5">
+      {COLOR_OPTIONS.map((c) => (
+        <button
+          key={c.value}
+          type="button"
+          title={c.label}
+          onClick={() => onChange(c.value)}
+          className={`h-7 w-7 rounded-full ${c.swatch} transition-all duration-150 ring-offset-background ${value === c.value ? 'ring-2 ring-primary ring-offset-2 scale-110' : 'hover:scale-110 hover:ring-1 hover:ring-muted-foreground/30'}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function FunnelTab() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
@@ -223,6 +259,10 @@ export function FunnelTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Cor</Label>
+              <ColorPicker value={form.color} onChange={(v) => setForm({ ...form, color: v })} />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleAdd} disabled={saving || !form.label.trim() || !form.key.trim()}>
@@ -262,6 +302,10 @@ export function FunnelTab() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Cor</Label>
+              <ColorPicker value={form.color} onChange={(v) => setForm({ ...form, color: v })} />
             </div>
           </div>
           <DialogFooter>
