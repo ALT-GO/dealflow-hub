@@ -89,7 +89,7 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
 
     // Add orcamentista as follower
     if (selectedOrcamentista) {
-      await supabase.from('deal_followers').insert({ deal_id: deal.id, user_id: selectedOrcamentista } as any).onConflict('deal_id,user_id' as any);
+      await supabase.from('deal_followers').insert({ deal_id: deal.id, user_id: selectedOrcamentista } as any);
     }
 
     setLoading(false);
