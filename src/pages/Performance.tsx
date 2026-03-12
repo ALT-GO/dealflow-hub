@@ -349,7 +349,7 @@ export default function Performance() {
                 <Zap className={`h-5 w-5 ${forecastVsGoal >= 100 ? 'text-success' : forecastVsGoal >= 70 ? 'text-primary' : 'text-warning'}`} />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Previsão (Forecast)</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Previsão (Forecast) <InfoTip text="Estimativa de receita do mês: valor já fechado + pipeline ativo ponderado pela probabilidade histórica de fechamento." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(forecast)}</p>
                 <p className="text-[10px] text-muted-foreground">{forecastVsGoal}% da meta</p>
               </div>
