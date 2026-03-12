@@ -33,7 +33,7 @@ type Props = {
   filters: Filters;
   onFiltersChange: (f: Filters) => void;
   activeViewId?: string;
-  onViewSelect: (view: SavedView | null) => void;
+  onViewSelect?: (view: SavedView | null) => void;
 };
 
 export function AdvancedFilters({ entityType, filters, onFiltersChange, activeViewId, onViewSelect }: Props) {
