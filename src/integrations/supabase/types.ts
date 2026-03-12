@@ -467,6 +467,7 @@ export type Database = {
       }
       deals: {
         Row: {
+          budget_start_date: string | null
           business_area: string | null
           close_date: string | null
           company_id: string
@@ -481,13 +482,16 @@ export type Database = {
           origin_id: string | null
           owner_id: string
           profit_margin: number | null
+          proposal_delivery_date: string | null
           proposal_id: string | null
           qualification_score: number | null
+          scope: string | null
           stage: string
           updated_at: string
           value: number | null
         }
         Insert: {
+          budget_start_date?: string | null
           business_area?: string | null
           close_date?: string | null
           company_id: string
@@ -502,13 +506,16 @@ export type Database = {
           origin_id?: string | null
           owner_id: string
           profit_margin?: number | null
+          proposal_delivery_date?: string | null
           proposal_id?: string | null
           qualification_score?: number | null
+          scope?: string | null
           stage?: string
           updated_at?: string
           value?: number | null
         }
         Update: {
+          budget_start_date?: string | null
           business_area?: string | null
           close_date?: string | null
           company_id?: string
@@ -523,8 +530,10 @@ export type Database = {
           origin_id?: string | null
           owner_id?: string
           profit_margin?: number | null
+          proposal_delivery_date?: string | null
           proposal_id?: string | null
           qualification_score?: number | null
+          scope?: string | null
           stage?: string
           updated_at?: string
           value?: number | null
