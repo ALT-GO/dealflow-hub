@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Upload, FileSpreadsheet, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 type FieldMapping = Record<number, string>;
 
 interface CsvImportProps {
-  entityType: 'companies' | 'contacts';
+  entityType: 'companies' | 'contacts' | 'deals';
   onComplete: () => void;
 }
 
@@ -34,6 +33,19 @@ const CONTACT_FIELDS = [
   { value: 'status', label: 'Status' },
 ];
 
+const DEAL_FIELDS = [
+  { value: '', label: '— Ignorar —' },
+  { value: 'name', label: 'Nome do Negócio' },
+  { value: 'company_name', label: 'Empresa (nome)' },
+  { value: 'value', label: 'Valor' },
+  { value: 'stage', label: 'Estágio' },
+  { value: 'business_area', label: 'Área de Negócio' },
+  { value: 'market', label: 'Mercado' },
+  { value: 'contract_type', label: 'Tipo de Contrato' },
+  { value: 'scope', label: 'Escopo' },
+  { value: 'close_date', label: 'Data de Fechamento' },
+];
+
 function parseCSV(text: string): string[][] {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   return lines.map(line => {
@@ -51,6 +63,18 @@ function parseCSV(text: string): string[][] {
   });
 }
 
+function getFields(entityType: CsvImportProps['entityType']) {
+  if (entityType === 'companies') return COMPANY_FIELDS;
+  if (entityType === 'contacts') return CONTACT_FIELDS;
+  return DEAL_FIELDS;
+}
+
+function getEntityLabel(entityType: CsvImportProps['entityType']) {
+  if (entityType === 'companies') return 'Empresas';
+  if (entityType === 'contacts') return 'Contatos';
+  return 'Negócios';
+}
+
 export function CsvImport({ entityType, onComplete }: CsvImportProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -60,7 +84,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
   const [mapping, setMapping] = useState<FieldMapping>({});
   const [importResult, setImportResult] = useState({ success: 0, errors: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
-  const fields = entityType === 'companies' ? COMPANY_FIELDS : CONTACT_FIELDS;
+  const fields = getFields(entityType);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,7 +96,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
       if (parsed.length < 2) { toast.error('O arquivo precisa ter pelo menos 2 linhas (cabeçalho + dados)'); return; }
       setHeaders(parsed[0]);
       setRows(parsed.slice(1));
-      // Auto-map by header similarity
       const autoMap: FieldMapping = {};
       parsed[0].forEach((h, i) => {
         const lower = h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -91,6 +114,14 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     let success = 0;
     let errors = 0;
 
+    // Cache companies for contacts and deals
+    const needsCompanyResolution = entityType === 'contacts' || entityType === 'deals';
+    let companyMap = new Map<string, string>();
+    if (needsCompanyResolution) {
+      const { data: allCompanies } = await supabase.from('companies').select('id, name');
+      companyMap = new Map((allCompanies || []).map(c => [c.name.toLowerCase(), c.id]));
+    }
+
     if (entityType === 'companies') {
       for (const row of rows) {
         const record: any = { created_by: user.id };
@@ -101,13 +132,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         const { error } = await supabase.from('companies').insert(record);
         if (error) errors++; else success++;
       }
-    } else {
-      // contacts - need to resolve company_name → company_id
-      const companyNameIdx = Object.entries(mapping).find(([, f]) => f === 'company_name')?.[0];
-      // Cache companies
-      const { data: allCompanies } = await supabase.from('companies').select('id, name');
-      const companyMap = new Map((allCompanies || []).map(c => [c.name.toLowerCase(), c.id]));
-
+    } else if (entityType === 'contacts') {
       for (const row of rows) {
         const record: any = { created_by: user.id };
         let companyName = '';
@@ -117,7 +142,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
           record[field] = row[Number(colIdx)];
         });
         if (!record.name) { errors++; continue; }
-        // Resolve company
         let companyId = companyMap.get(companyName.toLowerCase());
         if (!companyId && companyName) {
           const { data: newC } = await supabase.from('companies').insert({ name: companyName, created_by: user.id }).select('id').single();
@@ -126,6 +150,32 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         if (!companyId) { errors++; continue; }
         record.company_id = companyId;
         const { error } = await supabase.from('contacts').insert(record);
+        if (error) errors++; else success++;
+      }
+    } else {
+      // deals
+      for (const row of rows) {
+        const record: any = { owner_id: user.id };
+        let companyName = '';
+        Object.entries(mapping).forEach(([colIdx, field]) => {
+          if (!field || !row[Number(colIdx)]) return;
+          if (field === 'company_name') { companyName = row[Number(colIdx)]; return; }
+          if (field === 'value') {
+            const parsed = parseFloat(row[Number(colIdx)].replace(/[^\d.,]/g, '').replace(',', '.'));
+            record[field] = isNaN(parsed) ? 0 : parsed;
+            return;
+          }
+          record[field] = row[Number(colIdx)];
+        });
+        if (!record.name) { errors++; continue; }
+        let companyId = companyMap.get(companyName.toLowerCase());
+        if (!companyId && companyName) {
+          const { data: newC } = await supabase.from('companies').insert({ name: companyName, created_by: user.id }).select('id').single();
+          if (newC) { companyId = newC.id; companyMap.set(companyName.toLowerCase(), newC.id); }
+        }
+        if (!companyId) { errors++; continue; }
+        record.company_id = companyId;
+        const { error } = await supabase.from('deals').insert(record);
         if (error) errors++; else success++;
       }
     }
@@ -148,17 +198,19 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     setOpen(o);
   };
 
+  const requiredField = entityType === 'deals' ? 'name' : 'name';
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Upload className="h-4 w-4 mr-2" />Importar
+        <Upload className="h-4 w-4 mr-2" />Importar {getEntityLabel(entityType)}
       </Button>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
-              Importar {entityType === 'companies' ? 'Empresas' : 'Contatos'}
+              Importar {getEntityLabel(entityType)}
             </DialogTitle>
           </DialogHeader>
 
@@ -168,8 +220,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                 Faça upload de um arquivo CSV ou TXT com os dados. A primeira linha deve conter os cabeçalhos.
               </p>
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                <input ref={fileRef} type="file" accept=".csv,.txt,.tsv" onChange={handleFile} className="hidden" id="csv-upload" />
-                <label htmlFor="csv-upload" className="cursor-pointer space-y-2">
+                <input ref={fileRef} type="file" accept=".csv,.txt,.tsv" onChange={handleFile} className="hidden" id={`csv-upload-${entityType}`} />
+                <label htmlFor={`csv-upload-${entityType}`} className="cursor-pointer space-y-2">
                   <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
                   <p className="text-sm font-medium text-foreground">Clique para selecionar o arquivo</p>
                   <p className="text-xs text-muted-foreground">CSV, TXT (separado por vírgula ou ponto-e-vírgula)</p>
@@ -200,7 +252,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                 ))}
               </div>
 
-              {/* Preview */}
               <div className="border rounded-lg overflow-x-auto max-h-40">
                 <Table>
                   <TableHeader>
