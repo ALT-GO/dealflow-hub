@@ -316,6 +316,7 @@ export type Database = {
           created_at: string
           created_by: string
           default_value: string | null
+          display_section: string
           dropdown_options: Json | null
           entity_type: string
           field_label: string
@@ -329,6 +330,7 @@ export type Database = {
           created_at?: string
           created_by: string
           default_value?: string | null
+          display_section?: string
           dropdown_options?: Json | null
           entity_type: string
           field_label: string
@@ -342,6 +344,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           default_value?: string | null
+          display_section?: string
           dropdown_options?: Json | null
           entity_type?: string
           field_label?: string
