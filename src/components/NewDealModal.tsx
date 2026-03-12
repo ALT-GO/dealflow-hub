@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/NativeSelect';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -35,6 +36,10 @@ const BUSINESS_AREAS = [
   { value: 'energia', label: 'Energia' },
   { value: 'outro', label: 'Outro' },
 ];
+const TIPO_NEGOCIO_OPTIONS = [
+  { value: 'novo_cliente', label: 'Novo Cliente' },
+  { value: 'cliente_existente', label: 'Cliente Existente' },
+];
 
 export function NewDealModal() {
   const { user } = useAuth();
@@ -62,11 +67,20 @@ export function NewDealModal() {
     proposal_delivery_date: '',
     target_delivery_date: '',
     orcamentista_id: '',
+    // New fields
+    carbono_zero: false,
+    cortex: false,
+    endereco_execucao: '',
+    estudo_equipe: '',
+    tipo_negocio: '',
+    vendedor_externo: '',
   });
   const [qualAnswers, setQualAnswers] = useState<Record<string, string>>({});
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
+
+  // Detect if selected stage is "Orçamentos" type
   const isBudgetStage = useMemo(() => {
     const selectedStage = stagesData.find(s => s.key === form.stage);
     if (!selectedStage) return false;
@@ -106,11 +120,8 @@ export function NewDealModal() {
     if (!user) return;
     setLoading(true);
 
-    // Generate proposal_id via DB function
     const { data: proposalData } = await supabase.rpc('generate_proposal_id', { company_name: selectedCompanyName });
     const proposalId = proposalData || '';
-
-    // Calculate qualification score
     const score = calculateScore(qualQuestions, qualAnswers);
 
     const { data, error } = await supabase.from('deals').insert({
@@ -133,6 +144,13 @@ export function NewDealModal() {
       proposal_delivery_date: form.proposal_delivery_date || null,
       target_delivery_date: form.target_delivery_date || null,
       approval_status: 'pending',
+      // New fields (only if budget stage)
+      carbono_zero: isBudgetStage ? form.carbono_zero : false,
+      cortex: isBudgetStage ? form.cortex : false,
+      endereco_execucao: isBudgetStage ? (form.endereco_execucao || null) : null,
+      estudo_equipe: isBudgetStage ? (form.estudo_equipe || null) : null,
+      tipo_negocio: isBudgetStage ? (form.tipo_negocio || null) : null,
+      vendedor_externo: isBudgetStage ? (form.vendedor_externo || null) : null,
     } as any).select('id').single();
 
     if (error) {
@@ -141,11 +159,9 @@ export function NewDealModal() {
       return;
     }
     if (data) {
-      // Save custom property values
       if (Object.keys(customValues).length > 0) {
         await saveCustomPropertyValues(data.id, customValues, supabase);
       }
-      // Save qualification answers
       const activeQs = qualQuestions.filter(q => q.is_active);
       for (const q of activeQs) {
         const answer = qualAnswers[q.id];
@@ -159,7 +175,6 @@ export function NewDealModal() {
           score: matched ? matched.score : 0,
         } as any);
       }
-      // Notify Gerência of Orçamentos team for approval
       try {
         const { data: orcTeam } = await supabase.from('teams').select('id').eq('name', 'Orçamentos').maybeSingle();
         if (orcTeam) {
@@ -186,7 +201,7 @@ export function NewDealModal() {
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '', orcamentista_id: '' });
+    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '', orcamentista_id: '', carbono_zero: false, cortex: false, endereco_execucao: '', estudo_equipe: '', tipo_negocio: '', vendedor_externo: '' });
     setCustomValues({});
     setQualAnswers({});
   };
@@ -207,7 +222,6 @@ export function NewDealModal() {
           <div className="py-8 text-center text-muted-foreground text-sm">Carregando...</div>
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Proposal ID preview */}
           {selectedCompanyName && (
             <div className="bg-muted/50 rounded-lg px-3 py-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ID da Proposta (gerado automaticamente)</p>
@@ -274,13 +288,54 @@ export function NewDealModal() {
                 </div>
               )}
             </div>
+
+            {/* Conditional fields - only visible for budget/orçamento stages */}
+            {isBudgetStage && (
+              <div className="mt-4 space-y-3 border-t border-border/50 pt-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Campos de Orçamento</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5 flex items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={form.carbono_zero} onCheckedChange={v => setForm(f => ({ ...f, carbono_zero: v }))} />
+                      <Label className="text-xs text-muted-foreground">Carbono Zero?</Label>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 flex items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={form.cortex} onCheckedChange={v => setForm(f => ({ ...f, cortex: v }))} />
+                      <Label className="text-xs text-muted-foreground">Cortex?</Label>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Tipo de Negócio</Label>
+                    <NativeSelect value={form.tipo_negocio} onChange={v => setForm(f => ({ ...f, tipo_negocio: v }))} options={TIPO_NEGOCIO_OPTIONS} placeholder="Selecione..." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Vendedor Externo</Label>
+                    <Input value={form.vendedor_externo} onChange={e => setForm(f => ({ ...f, vendedor_externo: e.target.value }))} placeholder="Nome do vendedor" maxLength={100} />
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Endereço de Execução</Label>
+                    <Input value={form.endereco_execucao} onChange={e => setForm(f => ({ ...f, endereco_execucao: e.target.value }))} placeholder="Endereço dos serviços" maxLength={300} />
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs text-muted-foreground">Estudo de Equipe</Label>
+                    <Textarea value={form.estudo_equipe} onChange={e => setForm(f => ({ ...f, estudo_equipe: e.target.value }))} placeholder="Descreva o estudo de equipe..." rows={2} maxLength={500} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5 mt-3">
-              <Label className="text-xs text-muted-foreground">Escopo</Label>
-              <Textarea placeholder="Descreva o escopo do projeto..." value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} rows={3} />
+              {isBudgetStage && (
+                <>
+                  <Label className="text-xs text-muted-foreground">Escopo</Label>
+                  <Textarea placeholder="Descreva o escopo do projeto..." value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} rows={3} />
+                </>
+              )}
             </div>
           </div>
 
-          {/* Qualification Questions */}
           {qualQuestions.filter(q => q.is_active).length > 0 && (
             <div className="border-t border-border pt-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Qualificação do Negócio</p>

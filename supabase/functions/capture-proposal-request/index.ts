@@ -18,6 +18,8 @@ Deno.serve(async (req) => {
       business_area, address, state, team_type, project_phase,
       has_team, team_description, qualification_level, target_delivery_date,
       orcamentista_id,
+      // New fields
+      carbono_zero, cortex, endereco_execucao, estudo_equipe, tipo_negocio, scope,
     } = body;
 
     // Validation
@@ -110,7 +112,7 @@ Deno.serve(async (req) => {
       qualification_level ? `Nível de qualificação: ${qualification_level}` : null,
     ].filter(Boolean).join("\n");
 
-    // 6. Create deal
+    // 6. Create deal — map requester_name → vendedor_externo, scope → scope
     const { data: newDeal, error: dealError } = await supabase.from("deals").insert({
       name: `Proposta - ${client_company.trim()}`,
       proposal_id: proposalId,
@@ -124,6 +126,14 @@ Deno.serve(async (req) => {
       target_delivery_date: target_delivery_date || null,
       orcamentista_id: orcamentista_id || null,
       approval_status: "pending",
+      // New fields
+      vendedor_externo: requester_name.trim(),
+      scope: scope?.trim() || null,
+      carbono_zero: !!carbono_zero,
+      cortex: !!cortex,
+      endereco_execucao: endereco_execucao?.trim() || null,
+      estudo_equipe: estudo_equipe?.trim() || null,
+      tipo_negocio: tipo_negocio || null,
     }).select("id").single();
     if (dealError) throw dealError;
 
