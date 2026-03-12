@@ -179,16 +179,6 @@ export function TeamsTab() {
     }
   };
 
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setTeamSaving(true);
-    const { error } = await supabase.from('teams').insert({ name: teamName.trim(), created_by: user.id });
-    setTeamSaving(false);
-    if (error) { toast.error('Erro: ' + error.message); }
-    else { toast.success('Equipe criada!'); setTeamOpen(false); setTeamName(''); queryClient.invalidateQueries({ queryKey: ['teams'] }); }
-  };
-
   const handleDeleteTeam = async (teamId: string) => {
     const { error } = await supabase.from('teams').delete().eq('id', teamId);
     if (error) toast.error('Erro ao excluir');
