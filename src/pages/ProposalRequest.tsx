@@ -32,6 +32,7 @@ export default function ProposalRequest() {
     client_name: '', client_role: '', client_email: '', client_phone: '', client_company: '',
     business_area: '', address: '', state: '', team_type: '', project_phase: '',
     has_team: false, team_description: '', qualification_level: '', target_delivery_date: '',
+    orcamentista_id: '',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
