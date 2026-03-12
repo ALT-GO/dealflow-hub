@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,7 @@ import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, DollarSign, Calendar, TrendingUp } from 'lucide-react';
+import { Building2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
 import { ProfitMarginModal } from '@/components/ProfitMarginModal';
 import { StarRating } from '@/components/StarRating';
@@ -79,35 +79,31 @@ export function KanbanBoard({ filters = {} }: Props) {
     },
   });
 
-  const { data: allDeals = [] } = useQuery({
-    queryKey: ['deals-all-for-probability'],
+  // Fetch tasks for follow-up & overdue badges
+  const { data: dealTasks = [] } = useQuery({
+    queryKey: ['kanban-tasks'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('deals').select('stage');
-      if (error) throw error;
-      return data;
+      const { data } = await supabase
+        .from('tasks')
+        .select('id, deal_id, completed, due_date')
+        .not('deal_id', 'is', null);
+      return data || [];
     },
   });
 
-  const stageProbability = (() => {
-    const wonStages = STAGES.filter(s => s.stage_type === 'won').map(s => s.key);
-    const totalClosed = allDeals.filter(d => wonStages.includes(d.stage)).length;
-    const totalAll = allDeals.length;
-    if (totalAll === 0) return {} as Record<string, number>;
-    const activeStages = STAGES.filter(s => s.stage_type === 'active');
-    const result: Record<string, number> = {};
-    for (const stage of STAGES) {
-      if (stage.stage_type === 'won') { result[stage.key] = 100; continue; }
-      if (stage.stage_type === 'lost') { result[stage.key] = 0; continue; }
-      const idx = activeStages.findIndex(s => s.key === stage.key);
-      const weight = activeStages.length > 1 ? (idx + 1) / activeStages.length : 0.5;
-      if (totalClosed > 0) {
-        const baseRate = totalClosed / totalAll;
-        result[stage.key] = Math.round(Math.min(baseRate * (weight / 0.1) * 100, 95));
-      } else {
-        result[stage.key] = Math.round(weight * 100);
-      }
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Pre-compute per-deal task info
+  const dealTaskInfo = (() => {
+    const info: Record<string, { hasFutureTasks: boolean; hasOverdue: boolean }> = {};
+    for (const d of deals) {
+      const tasks = dealTasks.filter(t => t.deal_id === d.id);
+      const pendingTasks = tasks.filter(t => !t.completed);
+      const hasFutureTasks = pendingTasks.some(t => t.due_date && t.due_date >= todayStr);
+      const hasOverdue = pendingTasks.some(t => t.due_date && t.due_date < todayStr);
+      info[d.id] = { hasFutureTasks: hasFutureTasks || (pendingTasks.length > 0 && pendingTasks.every(t => !t.due_date)), hasOverdue };
     }
-    return result;
+    return info;
   })();
 
   const ownerIds = [...new Set(deals.map((d) => d.owner_id))];
@@ -142,7 +138,6 @@ export function KanbanBoard({ filters = {} }: Props) {
 
     await supabase.from('deals').update(updateData).eq('id', dealId);
     queryClient.invalidateQueries({ queryKey: ['deals'] });
-    queryClient.invalidateQueries({ queryKey: ['deals-all-for-probability'] });
 
     if (targetStage?.stage_type === 'won') {
       fireConfetti();
@@ -172,7 +167,6 @@ export function KanbanBoard({ filters = {} }: Props) {
       return;
     }
 
-    // Check profit margin for won stages
     if (targetStage?.stage_type === 'won' && deal && !deal.profit_margin) {
       setProfitModal({ dealId, dealName: deal.name, dealValue: deal.value || 0, targetStage: stageKey });
       return;
@@ -186,8 +180,19 @@ export function KanbanBoard({ filters = {} }: Props) {
   const formatCurrency = (val: number | null) =>
     val != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val) : '-';
 
+  const getInactivityDays = (updatedAt: string) =>
+    Math.floor((Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+
+  const getCardBorderClass = (deal: Deal, stageType: string) => {
+    if (stageType === 'won' || stageType === 'lost') return 'border-border';
+    const days = getInactivityDays(deal.updated_at);
+    if (days > 10) return 'border-destructive border-2';
+    if (days > 3) return 'border-warning border-2';
+    return 'border-border';
+  };
+
   const getHealthColor = (updatedAt: string) => {
-    const days = Math.floor((Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+    const days = getInactivityDays(updatedAt);
     if (days <= 3) return 'bg-emerald-500';
     if (days <= 7) return 'bg-yellow-500';
     return 'bg-red-500';
@@ -219,61 +224,84 @@ export function KanbanBoard({ filters = {} }: Props) {
                 <p className="text-xs text-muted-foreground mt-1">{formatCurrency(total)}</p>
               </div>
               <div className="space-y-2 min-h-[200px] bg-muted/30 rounded-b-xl p-2">
-                {stageDeals.map((deal) => (
-                  <Card
-                    key={deal.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, deal.id)}
-                    onClick={() => navigate(`/deals/${deal.id}`)}
-                    className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 border-border"
-                  >
-                    <CardContent className="p-3 space-y-2.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          {deal.proposal_id && (
-                            <p className="text-[10px] font-mono text-muted-foreground truncate">{deal.proposal_id}</p>
-                          )}
-                          <p className="font-bold text-sm text-card-foreground leading-tight">{deal.name}</p>
+                {stageDeals.map((deal) => {
+                  const taskInfo = dealTaskInfo[deal.id];
+                  const isActive = stage.stage_type === 'active';
+                  const showNoFollowUp = isActive && taskInfo && !taskInfo.hasFutureTasks;
+                  const showOverdue = taskInfo?.hasOverdue;
+                  const borderClass = getCardBorderClass(deal, stage.stage_type);
+
+                  return (
+                    <Card
+                      key={deal.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, deal.id)}
+                      onClick={() => navigate(`/deals/${deal.id}`)}
+                      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 ${borderClass}`}
+                    >
+                      <CardContent className="p-3 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            {deal.proposal_id && (
+                              <p className="text-[10px] font-mono text-muted-foreground truncate">{deal.proposal_id}</p>
+                            )}
+                            <p className="font-bold text-sm text-card-foreground leading-tight">{deal.name}</p>
+                          </div>
+                          <span
+                            className={`flex-shrink-0 mt-1 h-2.5 w-2.5 rounded-full ${getHealthColor(deal.updated_at)}`}
+                            title={`Última atualização: ${new Date(deal.updated_at).toLocaleDateString('pt-BR')} (${getInactivityDays(deal.updated_at)}d atrás)`}
+                          />
                         </div>
-                        <span
-                          className={`flex-shrink-0 mt-1 h-2.5 w-2.5 rounded-full ${getHealthColor(deal.updated_at)}`}
-                          title={`Última atualização: ${new Date(deal.updated_at).toLocaleDateString('pt-BR')}`}
-                        />
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Building2 className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">{deal.companies?.name || '-'}</span>
-                      </div>
-                      {(deal.qualification_score ?? 0) > 0 && (
-                        <StarRating score={deal.qualification_score || 0} />
-                      )}
-                      {deal.loss_reason && stage.stage_type === 'lost' && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          {deal.loss_reason}
-                        </Badge>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-xs">
-                          <span className="flex items-center gap-1 font-semibold text-primary">
-                            <DollarSign className="h-3 w-3" />
-                            {formatCurrency(deal.value)}
-                          </span>
-                          {deal.close_date && (
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(deal.close_date).toLocaleDateString('pt-BR')}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Building2 className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{deal.companies?.name || '-'}</span>
+                        </div>
+                        {(deal.qualification_score ?? 0) > 0 && (
+                          <StarRating score={deal.qualification_score || 0} />
+                        )}
+                        {/* Alert badges */}
+                        {(showNoFollowUp || showOverdue || (deal.loss_reason && stage.stage_type === 'lost')) && (
+                          <div className="flex flex-wrap gap-1">
+                            {showNoFollowUp && (
+                              <Badge variant="outline" className="text-[10px] border-warning text-warning gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" />Sem follow-up
+                              </Badge>
+                            )}
+                            {showOverdue && (
+                              <Badge variant="destructive" className="text-[10px] gap-1">
+                                Tarefa atrasada
+                              </Badge>
+                            )}
+                            {deal.loss_reason && stage.stage_type === 'lost' && (
+                              <Badge variant="destructive" className="text-[10px]">
+                                {deal.loss_reason}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="flex items-center gap-1 font-semibold text-primary">
+                              <DollarSign className="h-3 w-3" />
+                              {formatCurrency(deal.value)}
                             </span>
-                          )}
+                            {deal.close_date && (
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(deal.close_date).toLocaleDateString('pt-BR')}
+                              </span>
+                            )}
+                          </div>
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                              {getOwnerInitials(deal.owner_id)}
+                            </AvatarFallback>
+                          </Avatar>
                         </div>
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                            {getOwnerInitials(deal.owner_id)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           );
