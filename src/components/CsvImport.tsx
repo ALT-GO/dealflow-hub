@@ -482,6 +482,11 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               if (d) dealRecord.created_at = d;
               else allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Data de Criação', message: `Formato de data inválido: "${vals.deal_created_at}"` });
             }
+            if (vals.deal_last_activity_at) {
+              const d = parseDate(vals.deal_last_activity_at);
+              if (d) dealRecord.last_activity_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Última Atividade', message: `Formato de data inválido: "${vals.deal_last_activity_at}"` });
+            }
 
             if (vals.deal_vendedor_externo) dealRecord.vendedor_externo = vals.deal_vendedor_externo;
             if (vals.deal_tipo_negocio) dealRecord.tipo_negocio = vals.deal_tipo_negocio;
