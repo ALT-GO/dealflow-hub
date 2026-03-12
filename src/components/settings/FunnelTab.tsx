@@ -173,7 +173,7 @@ export function FunnelTab() {
                 {stage.is_system && <Badge variant="outline" className="text-[10px]">Sistema</Badge>}
                 {role === 'admin' && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color, stage_type: stage.stage_type, allowed_roles: stage.allowed_roles || ['admin', 'gerencia', 'orcamentista', 'vendedor'] }); setEditOpen(stage.id); }}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setForm({ key: stage.key, label: stage.label, color: stage.color, stage_type: stage.stage_type, visibility: rolesToVisibility(stage.allowed_roles || ['admin','gerencia','orcamentista','vendedor']) }); setEditOpen(stage.id); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     {!stage.is_system && (
