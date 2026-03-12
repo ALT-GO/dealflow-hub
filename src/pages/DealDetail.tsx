@@ -469,6 +469,78 @@ export default function DealDetail() {
                         onSave={(v) => handleInlineEdit('scope', 'Escopo', dealAny.scope || '', v)}
                       />
                     </div>
+
+                    {/* New technical fields */}
+                    <Separator className="my-2" />
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dados Técnicos</p>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Carbono Zero</p>
+                      <Badge variant={dealAny.carbono_zero ? 'default' : 'secondary'} className="text-xs">
+                        {dealAny.carbono_zero ? 'Sim' : 'Não'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Cortex</p>
+                      <Badge variant={dealAny.cortex ? 'default' : 'secondary'} className="text-xs">
+                        {dealAny.cortex ? 'Sim' : 'Não'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Tipo de Negócio</p>
+                      <InlineEdit
+                        value={TIPO_NEGOCIO_LABELS[dealAny.tipo_negocio] || dealAny.tipo_negocio || ''}
+                        onSave={(v) => handleInlineEdit('tipo_negocio', 'Tipo de Negócio', dealAny.tipo_negocio || '', v)}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Vendedor Externo</p>
+                      <InlineEdit
+                        value={dealAny.vendedor_externo || ''}
+                        onSave={(v) => handleInlineEdit('vendedor_externo', 'Vendedor Externo', dealAny.vendedor_externo || '', v)}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Endereço de Execução</p>
+                      <InlineEdit
+                        value={dealAny.endereco_execucao || ''}
+                        onSave={(v) => handleInlineEdit('endereco_execucao', 'Endereço de Execução', dealAny.endereco_execucao || '', v)}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Estudo de Equipe</p>
+                      <InlineEdit
+                        value={dealAny.estudo_equipe || ''}
+                        onSave={(v) => handleInlineEdit('estudo_equipe', 'Estudo de Equipe', dealAny.estudo_equipe || '', v)}
+                      />
+                    </div>
+
+                    {/* Commission sub-section */}
+                    <Separator className="my-2" />
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Comissões</p>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Comissão Carbono Zero (R$)</p>
+                      <InlineEdit
+                        value={String(dealAny.comissao_carbono_zero || '')}
+                        onSave={(v) => handleInlineEdit('comissao_carbono_zero', 'Comissão Carbono Zero', String(dealAny.comissao_carbono_zero || ''), v)}
+                        icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Comissão Cortex (R$)</p>
+                      <InlineEdit
+                        value={String(dealAny.comissao_cortex || '')}
+                        onSave={(v) => handleInlineEdit('comissao_cortex', 'Comissão Cortex', String(dealAny.comissao_cortex || ''), v)}
+                        icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Comissão Valor de Venda (R$)</p>
+                      <InlineEdit
+                        value={String(dealAny.comissao_valor_venda || '')}
+                        onSave={(v) => handleInlineEdit('comissao_valor_venda', 'Comissão Valor de Venda', String(dealAny.comissao_valor_venda || ''), v)}
+                        icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                      />
+                    </div>
                   </CardContent>
                 </AccordionContent>
               </Card>
