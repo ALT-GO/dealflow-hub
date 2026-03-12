@@ -62,6 +62,16 @@ export default function ProposalRequest() {
   const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Company autocomplete
+  const [companyResults, setCompanyResults] = useState<{ id: string; name: string }[]>([]);
+  const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
+  const companyTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Role autocomplete
+  const [roleResults, setRoleResults] = useState<string[]>([]);
+  const [rolePopoverOpen, setRolePopoverOpen] = useState(false);
+  const roleTimeout = useRef<NodeJS.Timeout | null>(null);
+
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   // Search contacts as user types
@@ -80,6 +90,38 @@ export default function ProposalRequest() {
       if (data) setContactResults(data as ContactResult[]);
     }, 300);
   }, [contactSearch]);
+
+  // Search companies as user types
+  useEffect(() => {
+    if (companyTimeout.current) clearTimeout(companyTimeout.current);
+    if (form.client_company.trim().length < 2) { setCompanyResults([]); return; }
+    companyTimeout.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('companies')
+        .select('id, name')
+        .ilike('name', `%${form.client_company.trim()}%`)
+        .limit(6);
+      if (data) setCompanyResults(data);
+    }, 300);
+  }, [form.client_company]);
+
+  // Search roles as user types
+  useEffect(() => {
+    if (roleTimeout.current) clearTimeout(roleTimeout.current);
+    if (form.client_role.trim().length < 2) { setRoleResults([]); return; }
+    roleTimeout.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('contacts')
+        .select('role')
+        .ilike('role', `%${form.client_role.trim()}%`)
+        .not('role', 'is', null)
+        .limit(20);
+      if (data) {
+        const unique = [...new Set(data.map(d => d.role).filter(Boolean) as string[])];
+        setRoleResults(unique.slice(0, 6));
+      }
+    }, 300);
+  }, [form.client_role]);
 
   const handleSelectContact = (contact: ContactResult) => {
     setForm(prev => ({
@@ -233,8 +275,37 @@ export default function ProposalRequest() {
                   </Popover>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="client_role">Cargo</Label>
-                  <Input id="client_role" value={form.client_role} onChange={e => set('client_role', e.target.value)} maxLength={100} />
+                  <Label>Cargo</Label>
+                  <Popover open={rolePopoverOpen} onOpenChange={setRolePopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Input
+                        value={form.client_role}
+                        onChange={e => {
+                          set('client_role', e.target.value);
+                          if (e.target.value.trim().length >= 2) setRolePopoverOpen(true);
+                          else setRolePopoverOpen(false);
+                        }}
+                        onFocus={() => { if (roleResults.length > 0) setRolePopoverOpen(true); }}
+                        maxLength={100}
+                        placeholder="Digite para buscar..."
+                      />
+                    </PopoverTrigger>
+                    {roleResults.length > 0 && (
+                      <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" sideOffset={4}>
+                        <Command>
+                          <CommandList>
+                            <CommandGroup heading="Cargos encontrados">
+                              {roleResults.map(r => (
+                                <CommandItem key={r} onSelect={() => { set('client_role', r); setRolePopoverOpen(false); }} className="cursor-pointer">
+                                  <p className="text-sm">{r}</p>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="client_email">E-mail</Label>
@@ -245,8 +316,37 @@ export default function ProposalRequest() {
                   <Input id="client_phone" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} maxLength={20} placeholder="(00) 00000-0000" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="client_company">Empresa *</Label>
-                  <Input id="client_company" value={form.client_company} onChange={e => set('client_company', e.target.value)} maxLength={100} />
+                  <Label>Empresa *</Label>
+                  <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Input
+                        value={form.client_company}
+                        onChange={e => {
+                          set('client_company', e.target.value);
+                          if (e.target.value.trim().length >= 2) setCompanyPopoverOpen(true);
+                          else setCompanyPopoverOpen(false);
+                        }}
+                        onFocus={() => { if (companyResults.length > 0) setCompanyPopoverOpen(true); }}
+                        maxLength={100}
+                        placeholder="Digite para buscar..."
+                      />
+                    </PopoverTrigger>
+                    {companyResults.length > 0 && (
+                      <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" sideOffset={4}>
+                        <Command>
+                          <CommandList>
+                            <CommandGroup heading="Empresas encontradas">
+                              {companyResults.map(c => (
+                                <CommandItem key={c.id} onSelect={() => { set('client_company', c.name); setCompanyPopoverOpen(false); }} className="cursor-pointer">
+                                  <p className="text-sm">{c.name}</p>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="client_address">Endereço</Label>
