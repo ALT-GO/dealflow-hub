@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings as SettingsIcon, Boxes, GitBranch, XCircle, MapPin, ClipboardCheck, Users, Shield, Bell, Upload } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ObjectsTab } from '@/components/settings/ObjectsTab';
 import { FunnelTab } from '@/components/settings/FunnelTab';
 import { LossReasonsTab } from '@/components/settings/LossReasonsTab';
@@ -11,44 +11,74 @@ import { QualificationTab } from '@/components/settings/QualificationTab';
 import { AlertsTab } from '@/components/settings/AlertsTab';
 import { ImportTab } from '@/components/settings/ImportTab';
 
+const MENU_ITEMS = [
+  { key: 'objects', label: 'Objetos', icon: Boxes },
+  { key: 'funnels', label: 'Funis', icon: GitBranch },
+  { key: 'loss-reasons', label: 'Motivos de Perda', icon: XCircle },
+  { key: 'origins', label: 'Origens', icon: MapPin },
+  { key: 'qualification', label: 'Qualificação', icon: ClipboardCheck },
+  { key: 'teams', label: 'Equipes', icon: Users },
+  { key: 'permissions', label: 'Permissões', icon: Shield },
+  { key: 'alerts', label: 'Alertas', icon: Bell },
+  { key: 'import', label: 'Importação', icon: Upload },
+];
+
+const CONTENT: Record<string, React.ReactNode> = {
+  objects: <ObjectsTab />,
+  funnels: <FunnelTab />,
+  'loss-reasons': <LossReasonsTab />,
+  origins: <OriginsTab />,
+  qualification: <QualificationTab />,
+  teams: <TeamsTab />,
+  permissions: <PermissionsTab />,
+  alerts: <AlertsTab />,
+  import: <ImportTab />,
+};
+
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('objects');
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <SettingsIcon className="h-5 w-5 text-primary" />
         </div>
         <div>
           <h1 className="text-2xl font-display font-bold text-foreground">Configurações</h1>
-          <p className="text-sm text-muted-foreground">Gerencie objetos, funis, motivos de perda, equipes, permissões, origens, qualificação, alertas e importação</p>
+          <p className="text-sm text-muted-foreground">Gerencie objetos, funis, equipes, permissões e mais</p>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex w-full">
-          <TabsTrigger value="objects" className="flex-1 text-xs">Objetos</TabsTrigger>
-          <TabsTrigger value="funnels" className="flex-1 text-xs">Funis</TabsTrigger>
-          <TabsTrigger value="loss-reasons" className="flex-1 text-xs">Motivos de Perda</TabsTrigger>
-          <TabsTrigger value="origins" className="flex-1 text-xs">Origens</TabsTrigger>
-          <TabsTrigger value="qualification" className="flex-1 text-xs">Qualificação</TabsTrigger>
-          <TabsTrigger value="teams" className="flex-1 text-xs">Equipes</TabsTrigger>
-          <TabsTrigger value="permissions" className="flex-1 text-xs">Permissões</TabsTrigger>
-          <TabsTrigger value="alerts" className="flex-1 text-xs">Alertas</TabsTrigger>
-          <TabsTrigger value="import" className="flex-1 text-xs">Importação</TabsTrigger>
-        </TabsList>
+      <div className="flex gap-6 min-h-[600px]">
+        {/* Vertical sidebar menu */}
+        <nav className="w-56 shrink-0 space-y-1">
+          {MENU_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => setActiveTab(item.key)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
 
-        <TabsContent value="objects"><ObjectsTab /></TabsContent>
-        <TabsContent value="funnels"><FunnelTab /></TabsContent>
-        <TabsContent value="loss-reasons"><LossReasonsTab /></TabsContent>
-        <TabsContent value="origins"><OriginsTab /></TabsContent>
-        <TabsContent value="qualification"><QualificationTab /></TabsContent>
-        <TabsContent value="teams"><TeamsTab /></TabsContent>
-        <TabsContent value="permissions"><PermissionsTab /></TabsContent>
-        <TabsContent value="alerts"><AlertsTab /></TabsContent>
-        <TabsContent value="import"><ImportTab /></TabsContent>
-      </Tabs>
+        {/* Content area */}
+        <div className="flex-1 min-w-0">
+          {CONTENT[activeTab]}
+        </div>
+      </div>
     </div>
   );
 }

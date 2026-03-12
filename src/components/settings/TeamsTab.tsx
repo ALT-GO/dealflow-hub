@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Shield, Briefcase, DollarSign, Target, UsersRound, UserPlus, Plus, Trash2, Users } from 'lucide-react';
+import { Shield, Briefcase, DollarSign, Target, UsersRound, UserPlus, Users } from 'lucide-react';
 
 type TeamMember = {
   user_id: string;
@@ -36,6 +36,8 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
+const HARDCODED_TEAMS = ['Vendas', 'Orçamentos'];
+
 export function TeamsTab() {
   const { role, user } = useAuth();
   const queryClient = useQueryClient();
@@ -43,8 +45,6 @@ export function TeamsTab() {
   const [goalSaving, setGoalSaving] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteSaving, setInviteSaving] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
-  const [teamSaving, setTeamSaving] = useState(false);
   const [assignOpen, setAssignOpen] = useState<string | null>(null);
   const [subTab, setSubTab] = useState('members');
   const now = new Date();
@@ -56,7 +56,6 @@ export function TeamsTab() {
     target_deals_count: '',
   });
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'vendedor', team_id: '' });
-  const [teamName, setTeamName] = useState('');
   const [selectedTeamForAssign, setSelectedTeamForAssign] = useState('');
 
   // Fetch members
@@ -89,17 +88,29 @@ export function TeamsTab() {
     },
   });
 
-  // Fetch teams
+  // Fetch/ensure hardcoded teams
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
       const { data: teamsData, error } = await supabase.from('teams').select('id, name, created_at');
       if (error) throw error;
+      // Auto-create hardcoded teams if missing
+      for (const teamName of HARDCODED_TEAMS) {
+        if (!(teamsData || []).find(t => t.name === teamName)) {
+          if (user) {
+            await supabase.from('teams').insert({ name: teamName, created_by: user.id });
+          }
+        }
+      }
+      // Re-fetch after potential inserts
+      const { data: finalTeams } = await supabase.from('teams').select('id, name, created_at');
       const { data: teamMembers } = await supabase.from('team_members').select('team_id');
-      return (teamsData || []).map((t) => ({
-        ...t,
-        member_count: (teamMembers || []).filter((m: any) => m.team_id === t.id).length,
-      })) as Team[];
+      return ((finalTeams || [])
+        .filter(t => HARDCODED_TEAMS.includes(t.name))
+        .map((t) => ({
+          ...t,
+          member_count: (teamMembers || []).filter((m: any) => m.team_id === t.id).length,
+        }))) as Team[];
     },
   });
 
@@ -168,21 +179,8 @@ export function TeamsTab() {
     }
   };
 
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setTeamSaving(true);
-    const { error } = await supabase.from('teams').insert({ name: teamName.trim(), created_by: user.id });
-    setTeamSaving(false);
-    if (error) { toast.error('Erro: ' + error.message); }
-    else { toast.success('Equipe criada!'); setTeamOpen(false); setTeamName(''); queryClient.invalidateQueries({ queryKey: ['teams'] }); }
-  };
 
-  const handleDeleteTeam = async (teamId: string) => {
-    const { error } = await supabase.from('teams').delete().eq('id', teamId);
-    if (error) toast.error('Erro ao excluir');
-    else { toast.success('Equipe excluída'); queryClient.invalidateQueries({ queryKey: ['teams'] }); }
-  };
+
 
   const handleAssignToTeam = async (userId: string) => {
     if (!selectedTeamForAssign) return;
@@ -491,59 +489,30 @@ export function TeamsTab() {
         {/* Teams Tab */}
         <TabsContent value="teams">
           <div className="space-y-4">
-            {role === 'admin' && (
-              <div className="flex justify-end">
-                <Dialog open={teamOpen} onOpenChange={setTeamOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm"><Plus className="h-4 w-4 mr-2" />Nova Equipe</Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-sm">
-                    <DialogHeader><DialogTitle>Criar Equipe</DialogTitle></DialogHeader>
-                    <form onSubmit={handleCreateTeam} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Nome da equipe</Label>
-                        <Input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Ex: Vendas, Marketing" required maxLength={50} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {teams.map((team) => (
+                <Card key={team.id}>
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
                       </div>
-                      <Button type="submit" className="w-full" disabled={teamSaving}>{teamSaving ? 'Criando...' : 'Criar Equipe'}</Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            )}
-
-            {teams.length === 0 ? (
+                      <div>
+                        <p className="font-medium text-sm text-foreground">{team.name}</p>
+                        <p className="text-xs text-muted-foreground">{team.member_count} membro(s)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {teams.length === 0 && (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">Nenhuma equipe criada</p>
-                  <p className="text-xs text-muted-foreground mt-1">Crie equipes para organizar seus vendedores</p>
+                  <p className="text-muted-foreground">As equipes serão criadas automaticamente</p>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {teams.map((team) => (
-                  <Card key={team.id}>
-                    <CardContent className="pt-5 pb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm text-foreground">{team.name}</p>
-                            <p className="text-xs text-muted-foreground">{team.member_count} membro(s)</p>
-                          </div>
-                        </div>
-                        {role === 'admin' && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteTeam(team.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
             )}
           </div>
         </TabsContent>

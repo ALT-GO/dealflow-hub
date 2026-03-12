@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { DatePickerField } from '@/components/DatePickerField';
 import { Plus, CheckSquare, Calendar, UserCircle } from 'lucide-react';
 
 type Task = {
@@ -141,7 +142,7 @@ export function TasksChecklist({ dealId, contactId }: Props) {
                 </div>
                 <div className="space-y-2">
                   <Label>Data limite</Label>
-                  <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                  <DatePickerField value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} placeholder="Selecionar data" />
                 </div>
                 <Button type="submit" className="w-full" disabled={saving}>{saving ? 'Criando...' : 'Criar Tarefa'}</Button>
               </form>

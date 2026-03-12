@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Filter, X, Save, Trash2 } from 'lucide-react';
+import { DatePickerField } from '@/components/DatePickerField';
 
 export type Filters = {
   minValue?: string;
@@ -175,19 +176,19 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
                 <div className="space-y-2">
                   <div>
                     <Label className="text-xs">De</Label>
-                    <Input
-                      type="date"
+                    <DatePickerField
                       value={filters.createdAfter || ''}
-                      onChange={(e) => onFiltersChange({ ...filters, createdAfter: e.target.value })}
+                      onChange={(v) => onFiltersChange({ ...filters, createdAfter: v })}
+                      placeholder="Data inicial"
                       className="h-8 text-xs"
                     />
                   </div>
                   <div>
                     <Label className="text-xs">Até</Label>
-                    <Input
-                      type="date"
+                    <DatePickerField
                       value={filters.createdBefore || ''}
-                      onChange={(e) => onFiltersChange({ ...filters, createdBefore: e.target.value })}
+                      onChange={(v) => onFiltersChange({ ...filters, createdBefore: v })}
+                      placeholder="Data final"
                       className="h-8 text-xs"
                     />
                   </div>
