@@ -275,6 +275,18 @@ export function NewDealModal() {
                 <Label className="text-xs text-muted-foreground">Data de Fechamento</Label>
                 <Input type="date" value={form.close_date} onChange={(e) => setForm({ ...form, close_date: e.target.value })} />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Data Início Orçamento</Label>
+                <Input type="date" value={form.budget_start_date} onChange={(e) => setForm({ ...form, budget_start_date: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Data Entrega Proposta</Label>
+                <Input type="date" value={form.proposal_delivery_date} onChange={(e) => setForm({ ...form, proposal_delivery_date: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-3">
+              <Label className="text-xs text-muted-foreground">Escopo</Label>
+              <Textarea placeholder="Descreva o escopo do projeto..." value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} rows={3} />
             </div>
           </div>
 
