@@ -74,7 +74,7 @@ export default function ProposalRequest() {
     searchTimeout.current = setTimeout(async () => {
       const { data } = await supabase
         .from('contacts')
-        .select('id, name, email, role, company_id, companies(name, phone)')
+        .select('id, name, email, role, company_id, companies(name, phone, domain)')
         .ilike('name', `%${contactSearch.trim()}%`)
         .limit(8);
       if (data) setContactResults(data as ContactResult[]);
