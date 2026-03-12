@@ -32,6 +32,7 @@ export default function ProposalRequest() {
     client_name: '', client_role: '', client_email: '', client_phone: '', client_company: '',
     business_area: '', address: '', state: '', team_type: '', project_phase: '',
     has_team: false, team_description: '', qualification_level: '', target_delivery_date: '',
+    orcamentista_id: '',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -224,7 +225,12 @@ export default function ProposalRequest() {
                 )}
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Data de Entrega Desejada</Label>
-                  <SmartDatePicker value={form.target_delivery_date} onChange={v => set('target_delivery_date', v)} placeholder="Selecionar data desejada" />
+                  <SmartDatePicker
+                    value={form.target_delivery_date}
+                    onChange={v => set('target_delivery_date', v)}
+                    onEstimatorSelected={(eid) => set('orcamentista_id', eid)}
+                    placeholder="Selecionar data desejada"
+                  />
                 </div>
                 {/* Other date fields intentionally hidden for external form - only target_delivery_date shown */}
               </div>

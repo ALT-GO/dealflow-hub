@@ -97,11 +97,11 @@ export default function DealDetail() {
   const { data: activities = [] } = useQuery({
     queryKey: ['deal-activities', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('activities').select('*').eq('company_id', deal?.company_id!).order('activity_date', { ascending: false });
+      const { data, error } = await supabase.from('activities').select('*').eq('deal_id', id!).order('activity_date', { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!deal?.company_id,
+    enabled: !!id,
   });
 
   const { data: profilesMap = {} } = useQuery({
@@ -142,8 +142,9 @@ export default function DealDetail() {
       title: `Alterou "${label}"`,
       description: `De "${oldValue || '(vazio)'}" para "${newValue || '(vazio)'}"`,
       company_id: deal?.company_id || null,
+      deal_id: id || null,
       created_by: user.id,
-    });
+    } as any);
     invalidateAll();
     toast.success('Atualizado!');
   };
@@ -169,8 +170,9 @@ export default function DealDetail() {
       title: `Moveu estágio`,
       description: `De "${stageLabels[oldStage] || oldStage}" para "${stageLabels[newStage] || newStage}"`,
       company_id: deal.company_id,
+      deal_id: id || null,
       created_by: user.id,
-    });
+    } as any);
     if (targetStage?.stage_type === 'won') fireConfetti();
     invalidateAll();
     toast.success(targetStage?.stage_type === 'won' ? '🎉 Negócio ganho!' : 'Estágio atualizado!');
@@ -192,8 +194,8 @@ export default function DealDetail() {
       await supabase.from('activities').insert({
         type: 'deal_won', title: 'Negócio marcado como Ganho',
         description: `Negócio "${deal.name}" foi marcado como ganho`,
-        company_id: deal.company_id, created_by: user.id,
-      });
+        company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+      } as any);
       fireConfetti();
       invalidateAll();
       toast.success('🎉 Negócio ganho!');
@@ -212,8 +214,8 @@ export default function DealDetail() {
     await supabase.from('activities').insert({
       type: 'deal_won', title: 'Negócio marcado como Ganho',
       description: `Lucro: ${margin}% · Negócio "${deal.name}"`,
-      company_id: deal.company_id, created_by: user.id,
-    });
+      company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+    } as any);
     fireConfetti();
     setProfitModalOpen(false);
     invalidateAll();
@@ -227,8 +229,8 @@ export default function DealDetail() {
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
       type: 'deal_lost', title: 'Negócio marcado como Perdido',
-      description: `Motivo: ${reason}`, company_id: deal.company_id, created_by: user.id,
-    });
+      description: `Motivo: ${reason}`, company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+    } as any);
     setLossModalOpen(false);
     invalidateAll();
     toast.success('Negócio marcado como perdido.');
@@ -241,8 +243,8 @@ export default function DealDetail() {
     const { error } = await supabase.from('activities').insert({
       type: activityForm.type, title: activityForm.title.trim(),
       description: activityForm.description.trim() || null,
-      company_id: deal.company_id, created_by: user.id,
-    });
+      company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+    } as any);
     setActivitySaving(false);
     if (error) { toast.error('Erro ao registrar atividade'); return; }
     toast.success('Atividade registrada!');
@@ -352,15 +354,6 @@ export default function DealDetail() {
                       <DatePickerField
                         value={deal.close_date || ''}
                         onChange={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)}
-                        placeholder="Selecionar data"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">Data de Entrega Desejada</p>
-                      <DatePickerField
-                        value={dealAny.target_delivery_date || ''}
-                        onChange={(v) => handleInlineEdit('target_delivery_date', 'Data de Entrega Desejada', dealAny.target_delivery_date || '', v)}
                         placeholder="Selecionar data"
                         className="h-8 text-xs"
                       />

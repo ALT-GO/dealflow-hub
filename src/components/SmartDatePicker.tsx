@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface SmartDatePickerProps {
   value: string;
   onChange: (value: string) => void;
+  onEstimatorSelected?: (estimatorId: string, estimatorName: string) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -82,7 +83,7 @@ function getEstimatorLoadsForDate(
   return { busyEstimators, freeEstimators };
 }
 
-export function SmartDatePicker({ value, onChange, placeholder = 'Selecionar data', className, disabled }: SmartDatePickerProps) {
+export function SmartDatePicker({ value, onChange, onEstimatorSelected, placeholder = 'Selecionar data', className, disabled }: SmartDatePickerProps) {
   const date = value ? parseISO(value) : undefined;
   const { estimators, dealSpans } = useGlobalEstimatorAvailability();
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -114,9 +115,26 @@ export function SmartDatePicker({ value, onChange, placeholder = 'Selecionar dat
       .sort();
   }, [selectedDate, dealSpans, estimatorIds, estimators, hasEstimators]);
 
+  // Track last assigned index for round-robin
+  const lastAssignedIndexRef = useMemo(() => ({ current: -1 }), []);
+
   const handleSelect = (d: Date | undefined) => {
     setSelectedDate(d);
     onChange(d ? format(d, 'yyyy-MM-dd') : '');
+
+    // Auto-assign estimator round-robin alphabetically
+    if (d && hasEstimators && onEstimatorSelected) {
+      const { freeEstimators } = getEstimatorLoadsForDate(d, dealSpans, estimatorIds);
+      if (freeEstimators.length > 0) {
+        const freeWithNames = freeEstimators
+          .map(eid => ({ id: eid, name: estimators.find(e => e.user_id === eid)?.full_name || 'Sem nome' }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        const nextIndex = (lastAssignedIndexRef.current + 1) % freeWithNames.length;
+        lastAssignedIndexRef.current = nextIndex;
+        const selected = freeWithNames[nextIndex];
+        onEstimatorSelected(selected.id, selected.name);
+      }
+    }
   };
 
   return (

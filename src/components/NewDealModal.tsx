@@ -61,6 +61,7 @@ export function NewDealModal() {
     budget_start_date: '',
     proposal_delivery_date: '',
     target_delivery_date: '',
+    orcamentista_id: '',
   });
   const [qualAnswers, setQualAnswers] = useState<Record<string, string>>({});
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
@@ -121,7 +122,7 @@ export function NewDealModal() {
       contact_id: form.contact_id || null,
       owner_id: user.id,
       proposal_id: proposalId,
-      orcamentista_id: null,
+      orcamentista_id: form.orcamentista_id || null,
       contract_type: form.contract_type || null,
       market: form.market || null,
       business_area: form.business_area || null,
@@ -185,7 +186,7 @@ export function NewDealModal() {
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '' });
+    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '', orcamentista_id: '' });
     setCustomValues({});
     setQualAnswers({});
   };
@@ -263,10 +264,11 @@ export function NewDealModal() {
               </div>
               {isBudgetStage && (
                 <div className="space-y-1.5 col-span-2">
-                  <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
+                  <Label className="text-xs text-muted-foreground">Data Entrega Proposta</Label>
                   <SmartDatePicker
-                    value={form.target_delivery_date}
-                    onChange={(v) => setForm({ ...form, target_delivery_date: v })}
+                    value={form.proposal_delivery_date}
+                    onChange={(v) => setForm({ ...form, proposal_delivery_date: v })}
+                    onEstimatorSelected={(eid) => setForm(f => ({ ...f, orcamentista_id: eid }))}
                     placeholder="Selecionar data"
                   />
                 </div>

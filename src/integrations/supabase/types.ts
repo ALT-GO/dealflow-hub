@@ -21,6 +21,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by: string
+          deal_id: string | null
           description: string | null
           id: string
           title: string
@@ -33,6 +34,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by: string
+          deal_id?: string | null
           description?: string | null
           id?: string
           title: string
@@ -45,6 +47,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string
+          deal_id?: string | null
           description?: string | null
           id?: string
           title?: string
@@ -64,6 +67,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
         ]
