@@ -39,8 +39,6 @@ export default function Dashboard() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   const statCards = [
-    { title: 'Empresas', value: stats?.companies || 0, icon: Building2 },
-    { title: 'Contatos', value: stats?.contacts || 0, icon: Users },
     { title: 'Negócios', value: stats?.deals || 0, icon: Briefcase },
     { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
   ];
