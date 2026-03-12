@@ -1120,6 +1120,7 @@ export type Database = {
     }
     Functions: {
       generate_proposal_id: { Args: { company_name: string }; Returns: string }
+      get_estimator_availability: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
