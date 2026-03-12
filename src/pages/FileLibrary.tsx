@@ -276,7 +276,7 @@ export default function FileLibrary() {
                 <span className="text-xs font-medium text-foreground truncate w-full" title={f.file_name}>{f.file_name}</span>
                 <span className="text-[10px] text-muted-foreground">{humanSize(f.file_size)}</span>
                 <span className="text-[10px] text-muted-foreground">
-                  {(f as any).profiles?.full_name || 'Desconhecido'} · {format(new Date(f.created_at), 'dd/MM/yy', { locale: ptBR })}
+                  {f.uploader_name || 'Desconhecido'} · {format(new Date(f.created_at), 'dd/MM/yy', { locale: ptBR })}
                 </span>
                 <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {f.file_type.startsWith('image/') || f.file_type.includes('pdf') ? (
