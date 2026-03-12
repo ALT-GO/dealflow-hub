@@ -108,8 +108,10 @@ export function NotificationBell() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from('notifications').update({ is_read: true } as any).eq('user_id', user.id).eq('is_read', false);
+    // Delete all notifications for this user
+    await supabase.from('notifications').delete().eq('user_id', user.id);
     queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    toast.success('Todas as notificações foram limpas');
   };
 
   const handleClick = async (n: Notification) => {
@@ -149,17 +151,17 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-96 p-0" align="end">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h3 className="text-sm font-semibold text-foreground">Notificações</h3>
-          {unreadCount > 0 && (
+          {notifications.length > 0 && (
             <Button variant="ghost" size="sm" className="text-xs h-7 text-primary" onClick={markAllRead}>
               <CheckCheck className="h-3.5 w-3.5 mr-1" />
-              Marcar todas
+              Limpar todas
             </Button>
           )}
         </div>
-        <ScrollArea className="max-h-[360px]">
+        <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
             <p className="text-center text-muted-foreground py-8 text-xs">Nenhuma notificação</p>
           ) : (
@@ -171,18 +173,18 @@ export function NotificationBell() {
                 return (
                   <button
                     key={n.id}
-                    className={`w-full flex items-start gap-3 p-3 text-left hover:bg-muted/50 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
+                    className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors cursor-pointer ${!n.is_read ? 'bg-primary/5' : ''}`}
                     onClick={() => handleClick(n)}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${color}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${color}`}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm leading-snug ${!n.is_read ? 'font-semibold text-foreground' : 'text-foreground'}`}>
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <p className={`text-sm leading-snug break-words ${!n.is_read ? 'font-semibold text-foreground' : 'text-foreground'}`}>
                         {n.title}
                       </p>
                       {n.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words line-clamp-2">{n.description}</p>
                       )}
                       <p className="text-[10px] text-muted-foreground mt-1">
                         {new Date(n.created_at).toLocaleString('pt-BR')}
