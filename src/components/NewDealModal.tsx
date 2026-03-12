@@ -321,10 +321,16 @@ export function NewDealModal() {
                 <Label className="text-xs text-muted-foreground">Data Entrega Proposta</Label>
                 <DatePickerField value={form.proposal_delivery_date} onChange={(v) => setForm({ ...form, proposal_delivery_date: v })} placeholder="Selecionar data" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
-                <DatePickerField value={form.target_delivery_date} onChange={(v) => setForm({ ...form, target_delivery_date: v })} placeholder="Selecionar data" />
-              </div>
+              {(() => {
+                const selectedStage = stagesData.find(s => s.key === form.stage);
+                const isBudgetStage = selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento');
+                return isBudgetStage ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
+                    <DatePickerField value={form.target_delivery_date} onChange={(v) => setForm({ ...form, target_delivery_date: v })} placeholder="Selecionar data" />
+                  </div>
+                ) : null;
+              })()}
             </div>
             <div className="space-y-1.5 mt-3">
               <Label className="text-xs text-muted-foreground">Escopo</Label>

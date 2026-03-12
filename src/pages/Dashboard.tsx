@@ -7,8 +7,9 @@ import { NewDealModal } from '@/components/NewDealModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, Briefcase, DollarSign, LayoutGrid, GanttChart } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
-import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import EstimatorGantt from '@/components/EstimatorGantt';
 
 type ViewMode = 'kanban' | 'gantt';
@@ -16,7 +17,7 @@ type ViewMode = 'kanban' | 'gantt';
 export default function Dashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>({});
-  const [activeTab, setActiveTab] = useState<ViewTab>('all');
+  const [onlyMine, setOnlyMine] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
   const { data: stats } = useQuery({
@@ -47,10 +48,7 @@ export default function Dashboard() {
     { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
   ];
 
-  const handleTabChange = (tab: ViewTab, tabFilters?: Filters) => {
-    setActiveTab(tab);
-    if (tabFilters) setFilters(tabFilters);
-  };
+  const effectiveFilters = onlyMine ? { ...filters, ownerId: 'mine' } : filters;
 
   return (
     <div className="space-y-6">
@@ -100,19 +98,22 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <ViewTabs entityType="deals" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch id="only-mine" checked={onlyMine} onCheckedChange={setOnlyMine} />
+            <Label htmlFor="only-mine" className="text-sm text-muted-foreground cursor-pointer">Minhas negociações</Label>
+          </div>
+        </div>
         <div className="mt-4">
           <AdvancedFilters
             entityType="deals"
-            filters={filters}
+            filters={effectiveFilters}
             onFiltersChange={setFilters}
-            activeViewId={activeTab !== 'all' && activeTab !== 'mine' && activeTab !== 'recent' ? activeTab : undefined}
-            onViewSelect={(v) => setActiveTab(v?.id || 'all')}
           />
         </div>
         <div className="mt-4">
           {viewMode === 'kanban' ? (
-            <KanbanBoard filters={filters} />
+            <KanbanBoard filters={effectiveFilters} />
           ) : (
             <EstimatorGantt />
           )}

@@ -33,7 +33,7 @@ type Props = {
   filters: Filters;
   onFiltersChange: (f: Filters) => void;
   activeViewId?: string;
-  onViewSelect: (view: SavedView | null) => void;
+  onViewSelect?: (view: SavedView | null) => void;
 };
 
 export function AdvancedFilters({ entityType, filters, onFiltersChange, activeViewId, onViewSelect }: Props) {
@@ -60,7 +60,7 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
 
   const handleClear = () => {
     onFiltersChange({});
-    onViewSelect(null);
+    onViewSelect?.(null);
   };
 
   const handleSaveView = async () => {
@@ -110,7 +110,7 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
                 size="sm"
                 className="text-xs h-7"
                 onClick={() => {
-                  onViewSelect(v);
+                  onViewSelect?.(v);
                   onFiltersChange(v.filters);
                 }}
               >
