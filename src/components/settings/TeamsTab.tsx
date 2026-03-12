@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Shield, Briefcase, DollarSign, Target, UsersRound, UserPlus, Plus, Trash2, Users } from 'lucide-react';
+import { Shield, Briefcase, DollarSign, Target, UsersRound, UserPlus, Users } from 'lucide-react';
 
 type TeamMember = {
   user_id: string;
