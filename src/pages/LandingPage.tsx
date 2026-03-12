@@ -50,7 +50,7 @@ export default function LandingPage() {
       <header className="border-b border-border bg-card">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-2">
           <Rocket className="h-6 w-6 text-primary" />
-          <span className="font-display font-bold text-lg text-foreground">CRM Pro</span>
+          <span className="font-display font-bold text-lg text-foreground">Orion CRM Hub</span>
         </div>
       </header>
 
