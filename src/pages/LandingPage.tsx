@@ -154,7 +154,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} CRM Pro. Todos os direitos reservados.
+        © {new Date().getFullYear()} Orion CRM Hub. Todos os direitos reservados.
       </footer>
     </div>
   );
