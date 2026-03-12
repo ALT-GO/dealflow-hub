@@ -179,11 +179,8 @@ export function TeamsTab() {
     }
   };
 
-  const handleDeleteTeam = async (teamId: string) => {
-    const { error } = await supabase.from('teams').delete().eq('id', teamId);
-    if (error) toast.error('Erro ao excluir');
-    else { toast.success('Equipe excluída'); queryClient.invalidateQueries({ queryKey: ['teams'] }); }
-  };
+
+
 
   const handleAssignToTeam = async (userId: string) => {
     if (!selectedTeamForAssign) return;
