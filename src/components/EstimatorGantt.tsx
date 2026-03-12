@@ -70,22 +70,38 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     queryKey: ['gantt-users', role, user?.id, userTeamIds],
     queryFn: async () => {
       if (!user) return [];
+
+      // First, get all user IDs that have active deal assignments (owner or orcamentista)
+      const { data: activeDeals } = await supabase
+        .from('deals')
+        .select('owner_id, orcamentista_id')
+        .not('stage', 'in', '("fechado","perdido","__won__","__lost__")');
+
+      const activeUserIds = new Set<string>();
+      for (const d of activeDeals || []) {
+        if (d.owner_id) activeUserIds.add(d.owner_id);
+        if (d.orcamentista_id) activeUserIds.add(d.orcamentista_id);
+      }
+
+      if (activeUserIds.size === 0) return [];
+
+      // Apply role-based visibility filter
+      let allowedIds = [...activeUserIds];
+
       if (role === 'vendedor' || role === 'orcamentista') {
-        const { data } = await supabase.from('profiles').select('user_id, full_name').eq('user_id', user.id);
-        return data || [];
-      }
-      if (role === 'admin') {
-        const { data } = await supabase.from('profiles').select('user_id, full_name');
-        return data || [];
-      }
-      if (role === 'gerencia' && userTeamIds.length > 0) {
+        // Only show self if they have active deals
+        if (!activeUserIds.has(user.id)) return [];
+        allowedIds = [user.id];
+      } else if (role === 'gerencia' && userTeamIds.length > 0) {
         const { data: members } = await supabase.from('team_members').select('user_id').in('team_id', userTeamIds);
-        const memberIds = [...new Set((members || []).map(m => m.user_id))];
-        if (memberIds.length === 0) return [];
-        const { data } = await supabase.from('profiles').select('user_id, full_name').in('user_id', memberIds);
-        return data || [];
+        const memberIds = new Set((members || []).map(m => m.user_id));
+        allowedIds = allowedIds.filter(id => memberIds.has(id));
+        if (allowedIds.length === 0) return [];
       }
-      return [];
+      // admin sees all active users
+
+      const { data } = await supabase.from('profiles').select('user_id, full_name').in('user_id', allowedIds);
+      return data || [];
     },
     enabled: !!user,
   });
