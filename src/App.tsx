@@ -61,6 +61,7 @@ function ProtectedRoutes() {
         <Route path="/performance" element={<RoleGuard path="/performance"><Performance /></RoleGuard>} />
         <Route path="/ocupacao" element={<EstimatorSchedule />} /> {/* Legacy redirect */}
         <Route path="/biblioteca" element={<FileLibrary />} />
+        <Route path="/perfil" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
