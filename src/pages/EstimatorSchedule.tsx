@@ -16,7 +16,7 @@ export default function EstimatorSchedule() {
             <CalendarRange className="h-5 w-5 text-primary" />
             <CardTitle className="text-base">Gantt — Orçamentistas</CardTitle>
           </div>
-          <CardDescription>Cada bloco representa um negócio atribuído ao orçamentista. Período: data de criação até data de fechamento.</CardDescription>
+          <CardDescription>Cada bloco representa um negócio atribuído ao orçamentista. Período: Data Início Orçamento até Data Entrega Proposta.</CardDescription>
         </CardHeader>
         <CardContent>
           <EstimatorGantt />

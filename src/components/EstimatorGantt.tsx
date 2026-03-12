@@ -54,8 +54,8 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   };
 
   const getDealSpan = (deal: any) => {
-    const dealStart = parseISO(deal.created_at);
-    const dealEnd = deal.close_date ? parseISO(deal.close_date) : addDays(dealStart, 14); // default 2 weeks
+    const dealStart = deal.budget_start_date ? parseISO(deal.budget_start_date) : parseISO(deal.created_at);
+    const dealEnd = deal.proposal_delivery_date ? parseISO(deal.proposal_delivery_date) : (deal.close_date ? parseISO(deal.close_date) : addDays(dealStart, 14));
     return { start: dealStart, end: dealEnd };
   };
 
