@@ -414,6 +414,11 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               if (d) contactRecord.created_at = d;
               else allErrors.push({ row: rowNum, entity: 'Contato', field: 'Data de Criação', message: `Formato de data inválido: "${vals.contact_created_at}"` });
             }
+            if (vals.contact_last_activity_at) {
+              const d = parseDate(vals.contact_last_activity_at);
+              if (d) contactRecord.last_activity_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Contato', field: 'Última Atividade', message: `Formato de data inválido: "${vals.contact_last_activity_at}"` });
+            }
             const { data: newContact, error: ctErr } = await supabase.from('contacts').insert(contactRecord).select('id').single();
             if (ctErr) {
               rowHasError = true;
