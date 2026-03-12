@@ -35,7 +35,7 @@ const CONTACT_FIELDS = [
 ];
 
 const DEAL_FIELDS = [
-  { value: 'deal_name', label: 'Nome do Negócio', required: true },
+  { value: 'deal_name', label: 'Nome do Negócio' },
   { value: 'deal_value', label: 'Valor' },
   { value: 'deal_stage', label: 'Etapa do Funil' },
   { value: 'deal_business_area', label: 'Área de Negócio' },
