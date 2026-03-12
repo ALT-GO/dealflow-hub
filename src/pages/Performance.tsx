@@ -583,6 +583,7 @@ export default function Performance() {
             )}
           </CardContent>
         </Card>
+      </div>
 
       {/* Loss Analysis */}
       <Card>
