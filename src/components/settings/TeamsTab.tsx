@@ -360,7 +360,6 @@ export function TeamsTab() {
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList>
           <TabsTrigger value="members">Membros</TabsTrigger>
-          <TabsTrigger value="teams">Equipes</TabsTrigger>
           <TabsTrigger value="invitations">Convites</TabsTrigger>
         </TabsList>
 
