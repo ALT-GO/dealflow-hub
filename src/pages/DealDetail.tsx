@@ -402,7 +402,12 @@ export default function DealDetail() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}><ArrowLeft className="h-5 w-5" /></Button>
           <div>
             {dealAny.proposal_id && <p className="text-[10px] font-mono text-muted-foreground">{dealAny.proposal_id}</p>}
-            <h1 className="text-xl font-display font-bold text-foreground">{deal.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-display font-bold text-foreground">{deal.name}</h1>
+              {(dealAny.qualification_score ?? 0) > 0 && (
+                <StarRating score={dealAny.qualification_score || 0} size="md" />
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">Negócio{company ? ` · ${company.name}` : ''}</p>
           </div>
         </div>

@@ -505,10 +505,13 @@ export type Database = {
           profit_margin: number | null
           proposal_delivery_date: string | null
           proposal_id: string | null
+          qualification_level: string | null
           qualification_score: number | null
           scope: string | null
           stage: string
+          state: string | null
           target_delivery_date: string | null
+          team_type: string | null
           tipo_negocio: string | null
           updated_at: string
           value: number | null
@@ -540,10 +543,13 @@ export type Database = {
           profit_margin?: number | null
           proposal_delivery_date?: string | null
           proposal_id?: string | null
+          qualification_level?: string | null
           qualification_score?: number | null
           scope?: string | null
           stage?: string
+          state?: string | null
           target_delivery_date?: string | null
+          team_type?: string | null
           tipo_negocio?: string | null
           updated_at?: string
           value?: number | null
@@ -575,10 +581,13 @@ export type Database = {
           profit_margin?: number | null
           proposal_delivery_date?: string | null
           proposal_id?: string | null
+          qualification_level?: string | null
           qualification_score?: number | null
           scope?: string | null
           stage?: string
+          state?: string | null
           target_delivery_date?: string | null
+          team_type?: string | null
           tipo_negocio?: string | null
           updated_at?: string
           value?: number | null

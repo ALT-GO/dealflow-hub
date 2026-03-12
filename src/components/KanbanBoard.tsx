@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,9 @@ import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Building2, DollarSign, Calendar, AlertTriangle, ArrowUpDown } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
 import { ProfitMarginModal } from '@/components/ProfitMarginModal';
 import { StarRating } from '@/components/StarRating';
@@ -54,6 +56,7 @@ export function KanbanBoard({ filters = {} }: Props) {
   const STAGES = userRole ? ALL_STAGES.filter(s => s.allowed_roles?.includes(userRole)) : ALL_STAGES;
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
   const [profitModal, setProfitModal] = useState<{ dealId: string; dealName: string; dealValue: number; targetStage: string } | null>(null);
+  const [sortBy, setSortBy] = useState<string>('recent');
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', filters],
@@ -202,11 +205,49 @@ export function KanbanBoard({ filters = {} }: Props) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando...</div>;
   }
 
+  const sortDeals = (dealsToSort: Deal[]) => {
+    const sorted = [...dealsToSort];
+    switch (sortBy) {
+      case 'qual_desc':
+        return sorted.sort((a, b) => (b.qualification_score || 0) - (a.qualification_score || 0));
+      case 'qual_asc':
+        return sorted.sort((a, b) => (a.qualification_score || 0) - (b.qualification_score || 0));
+      case 'deadline':
+        return sorted.sort((a, b) => {
+          if (!a.close_date && !b.close_date) return 0;
+          if (!a.close_date) return 1;
+          if (!b.close_date) return -1;
+          return a.close_date.localeCompare(b.close_date);
+        });
+      case 'value':
+        return sorted.sort((a, b) => (b.value || 0) - (a.value || 0));
+      case 'recent':
+      default:
+        return sorted.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    }
+  };
+
   return (
     <>
+      <div className="flex items-center gap-3 mb-3">
+        <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-xs text-muted-foreground">Classificar por</Label>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="h-8 w-52 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Mais recentes</SelectItem>
+            <SelectItem value="qual_desc">Maior qualificação</SelectItem>
+            <SelectItem value="qual_asc">Menor qualificação</SelectItem>
+            <SelectItem value="deadline">Prazo mais próximo</SelectItem>
+            <SelectItem value="value">Maior valor</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex gap-4 overflow-x-auto pb-4">
         {STAGES.map((stage) => {
-          const stageDeals = deals.filter((d) => d.stage === stage.key);
+          const stageDeals = sortDeals(deals.filter((d) => d.stage === stage.key));
           const total = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
 
           return (

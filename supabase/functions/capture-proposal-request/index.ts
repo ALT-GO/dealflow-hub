@@ -143,6 +143,9 @@ Deno.serve(async (req) => {
       endereco_execucao: endereco_execucao?.trim() || null,
       estudo_equipe: estudo_equipe?.trim() || null,
       tipo_negocio: tipo_negocio || null,
+      state: state || null,
+      team_type: team_type || null,
+      qualification_level: qualification_level || null,
     }).select("id").single();
     if (dealError) throw dealError;
 
