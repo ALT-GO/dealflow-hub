@@ -480,11 +480,18 @@ export type Database = {
           approval_status: string
           budget_start_date: string | null
           business_area: string | null
+          carbono_zero: boolean
           close_date: string | null
+          comissao_carbono_zero: number | null
+          comissao_cortex: number | null
+          comissao_valor_venda: number | null
           company_id: string
           contact_id: string | null
           contract_type: string | null
+          cortex: boolean
           created_at: string
+          endereco_execucao: string | null
+          estudo_equipe: string | null
           id: string
           loss_reason: string | null
           market: string | null
@@ -499,18 +506,27 @@ export type Database = {
           scope: string | null
           stage: string
           target_delivery_date: string | null
+          tipo_negocio: string | null
           updated_at: string
           value: number | null
+          vendedor_externo: string | null
         }
         Insert: {
           approval_status?: string
           budget_start_date?: string | null
           business_area?: string | null
+          carbono_zero?: boolean
           close_date?: string | null
+          comissao_carbono_zero?: number | null
+          comissao_cortex?: number | null
+          comissao_valor_venda?: number | null
           company_id: string
           contact_id?: string | null
           contract_type?: string | null
+          cortex?: boolean
           created_at?: string
+          endereco_execucao?: string | null
+          estudo_equipe?: string | null
           id?: string
           loss_reason?: string | null
           market?: string | null
@@ -525,18 +541,27 @@ export type Database = {
           scope?: string | null
           stage?: string
           target_delivery_date?: string | null
+          tipo_negocio?: string | null
           updated_at?: string
           value?: number | null
+          vendedor_externo?: string | null
         }
         Update: {
           approval_status?: string
           budget_start_date?: string | null
           business_area?: string | null
+          carbono_zero?: boolean
           close_date?: string | null
+          comissao_carbono_zero?: number | null
+          comissao_cortex?: number | null
+          comissao_valor_venda?: number | null
           company_id?: string
           contact_id?: string | null
           contract_type?: string | null
+          cortex?: boolean
           created_at?: string
+          endereco_execucao?: string | null
+          estudo_equipe?: string | null
           id?: string
           loss_reason?: string | null
           market?: string | null
@@ -551,8 +576,10 @@ export type Database = {
           scope?: string | null
           stage?: string
           target_delivery_date?: string | null
+          tipo_negocio?: string | null
           updated_at?: string
           value?: number | null
+          vendedor_externo?: string | null
         }
         Relationships: [
           {
