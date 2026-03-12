@@ -15,12 +15,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { GripVertical, Plus, Trash2, Pencil, Loader2 } from 'lucide-react';
 
-const ALL_ROLES = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'gerencia', label: 'Gerência' },
-  { value: 'orcamentista', label: 'Orçamentista' },
-  { value: 'vendedor', label: 'Vendedor' },
+const VISIBILITY_OPTIONS = [
+  { value: 'vendas', label: 'Vendas', roles: ['admin', 'gerencia', 'vendedor'] },
+  { value: 'orcamentos', label: 'Orçamentos', roles: ['admin', 'gerencia', 'orcamentista'] },
+  { value: 'ambos', label: 'Ambos', roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] },
 ];
+
+function rolesToVisibility(roles: string[]): string {
+  const hasVendedor = roles.includes('vendedor');
+  const hasOrcamentista = roles.includes('orcamentista');
+  if (hasVendedor && hasOrcamentista) return 'ambos';
+  if (hasOrcamentista) return 'orcamentos';
+  return 'vendas';
+}
+
+function visibilityToRoles(vis: string): string[] {
+  return VISIBILITY_OPTIONS.find(v => v.value === vis)?.roles || ['admin', 'gerencia', 'orcamentista', 'vendedor'];
+}
 
 const STAGE_TYPE_LABELS: Record<string, string> = {
   active: 'Ativa',
