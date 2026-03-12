@@ -69,11 +69,18 @@ export default function FileLibrary() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('library_files')
-        .select('*, profiles:uploaded_by(full_name)')
+        .select('*')
         .eq('folder_id', activeFolderId!)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as any[];
+      // Fetch uploader names
+      const uploaderIds = [...new Set((data || []).map(f => f.uploaded_by))];
+      const { data: profiles } = uploaderIds.length > 0
+        ? await supabase.from('profiles').select('user_id, full_name').in('user_id', uploaderIds)
+        : { data: [] };
+      const profileMap: Record<string, string> = {};
+      (profiles || []).forEach(p => { if (p.full_name) profileMap[p.user_id] = p.full_name; });
+      return (data || []).map(f => ({ ...f, uploader_name: profileMap[f.uploaded_by] || 'Desconhecido' }));
     },
   });
 
