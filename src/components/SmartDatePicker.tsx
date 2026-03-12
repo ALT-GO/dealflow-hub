@@ -115,9 +115,26 @@ export function SmartDatePicker({ value, onChange, onEstimatorSelected, placehol
       .sort();
   }, [selectedDate, dealSpans, estimatorIds, estimators, hasEstimators]);
 
+  // Track last assigned index for round-robin
+  const lastAssignedIndexRef = useMemo(() => ({ current: -1 }), []);
+
   const handleSelect = (d: Date | undefined) => {
     setSelectedDate(d);
     onChange(d ? format(d, 'yyyy-MM-dd') : '');
+
+    // Auto-assign estimator round-robin alphabetically
+    if (d && hasEstimators && onEstimatorSelected) {
+      const { freeEstimators } = getEstimatorLoadsForDate(d, dealSpans, estimatorIds);
+      if (freeEstimators.length > 0) {
+        const freeWithNames = freeEstimators
+          .map(eid => ({ id: eid, name: estimators.find(e => e.user_id === eid)?.full_name || 'Sem nome' }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        const nextIndex = (lastAssignedIndexRef.current + 1) % freeWithNames.length;
+        lastAssignedIndexRef.current = nextIndex;
+        const selected = freeWithNames[nextIndex];
+        onEstimatorSelected(selected.id, selected.name);
+      }
+    }
   };
 
   return (
