@@ -56,6 +56,7 @@ export function KanbanBoard({ filters = {} }: Props) {
   const STAGES = userRole ? ALL_STAGES.filter(s => s.allowed_roles?.includes(userRole)) : ALL_STAGES;
   const [lossModal, setLossModal] = useState<{ dealId: string; dealName: string } | null>(null);
   const [profitModal, setProfitModal] = useState<{ dealId: string; dealName: string; dealValue: number; targetStage: string } | null>(null);
+  const [sortBy, setSortBy] = useState<string>('recent');
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ['deals', filters],
