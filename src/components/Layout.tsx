@@ -13,12 +13,12 @@ export function Layout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center justify-between border-b bg-card px-4 shadow-sm">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2">
+          <header className="h-14 flex items-center justify-between border-b bg-card px-2 sm:px-4 shadow-sm gap-2">
+            <SidebarTrigger className="shrink-0" />
+            <div className="flex items-center gap-2 min-w-0">
               <button
                 onClick={() => setSearchOpen(true)}
-                className="flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-background text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-56"
+                className="flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-background text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full sm:w-56 min-w-0"
               >
                 <Search className="h-4 w-4 shrink-0" />
                 <span className="flex-1 text-left truncate">Buscar...</span>
