@@ -20,14 +20,14 @@ interface CsvImportProps {
 }
 
 const COMPANY_FIELDS = [
-  { value: 'company_name', label: 'Nome da Empresa', required: true },
+  { value: 'company_name', label: 'Nome da Empresa' },
   { value: 'company_domain', label: 'Domínio' },
   { value: 'company_sector', label: 'Setor' },
   { value: 'company_phone', label: 'Telefone' },
 ];
 
 const CONTACT_FIELDS = [
-  { value: 'contact_name', label: 'Nome do Contato', required: true },
+  { value: 'contact_name', label: 'Nome do Contato' },
   { value: 'contact_email', label: 'E-mail' },
   { value: 'contact_role', label: 'Cargo' },
   { value: 'contact_lead_source', label: 'Origem do Lead' },
@@ -35,7 +35,7 @@ const CONTACT_FIELDS = [
 ];
 
 const DEAL_FIELDS = [
-  { value: 'deal_name', label: 'Nome do Negócio', required: true },
+  { value: 'deal_name', label: 'Nome do Negócio' },
   { value: 'deal_value', label: 'Valor' },
   { value: 'deal_stage', label: 'Etapa do Funil' },
   { value: 'deal_business_area', label: 'Área de Negócio' },
@@ -135,23 +135,10 @@ function normalize(s: string) {
 }
 
 function autoDetect(headers: string[]): FieldMapping {
+  // All fields default to "ignore" (empty string)
   const map: FieldMapping = {};
-  headers.forEach((h, i) => {
-    const n = normalize(h);
-    // Exact match first
-    if (DETECT_MAP[n]) { map[i] = DETECT_MAP[n]; return; }
-    // Partial match
-    for (const [key, value] of Object.entries(DETECT_MAP)) {
-      if (n.includes(key) || key.includes(n)) { map[i] = value; return; }
-    }
-    // Fallback: if header is just "nome" and entityType context
-    if (n === 'nome' || n === 'name') {
-      // Will be resolved by context
-      map[i] = 'company_name';
-    }
-    if (n === 'telefone' || n === 'tel') {
-      map[i] = 'company_phone';
-    }
+  headers.forEach((_h, i) => {
+    map[i] = '';
   });
   return map;
 }
@@ -425,12 +412,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
   // Check if required fields are mapped for enabled categories
   const canImport = useMemo(() => {
-    const mapped = Object.values(mapping);
-    if (importCompanies && !mapped.includes('company_name')) return false;
-    if (importContacts && !mapped.includes('contact_name')) return false;
-    if (importDeals && !mapped.includes('deal_name')) return false;
     return importCompanies || importContacts || importDeals;
-  }, [mapping, importCompanies, importContacts, importDeals]);
+  }, [importCompanies, importContacts, importDeals]);
 
   // Group fields for the mapping UI
   const getFieldsForSelect = () => {
@@ -583,14 +566,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               {/* Validation messages */}
               {!canImport && (
                 <p className="text-xs text-destructive">
-                  {!(importCompanies || importContacts || importDeals)
-                    ? 'Ative pelo menos uma categoria para importar.'
-                    : 'Mapeie os campos obrigatórios: ' +
-                      [
-                        importCompanies && !Object.values(mapping).includes('company_name') ? '"Nome da Empresa"' : '',
-                        importContacts && !Object.values(mapping).includes('contact_name') ? '"Nome do Contato"' : '',
-                        importDeals && !Object.values(mapping).includes('deal_name') ? '"Nome do Negócio"' : '',
-                      ].filter(Boolean).join(', ')}
+                  Ative pelo menos uma categoria para importar.
                 </p>
               )}
 
