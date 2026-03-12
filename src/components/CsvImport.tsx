@@ -43,6 +43,21 @@ const DEAL_FIELDS = [
   { value: 'deal_contract_type', label: 'Tipo de Contrato' },
   { value: 'deal_scope', label: 'Escopo' },
   { value: 'deal_close_date', label: 'Data de Fechamento' },
+  { value: 'deal_target_delivery_date', label: 'Data de Entrega Alvo' },
+  { value: 'deal_proposal_delivery_date', label: 'Data de Entrega da Proposta' },
+  { value: 'deal_budget_start_date', label: 'Data Início Orçamento' },
+  { value: 'deal_vendedor_externo', label: 'Vendedor Externo' },
+  { value: 'deal_tipo_negocio', label: 'Tipo de Negócio' },
+  { value: 'deal_endereco_execucao', label: 'Endereço de Execução' },
+  { value: 'deal_state', label: 'Estado (UF)' },
+  { value: 'deal_team_type', label: 'Tipo de Equipe' },
+  { value: 'deal_qualification_level', label: 'Nível de Qualificação' },
+  { value: 'deal_carbono_zero', label: 'Carbono Zero?' },
+  { value: 'deal_cortex', label: 'Cortex?' },
+  { value: 'deal_estudo_equipe', label: 'Cliente possui equipe?' },
+  { value: 'deal_profit_margin', label: 'Margem de Lucro (%)' },
+  { value: 'deal_origin_id', label: 'Origem (ID)' },
+  { value: 'deal_loss_reason', label: 'Motivo de Perda' },
 ];
 
 const ALL_FIELDS = [
