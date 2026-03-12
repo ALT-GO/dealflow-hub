@@ -135,23 +135,10 @@ function normalize(s: string) {
 }
 
 function autoDetect(headers: string[]): FieldMapping {
+  // All fields default to "ignore" (empty string)
   const map: FieldMapping = {};
-  headers.forEach((h, i) => {
-    const n = normalize(h);
-    // Exact match first
-    if (DETECT_MAP[n]) { map[i] = DETECT_MAP[n]; return; }
-    // Partial match
-    for (const [key, value] of Object.entries(DETECT_MAP)) {
-      if (n.includes(key) || key.includes(n)) { map[i] = value; return; }
-    }
-    // Fallback: if header is just "nome" and entityType context
-    if (n === 'nome' || n === 'name') {
-      // Will be resolved by context
-      map[i] = 'company_name';
-    }
-    if (n === 'telefone' || n === 'tel') {
-      map[i] = 'company_phone';
-    }
+  headers.forEach((_h, i) => {
+    map[i] = '';
   });
   return map;
 }
