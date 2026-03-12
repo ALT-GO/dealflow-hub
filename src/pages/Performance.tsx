@@ -457,6 +457,44 @@ export default function Performance() {
         </CardContent>
       </Card>
 
+      {/* Monthly Revenue Evolution */}
+      <Card>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />Evolução Mensal da Receita <InfoTip text="Comparativo mês a mês da receita fechada nos últimos 12 meses. Permite identificar tendências de crescimento ou queda." /></CardTitle></CardHeader>
+        <CardContent>
+          {(() => {
+            const monthlyData: { month: string; receita: number; negocios: number }[] = [];
+            for (let i = 11; i >= 0; i--) {
+              const d = new Date(currentYear, currentMonth - 1 - i, 1);
+              const y = d.getFullYear();
+              const m = d.getMonth();
+              const closed = allDeals.filter((deal: any) => {
+                if (deal.stage !== 'fechado') return false;
+                const u = new Date(deal.updated_at);
+                return u.getFullYear() === y && u.getMonth() === m;
+              });
+              const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]}/${String(y).slice(2)}`;
+              monthlyData.push({ month: label, receita: closed.reduce((s: number, deal: any) => s + (Number(deal.value) || 0), 0), negocios: closed.length });
+            }
+            const hasData = monthlyData.some(m => m.receita > 0);
+            if (!hasData) return <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Sem dados de receita nos últimos 12 meses</div>;
+            return (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Line yAxisId="left" type="monotone" dataKey="receita" stroke="hsl(var(--primary))" name="Receita" strokeWidth={2.5} dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+                  <Line yAxisId="right" type="monotone" dataKey="negocios" stroke="hsl(var(--success))" name="Negócios Fechados" strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--success))' }} strokeDasharray="4 4" />
+                </LineChart>
+              </ResponsiveContainer>
+            );
+          })()}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Leaderboard */}
         <Card>
