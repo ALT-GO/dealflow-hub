@@ -69,13 +69,13 @@ export function FunnelTab() {
       color: form.color,
       sort_order: maxOrder,
       stage_type: form.stage_type,
-      allowed_roles: form.allowed_roles,
+      allowed_roles: visibilityToRoles(form.visibility),
     } as any);
     setSaving(false);
     if (error) { toast.error(error.message.includes('duplicate') ? 'Chave já existe' : 'Erro: ' + error.message); return; }
     toast.success('Estágio criado!');
     setAddOpen(false);
-    setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active', allowed_roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] });
+    setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active', visibility: 'ambos' });
     invalidate();
   };
 
