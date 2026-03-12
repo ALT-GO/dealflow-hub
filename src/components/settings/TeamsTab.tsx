@@ -50,7 +50,8 @@ export function TeamsTab() {
   const now = new Date();
   const [goalForm, setGoalForm] = useState({
     user_id: '',
-    month: String(now.getMonth() + 1),
+    periodicity: 'monthly',
+    period_start: '1',
     year: String(now.getFullYear()),
     target_value: '',
     target_deals_count: '',
