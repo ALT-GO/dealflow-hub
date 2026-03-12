@@ -570,14 +570,51 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                 </AccordionItem>
               </Accordion>
 
-              {/* Preview */}
-              <div className="border rounded-lg overflow-x-auto max-h-36">
+              {/* Preview with mapping */}
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {headers.map((h, i) => (
+                        <TableHead key={i} className="text-xs whitespace-nowrap font-semibold text-foreground">{h}</TableHead>
+                      ))}
+                    </TableRow>
+                    <TableRow className="bg-muted/30">
                       {headers.map((h, i) => {
-                        const field = ALL_FIELDS.find(f => f.value === mapping[i]);
-                        return <TableHead key={i} className="text-xs whitespace-nowrap">{field?.label || h}</TableHead>;
+                        const category = mapping[i]?.startsWith('company_') ? 'company'
+                          : mapping[i]?.startsWith('contact_') ? 'contact'
+                          : mapping[i]?.startsWith('deal_') ? 'deal' : null;
+                        const catColor = category === 'company' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          : category === 'contact' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                          : category === 'deal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                          : '';
+                        const catLabel = category === 'company' ? 'Emp' : category === 'contact' ? 'Con' : category === 'deal' ? 'Neg' : '';
+
+                        return (
+                          <TableHead key={i} className="p-1">
+                            <div className="flex items-center gap-1">
+                              {category && <Badge className={`text-[8px] px-1 shrink-0 ${catColor}`}>{catLabel}</Badge>}
+                              <Select value={mapping[i] || 'ignore'} onValueChange={(v) => setMapping(prev => ({ ...prev, [i]: v === 'ignore' ? '' : v }))}>
+                                <SelectTrigger className="h-7 text-[11px] min-w-[130px] border-dashed">
+                                  <SelectValue placeholder="— Ignorar —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ignore">— Ignorar —</SelectItem>
+                                  {getFieldsForHeader(h).map(group => (
+                                    <SelectGroup key={group.key}>
+                                      <SelectLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{group.key}</SelectLabel>
+                                      {group.fields.map(f => (
+                                        <SelectItem key={f.value} value={f.value}>
+                                          {f.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </TableHead>
+                        );
                       })}
                     </TableRow>
                   </TableHeader>
