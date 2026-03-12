@@ -140,7 +140,7 @@ export function FunnelTab() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Estágios do funil de vendas utilizados no pipeline de negócios.</p>
         {role === 'admin' && (
-          <Button size="sm" onClick={() => { setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active', allowed_roles: ['admin', 'gerencia', 'orcamentista', 'vendedor'] }); setAddOpen(true); }}>
+          <Button size="sm" onClick={() => { setForm({ key: '', label: '', color: 'bg-muted text-muted-foreground', stage_type: 'active', visibility: 'ambos' }); setAddOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />Novo Estágio
           </Button>
         )}
