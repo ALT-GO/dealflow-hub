@@ -1,4 +1,5 @@
 import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp, CalendarRange, FolderOpen } from 'lucide-react';
+import logoOrion from '@/assets/logo-orion.png';
 import { useLocation } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
