@@ -262,12 +262,11 @@ export function NewDealModal() {
                 <NativeSelect value={form.origin_id} onChange={(v) => setForm({ ...form, origin_id: v })} options={origins.map(o => ({ value: o.id, label: o.label }))} placeholder="Selecione..." />
               </div>
               {isBudgetStage && (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 col-span-2">
                   <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
                   <SmartDatePicker
                     value={form.target_delivery_date}
                     onChange={(v) => setForm({ ...form, target_delivery_date: v })}
-                    estimatorId={form.orcamentista_id || undefined}
                     placeholder="Selecionar data"
                   />
                 </div>

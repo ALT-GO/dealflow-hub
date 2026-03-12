@@ -30,15 +30,21 @@ type GanttDeal = {
   value: number | null;
 };
 
-const STAGE_COLORS: Record<string, string> = {
-  prospeccao: 'hsl(220 60% 55%)',
-  qualificacao: 'hsl(260 45% 55%)',
-  proposta: 'hsl(38 85% 50%)',
-  negociacao: 'hsl(190 50% 45%)',
-  orcamento: 'hsl(150 45% 42%)',
-  fechamento: 'hsl(340 55% 50%)',
-};
-const DEFAULT_STAGE_COLOR = 'hsl(210 15% 55%)';
+// Consistent color palette for estimators - high contrast, distinguishable
+const ESTIMATOR_PALETTE = [
+  'hsl(220 70% 55%)',   // Blue
+  'hsl(340 65% 50%)',   // Rose
+  'hsl(150 55% 42%)',   // Green
+  'hsl(38 85% 50%)',    // Amber
+  'hsl(260 55% 55%)',   // Purple
+  'hsl(190 60% 45%)',   // Teal
+  'hsl(15 75% 52%)',    // Orange
+  'hsl(280 50% 55%)',   // Violet
+  'hsl(170 50% 42%)',   // Cyan
+  'hsl(0 65% 52%)',     // Red
+  'hsl(80 50% 42%)',    // Olive
+  'hsl(310 50% 55%)',   // Magenta
+];
 
 export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   const { user, role } = useAuth();
@@ -95,6 +101,16 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
 
   const isLoading = loadingUsers || loadingDeals;
 
+  // Build a stable color map: sorted user IDs → palette index
+  const userColorMap = useMemo(() => {
+    const sortedIds = [...allUsers].map(u => u.user_id).sort();
+    const map: Record<string, string> = {};
+    sortedIds.forEach((id, idx) => {
+      map[id] = ESTIMATOR_PALETTE[idx % ESTIMATOR_PALETTE.length];
+    });
+    return map;
+  }, [allUsers]);
+
   const getDealsForUser = (userId: string) =>
     deals.filter(d => (d.orcamentista_id === userId || d.owner_id === userId) &&
       !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage));
@@ -109,23 +125,6 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
           ? parseISO(deal.close_date)
           : addDays(dealStart, 14);
     return { start: dealStart, end: dealEnd };
-  };
-
-  const getStageColor = (stageKey: string) => {
-    // Try exact match first
-    if (STAGE_COLORS[stageKey]) return STAGE_COLORS[stageKey];
-    // Try partial match
-    for (const [key, color] of Object.entries(STAGE_COLORS)) {
-      if (stageKey.includes(key)) return color;
-    }
-    // Use funnel stage color CSS class as fallback info
-    const fs = funnelStages.find(s => s.key === stageKey);
-    if (fs) {
-      const idx = funnelStages.indexOf(fs);
-      const hues = [220, 260, 38, 190, 150, 340, 280, 30];
-      return `hsl(${hues[idx % hues.length]} 50% 50%)`;
-    }
-    return DEFAULT_STAGE_COLOR;
   };
 
   const todayOffset = differenceInDays(today, startDate);
@@ -163,24 +162,17 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   const nameColWidth = mini ? 'w-32 min-w-32' : 'w-52 min-w-52';
   const ROW_H = mini ? 24 : 32;
 
-  // Build legend from active stages
-  const activeStageKeys = [...new Set(deals.filter(d => !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage)).map(d => d.stage))];
-  const legendItems = activeStageKeys.map(key => {
-    const fs = funnelStages.find(s => s.key === key);
-    return { key, label: fs?.label || key, color: getStageColor(key) };
-  });
-
   return (
     <TooltipProvider>
       <div className={`overflow-x-auto rounded-xl border border-border bg-card ${mini ? 'max-h-72' : ''}`}>
-        {/* Stage color legend */}
-        {!mini && legendItems.length > 0 && (
+        {/* Estimator color legend */}
+        {!mini && allUsers.length > 0 && (
           <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-muted/20 flex-wrap">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Etapas:</span>
-            {legendItems.map(l => (
-              <span key={l.key} className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
-                {l.label}
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Orçamentistas:</span>
+            {allUsers.map(u => (
+              <span key={u.user_id} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: userColorMap[u.user_id] || ESTIMATOR_PALETTE[0] }} />
+                {u.full_name || 'Sem nome'}
               </span>
             ))}
           </div>
@@ -224,6 +216,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
           {allUsers.map((usr) => {
             const userDeals = getDealsForUser(usr.user_id);
             const isCollapsed = collapsed[usr.user_id] ?? false;
+            const userColor = userColorMap[usr.user_id] || ESTIMATOR_PALETTE[0];
 
             return (
               <div key={usr.user_id}>
@@ -234,6 +227,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                 >
                   <div className={`${nameColWidth} px-2 py-1.5 text-xs font-semibold border-r border-border flex-shrink-0 flex items-center gap-1.5`}>
                     {isCollapsed ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: userColor }} />
                     <span className="truncate text-foreground">{usr.full_name || 'Sem nome'}</span>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 shrink-0 ml-auto">
                       {userDeals.length}
@@ -250,7 +244,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                   </div>
                 </div>
 
-                {/* Deal rows - one per deal, non-overlapping */}
+                {/* Deal rows */}
                 {!isCollapsed && userDeals.map((deal) => {
                   const { start, end } = getDealSpan(deal);
                   const startOffset = Math.max(0, differenceInDays(start, startDate));
@@ -258,13 +252,12 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                   const visible = endOffset >= 0 && startOffset < totalDays;
                   const leftPct = (startOffset / totalDays) * 100;
                   const widthPct = ((endOffset - startOffset + 1) / totalDays) * 100;
-                  const color = getStageColor(deal.stage);
                   const stageLabel = funnelStages.find(s => s.key === deal.stage)?.label || deal.stage;
 
                   return (
                     <div key={deal.id} className="flex border-b border-border/50 hover:bg-muted/10 transition-colors">
                       <div className={`${nameColWidth} px-2 py-0.5 text-[11px] border-r border-border flex-shrink-0 flex items-center gap-1.5 pl-7`}>
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: userColor }} />
                         <span className="truncate text-muted-foreground">{deal.proposal_id || deal.name}</span>
                       </div>
                       <div className="flex flex-1 relative" style={{ height: ROW_H }}>
@@ -285,7 +278,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                                   width: `${Math.max(widthPct, 1.5)}%`,
                                   top: 4,
                                   height: ROW_H - 8,
-                                  backgroundColor: color,
+                                  backgroundColor: userColor,
                                 }}
                               >
                                 {widthPct > 6 && (
@@ -312,7 +305,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
                   );
                 })}
 
-                {/* Empty state for user with no deals */}
+                {/* Empty state */}
                 {!isCollapsed && userDeals.length === 0 && (
                   <div className="flex border-b border-border/50">
                     <div className={`${nameColWidth} px-2 py-1 text-[11px] text-muted-foreground/50 border-r border-border flex-shrink-0 pl-7`}>
