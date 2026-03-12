@@ -503,6 +503,87 @@ export default function Performance() {
         </Card>
       </div>
 
+      {/* Revenue by Tipo de Negócio + Ranking Parceiros Externos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Donut: Origem de Receita */}
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por tipo de negócio (Novo Cliente vs Cliente Existente). Ajuda a entender de onde vem a receita da empresa." /></CardTitle></CardHeader>
+          <CardContent>
+            {revenueByTipo.length > 0 ? (
+              <div className="flex flex-col lg:flex-row items-center gap-6">
+                <ResponsiveContainer width={260} height={260}>
+                  <PieChart>
+                    <Pie data={revenueByTipo} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={4} dataKey="value" nameKey="name" strokeWidth={0}>
+                      {revenueByTipo.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const p = payload[0];
+                      return (
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-xs">
+                          <p className="font-semibold text-foreground">{p.name}</p>
+                          <p className="text-muted-foreground">{formatCurrency(p.value as number)}</p>
+                        </div>
+                      );
+                    }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2 flex-1">
+                  {revenueByTipo.map((item, i) => {
+                    const total = revenueByTipo.reduce((s, r) => s + r.value, 0);
+                    const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
+                    return (
+                      <div key={item.name} className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="text-sm text-foreground flex-1">{item.name}</span>
+                        <span className="text-xs text-muted-foreground">{pct}%</span>
+                        <span className="text-xs font-semibold text-foreground">{formatCurrency(item.value)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio fechado com tipo de negócio informado</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Table: Ranking de Parceiros Externos */}
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Handshake className="h-4 w-4 text-primary" />Ranking de Parceiros Externos <InfoTip text="Ranking dos vendedores externos (parceiros) ordenado por valor total fechado. Exibe taxa de conversão e total de negócios indicados." /></CardTitle></CardHeader>
+          <CardContent>
+            {parceirosRanking.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">#</TableHead>
+                    <TableHead className="text-xs">Parceiro</TableHead>
+                    <TableHead className="text-xs text-right">Valor Fechado</TableHead>
+                    <TableHead className="text-xs text-right">Win Rate</TableHead>
+                    <TableHead className="text-xs text-right">Negócios</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parceirosRanking.slice(0, 10).map((p, idx) => (
+                    <TableRow key={p.name}>
+                      <TableCell className="font-bold text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                      <TableCell className="text-right font-semibold text-primary">{formatCurrency(p.total)}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={p.winRate >= 50 ? 'default' : 'secondary'} className="text-[10px]">{p.winRate}%</Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground text-sm">{p.won}/{p.deals}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio com vendedor externo registrado</div>
+            )}
+          </CardContent>
+        </Card>
+
       {/* Loss Analysis */}
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios. Ajuda a identificar padrões e tomar ações corretivas para reduzir perdas futuras." /></CardTitle></CardHeader>
