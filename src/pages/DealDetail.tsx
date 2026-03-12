@@ -484,18 +484,6 @@ export default function DealDetail() {
                         <Badge variant="secondary" className="text-xs">{originLabel}</Badge>
                       </div>
                     )}
-                    {dealAny.business_area && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
-                        <Badge variant="secondary" className="text-xs">{dealAny.business_area}</Badge>
-                      </div>
-                    )}
-                    {dealAny.profit_margin && deal.value ? (
-                      <div className="bg-muted/50 rounded-lg p-2">
-                        <p className="text-muted-foreground text-xs">Lucro Estimado</p>
-                        <p className="font-bold text-primary text-sm">{formatCurrency((deal.value || 0) * (dealAny.profit_margin / 100))}</p>
-                      </div>
-                    ) : null}
                   </CardContent>
                 </AccordionContent>
               </Card>
