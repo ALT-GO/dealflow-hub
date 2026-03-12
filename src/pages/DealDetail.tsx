@@ -136,7 +136,7 @@ export default function DealDetail() {
   const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
     if (!user || !id || newValue === oldValue) return;
     const updateData: any = { [field]: newValue || null };
-    if (field === 'value' || field === 'profit_margin') updateData[field] = Number(newValue) || 0;
+    if (['value', 'profit_margin', 'comissao_carbono_zero', 'comissao_cortex', 'comissao_valor_venda'].includes(field)) updateData[field] = Number(newValue) || 0;
     const { error } = await supabase.from('deals').update(updateData).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
