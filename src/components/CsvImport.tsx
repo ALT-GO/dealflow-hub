@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Upload, FileSpreadsheet, ArrowRight, Building2, Users, Briefcase, CheckCircle2, AlertTriangle, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, ArrowRight, Building2, Users, Briefcase, CheckCircle2, AlertTriangle, Download, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -342,13 +343,17 @@ function generateErrorsPDF(errors: ImportError[]) {
 export function CsvImport({ entityType, onComplete }: CsvImportProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'upload' | 'map' | 'importing' | 'done'>('upload');
+  const [step, setStep] = useState<'upload' | 'map' | 'duplicates' | 'importing' | 'done'>('upload');
   const [rows, setRows] = useState<string[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<FieldMapping>({});
   const [importResult, setImportResult] = useState({ success: 0, errors: 0 });
   const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Duplicate detection state
+  type DuplicateItem = { row: number; type: 'company' | 'contact' | 'deal'; name: string; existingInfo: string; action: 'skip' | 'import' };
+  const [duplicates, setDuplicates] = useState<DuplicateItem[]>([]);
 
   // Toggles for what to import
   const [importCompanies, setImportCompanies] = useState(true);
@@ -396,11 +401,101 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     reader.readAsText(file);
   };
 
+  // Scan for duplicates before importing
+  const handleCheckDuplicates = async () => {
+    if (!user) return;
+
+    // Extract all values from rows
+    const allVals = rows.map(row => {
+      const vals: Record<string, string> = {};
+      Object.entries(mapping).forEach(([colIdx, field]) => {
+        if (field && row[Number(colIdx)]) vals[field] = row[Number(colIdx)];
+      });
+      return vals;
+    });
+
+    // Fetch existing data
+    const { data: existingCompanies } = await supabase.from('companies').select('id, name');
+    const companyNames = new Set((existingCompanies || []).map(c => c.name.toLowerCase()));
+
+    const { data: existingContacts } = await supabase.from('contacts').select('id, name, email, company_id, companies(name)');
+    const contactKeys = new Set((existingContacts || []).map((c: any) => `${c.name?.toLowerCase()}|${c.companies?.name?.toLowerCase() || ''}`));
+
+    const { data: existingDeals } = await supabase.from('deals').select('id, name, company_id, companies(name)');
+    const dealKeys = new Set((existingDeals || []).map((d: any) => `${d.name?.toLowerCase()}|${d.companies?.name?.toLowerCase() || ''}`));
+
+    const found: DuplicateItem[] = [];
+    const seenInFile = { companies: new Set<string>(), contacts: new Set<string>(), deals: new Set<string>() };
+
+    allVals.forEach((vals, ri) => {
+      const rowNum = ri + 2;
+
+      // Check company duplicates
+      if (importCompanies && vals.company_name) {
+        const key = vals.company_name.toLowerCase();
+        if (companyNames.has(key)) {
+          found.push({ row: rowNum, type: 'company', name: vals.company_name, existingInfo: 'Empresa já cadastrada no sistema', action: 'skip' });
+        } else if (seenInFile.companies.has(key)) {
+          found.push({ row: rowNum, type: 'company', name: vals.company_name, existingInfo: 'Duplicada nesta planilha', action: 'skip' });
+        }
+        seenInFile.companies.add(key);
+      }
+
+      // Check contact duplicates
+      if (importContacts && vals.contact_name) {
+        const companyName = vals.company_name || '';
+        const key = `${vals.contact_name.toLowerCase()}|${companyName.toLowerCase()}`;
+        if (contactKeys.has(key)) {
+          found.push({ row: rowNum, type: 'contact', name: vals.contact_name, existingInfo: `Contato já cadastrado${companyName ? ` na empresa "${companyName}"` : ''}`, action: 'skip' });
+        } else if (seenInFile.contacts.has(key)) {
+          found.push({ row: rowNum, type: 'contact', name: vals.contact_name, existingInfo: 'Duplicado nesta planilha', action: 'skip' });
+        }
+        seenInFile.contacts.add(key);
+      }
+
+      // Check deal duplicates
+      if (importDeals && vals.deal_name) {
+        const companyName = vals.company_name || '';
+        const key = `${vals.deal_name.toLowerCase()}|${companyName.toLowerCase()}`;
+        if (dealKeys.has(key)) {
+          found.push({ row: rowNum, type: 'deal', name: vals.deal_name, existingInfo: `Negócio já cadastrado${companyName ? ` na empresa "${companyName}"` : ''}`, action: 'skip' });
+        } else if (seenInFile.deals.has(key)) {
+          found.push({ row: rowNum, type: 'deal', name: vals.deal_name, existingInfo: 'Duplicado nesta planilha', action: 'skip' });
+        }
+        seenInFile.deals.add(key);
+      }
+    });
+
+    if (found.length > 0) {
+      setDuplicates(found);
+      setStep('duplicates');
+    } else {
+      handleImport();
+    }
+  };
+
+  // Build skip sets from duplicate decisions
+  const getSkipSets = () => {
+    const skipCompanies = new Set<string>();
+    const skipContacts = new Set<string>();
+    const skipDeals = new Set<string>();
+    duplicates.forEach(d => {
+      if (d.action === 'skip') {
+        const key = `${d.row}`;
+        if (d.type === 'company') skipCompanies.add(key);
+        if (d.type === 'contact') skipContacts.add(key);
+        if (d.type === 'deal') skipDeals.add(key);
+      }
+    });
+    return { skipCompanies, skipContacts, skipDeals };
+  };
+
   const handleImport = async () => {
     if (!user) return;
     setStep('importing');
     let success = 0;
     const allErrors: ImportError[] = [];
+    const { skipCompanies, skipContacts, skipDeals } = getSkipSets();
 
     // Build company cache
     const { data: existingCompanies } = await supabase.from('companies').select('id, name');
@@ -453,8 +548,12 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         // 1. Import Company
         if (importCompanies && vals.company_name) {
           const existing = companyMap.get(vals.company_name.toLowerCase());
+          const shouldSkipCompany = skipCompanies.has(`${rowNum}`);
           if (existing) {
             companyId = existing;
+          } else if (shouldSkipCompany) {
+            // Marked as skip by user — still use existing if found, otherwise skip creation
+            companyId = companyMap.get(vals.company_name.toLowerCase()) || null;
           } else {
             const companyRecord: any = {
               name: vals.company_name,
@@ -488,7 +587,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
         // 2. Import Contact
         let contactId: string | null = null;
-        if (importContacts && vals.contact_name) {
+        const shouldSkipContact = skipContacts.has(`${rowNum}`);
+        if (importContacts && vals.contact_name && !shouldSkipContact) {
           if (!companyId) {
             if (vals.company_name) {
               const { data: newC } = await supabase.from('companies').insert({ name: vals.company_name, created_by: user.id }).select('id').single();
@@ -529,7 +629,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         }
 
         // 3. Import Deal
-        if (importDeals && vals.deal_name) {
+        const shouldSkipDeal = skipDeals.has(`${rowNum}`);
+        if (importDeals && vals.deal_name && !shouldSkipDeal) {
           if (!companyId && vals.company_name) {
             const { data: newC } = await supabase.from('companies').insert({ name: vals.company_name, created_by: user.id }).select('id').single();
             if (newC) { companyId = newC.id; companyMap.set(vals.company_name.toLowerCase(), newC.id); }
@@ -636,6 +737,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     setMapping({});
     setImportResult({ success: 0, errors: 0 });
     setImportErrors([]);
+    setDuplicates([]);
     setImportCompanies(true);
     setImportContacts(entityType === 'contacts' || entityType === 'deals');
     setImportDeals(entityType === 'deals');
@@ -815,8 +917,90 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={reset}>Voltar</Button>
-                <Button onClick={handleImport} disabled={!canImport}>
+                <Button onClick={handleCheckDuplicates} disabled={!canImport}>
                   Importar {rows.length} registros
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 'duplicates' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-warning">
+                <Copy className="h-5 w-5" />
+                <p className="text-sm font-semibold text-foreground">Duplicatas Encontradas ({duplicates.length})</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Os registros abaixo já existem no sistema ou estão duplicados na planilha. Escolha a ação para cada um:
+                <strong> Pular</strong> = manter o registro atual, <strong>Importar</strong> = criar novo registro.
+              </p>
+
+              {/* Bulk actions */}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setDuplicates(prev => prev.map(d => ({ ...d, action: 'skip' })))}>
+                  Pular Todos
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setDuplicates(prev => prev.map(d => ({ ...d, action: 'import' })))}>
+                  Importar Todos como Novo
+                </Button>
+              </div>
+
+              <ScrollArea className="h-[45vh] border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs w-16">Linha</TableHead>
+                      <TableHead className="text-xs w-24">Tipo</TableHead>
+                      <TableHead className="text-xs">Nome</TableHead>
+                      <TableHead className="text-xs">Motivo</TableHead>
+                      <TableHead className="text-xs w-32 text-center">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {duplicates.map((dup, i) => (
+                      <TableRow key={i} className={dup.action === 'skip' ? 'opacity-60' : ''}>
+                        <TableCell className="text-xs font-medium">{dup.row}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-[10px] ${
+                            dup.type === 'company' ? 'border-blue-300 text-blue-700 dark:text-blue-300' :
+                            dup.type === 'contact' ? 'border-emerald-300 text-emerald-700 dark:text-emerald-300' :
+                            'border-amber-300 text-amber-700 dark:text-amber-300'
+                          }`}>
+                            {dup.type === 'company' ? 'Empresa' : dup.type === 'contact' ? 'Contato' : 'Negócio'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-foreground">{dup.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{dup.existingInfo}</TableCell>
+                        <TableCell className="text-center">
+                          <Select
+                            value={dup.action}
+                            onValueChange={(v: 'skip' | 'import') => setDuplicates(prev => prev.map((d, j) => j === i ? { ...d, action: v } : d))}
+                          >
+                            <SelectTrigger className="h-7 text-[11px] w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="skip">Pular</SelectItem>
+                              <SelectItem value="import">Importar Novo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <p>
+                  {duplicates.filter(d => d.action === 'skip').length} serão pulados · {duplicates.filter(d => d.action === 'import').length} serão importados como novos
+                </p>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setStep('map')}>Voltar</Button>
+                <Button onClick={handleImport}>
+                  Continuar Importação
                 </Button>
               </div>
             </div>
