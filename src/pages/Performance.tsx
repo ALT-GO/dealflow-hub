@@ -456,7 +456,7 @@ export default function Performance() {
       </div>
 
       {/* Actionable metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="cursor-pointer hover:border-warning/50 transition-colors" onClick={() => setShowNoTasks(true)}>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
@@ -480,6 +480,19 @@ export default function Performance() {
                 <p className="text-xs text-muted-foreground flex items-center gap-1">Tarefas em atraso <InfoTip text="Total de tarefas não concluídas com data de vencimento ultrapassada. Clique para ver detalhes." /></p>
                 <p className="text-2xl font-display font-bold text-destructive">{overdueTasks.length}</p>
                 <p className="text-[10px] text-muted-foreground">Em {overdueDeals.length} negócio(s)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-orange-500/50 transition-colors" onClick={() => setShowNoActivity(true)}>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Sem atividades recentes <InfoTip text="Negócios ativos que estão há mais de 7 dias sem nenhuma atividade registrada. Clique para ver a lista." /></p>
+                <p className="text-2xl font-display font-bold text-orange-500">{dealsNoRecentActivity.length}</p>
               </div>
             </div>
           </CardContent>
