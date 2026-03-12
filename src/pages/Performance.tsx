@@ -59,6 +59,7 @@ export default function Performance() {
   const [filterArea, setFilterArea] = useState<string>('all');
   const [filterMarket, setFilterMarket] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('month');
+  const [filterValueRange, setFilterValueRange] = useState<string>('all');
 
   // Modals
   const [showNoTasks, setShowNoTasks] = useState(false);
@@ -131,6 +132,13 @@ export default function Performance() {
   const filteredDeals = allDeals.filter(d => {
     if (filterArea !== 'all' && d.business_area !== filterArea) return false;
     if (filterMarket !== 'all' && d.market !== filterMarket) return false;
+    if (filterValueRange !== 'all') {
+      const v = Number(d.value) || 0;
+      if (filterValueRange === '0-50k' && v > 50000) return false;
+      if (filterValueRange === '50k-500k' && (v < 50000 || v > 500000)) return false;
+      if (filterValueRange === '500k-5m' && (v < 500000 || v > 5000000)) return false;
+      if (filterValueRange === '5m+' && v < 5000000) return false;
+    }
     return true;
   });
 
@@ -212,8 +220,10 @@ export default function Performance() {
   lostDeals.forEach((d: any) => { lossReasonCounts[d.loss_reason!] = (lossReasonCounts[d.loss_reason!] || 0) + 1; });
   const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
     const found = lossReasonsList.find((r: any) => r.value === key);
-    return { name: found?.label || key, value: count };
+    const lostValue = lostDeals.filter((d: any) => d.loss_reason === key).reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
+    return { name: found?.label || key, value: count, lostValue };
   }).sort((a, b) => b.value - a.value);
+  const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
   const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
 
@@ -255,6 +265,16 @@ export default function Performance() {
               <SelectItem value="quarter">Trimestre</SelectItem>
               <SelectItem value="year">Ano</SelectItem>
               <SelectItem value="all">Todo Período</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterValueRange} onValueChange={setFilterValueRange}>
+            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Faixas</SelectItem>
+              <SelectItem value="0-50k">Até R$ 50k</SelectItem>
+              <SelectItem value="50k-500k">R$ 50k – 500k</SelectItem>
+              <SelectItem value="500k-5m">R$ 500k – 5M</SelectItem>
+              <SelectItem value="5m+">Acima de R$ 5M</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -469,11 +489,14 @@ export default function Performance() {
                 {lossData.map((item, i) => (
                   <div key={item.name} className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="text-sm text-foreground">{item.name}</span>
-                    <Badge variant="secondary" className="text-[10px] ml-auto">{item.value}</Badge>
+                    <span className="text-sm text-foreground flex-1">{item.name}</span>
+                    <span className="text-xs text-muted-foreground">{formatCurrency(item.lostValue)}</span>
+                    <Badge variant="secondary" className="text-[10px] ml-1">{item.value}</Badge>
                   </div>
                 ))}
-                <p className="text-[10px] text-muted-foreground pt-2">Total: {lostDeals.length} negócio{lostDeals.length > 1 ? 's' : ''}</p>
+                <div className="border-t border-border pt-2 mt-2">
+                  <p className="text-xs text-muted-foreground">Total: {lostDeals.length} negócio{lostDeals.length > 1 ? 's' : ''} · <strong className="text-destructive">{formatCurrency(totalLostValue)}</strong></p>
+                </div>
               </div>
             </div>
           ) : (
