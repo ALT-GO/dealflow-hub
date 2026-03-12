@@ -100,8 +100,12 @@ const DETECT_MAP: Record<string, string> = {
   'carbono zero': 'deal_carbono_zero', 'carbono': 'deal_carbono_zero',
   'cortex': 'deal_cortex',
   'cliente possui equipe': 'deal_estudo_equipe', 'possui equipe': 'deal_estudo_equipe', 'estudo equipe': 'deal_estudo_equipe',
+  'ha estudo de equipe': 'deal_estudo_equipe', 'estudo de equipe': 'deal_estudo_equipe',
   'margem': 'deal_profit_margin', 'margem de lucro': 'deal_profit_margin', 'profit margin': 'deal_profit_margin',
   'motivo de perda': 'deal_loss_reason', 'motivo perda': 'deal_loss_reason', 'loss reason': 'deal_loss_reason',
+  'proprietario': 'deal_owner', 'owner': 'deal_owner', 'responsavel': 'deal_owner', 'proprietario do negocio': 'deal_owner',
+  'orcamentista': 'deal_orcamentista', 'estimator': 'deal_orcamentista', 'orcamentista responsavel': 'deal_orcamentista',
+  'etapa do funil': 'deal_stage', 'funil': 'deal_stage', 'pipeline': 'deal_stage',
 };
 
 function parseCSV(text: string): string[][] {
