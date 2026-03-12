@@ -454,7 +454,7 @@ export default function Performance() {
 
         {/* Bar chart */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor <InfoTip text="Comparativo visual entre o valor total fechado e o lucro estimado de cada vendedor. Útil para identificar quem gera mais margem." /></CardTitle></CardHeader>
           <CardContent>
             {barData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
