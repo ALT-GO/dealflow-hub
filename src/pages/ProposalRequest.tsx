@@ -275,8 +275,37 @@ export default function ProposalRequest() {
                   </Popover>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="client_role">Cargo</Label>
-                  <Input id="client_role" value={form.client_role} onChange={e => set('client_role', e.target.value)} maxLength={100} />
+                  <Label>Cargo</Label>
+                  <Popover open={rolePopoverOpen} onOpenChange={setRolePopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Input
+                        value={form.client_role}
+                        onChange={e => {
+                          set('client_role', e.target.value);
+                          if (e.target.value.trim().length >= 2) setRolePopoverOpen(true);
+                          else setRolePopoverOpen(false);
+                        }}
+                        onFocus={() => { if (roleResults.length > 0) setRolePopoverOpen(true); }}
+                        maxLength={100}
+                        placeholder="Digite para buscar..."
+                      />
+                    </PopoverTrigger>
+                    {roleResults.length > 0 && (
+                      <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" sideOffset={4}>
+                        <Command>
+                          <CommandList>
+                            <CommandGroup heading="Cargos encontrados">
+                              {roleResults.map(r => (
+                                <CommandItem key={r} onSelect={() => { set('client_role', r); setRolePopoverOpen(false); }} className="cursor-pointer">
+                                  <p className="text-sm">{r}</p>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="client_email">E-mail</Label>
@@ -287,8 +316,37 @@ export default function ProposalRequest() {
                   <Input id="client_phone" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} maxLength={20} placeholder="(00) 00000-0000" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="client_company">Empresa *</Label>
-                  <Input id="client_company" value={form.client_company} onChange={e => set('client_company', e.target.value)} maxLength={100} />
+                  <Label>Empresa *</Label>
+                  <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Input
+                        value={form.client_company}
+                        onChange={e => {
+                          set('client_company', e.target.value);
+                          if (e.target.value.trim().length >= 2) setCompanyPopoverOpen(true);
+                          else setCompanyPopoverOpen(false);
+                        }}
+                        onFocus={() => { if (companyResults.length > 0) setCompanyPopoverOpen(true); }}
+                        maxLength={100}
+                        placeholder="Digite para buscar..."
+                      />
+                    </PopoverTrigger>
+                    {companyResults.length > 0 && (
+                      <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" sideOffset={4}>
+                        <Command>
+                          <CommandList>
+                            <CommandGroup heading="Empresas encontradas">
+                              {companyResults.map(c => (
+                                <CommandItem key={c.id} onSelect={() => { set('client_company', c.name); setCompanyPopoverOpen(false); }} className="cursor-pointer">
+                                  <p className="text-sm">{c.name}</p>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="client_address">Endereço</Label>
