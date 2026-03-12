@@ -8,8 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, Briefcase, DollarSign, LayoutGrid, GanttChart } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import EstimatorGantt from '@/components/EstimatorGantt';
 
 type ViewMode = 'kanban' | 'gantt';
