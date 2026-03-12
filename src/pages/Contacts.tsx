@@ -139,16 +139,16 @@ export default function Contacts() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Contatos</h1>
-          <p className="text-muted-foreground text-sm">{contacts.length} contatos cadastrados</p>
+          <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Contatos</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">{contacts.length} contatos cadastrados</p>
         </div>
         <div className="flex gap-2">
           <CsvImport entityType="contacts" onComplete={() => queryClient.invalidateQueries({ queryKey: ['contacts'] })} />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Novo Contato</Button>
+              <Button size="sm" className="text-xs sm:text-sm"><Plus className="h-4 w-4 mr-1 sm:mr-2" /><span className="hidden sm:inline">Novo </span>Contato</Button>
             </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Novo Contato</DialogTitle></DialogHeader>
