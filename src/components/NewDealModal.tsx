@@ -56,6 +56,9 @@ export function NewDealModal() {
     market: '',
     business_area: '',
     origin_id: '',
+    scope: '',
+    budget_start_date: '',
+    proposal_delivery_date: '',
   });
   const [qualAnswers, setQualAnswers] = useState<Record<string, string>>({});
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
