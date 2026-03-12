@@ -41,6 +41,7 @@ const BUSINESS_AREA_LABELS: Record<string, string> = {
   seguranca_eletronica: 'Segurança Eletrônica', inteligencia_predial: 'Inteligência Predial',
   energia: 'Energia', outro: 'Outro',
 };
+const TIPO_NEGOCIO_LABELS: Record<string, string> = { novo_cliente: 'Novo Cliente', cliente_existente: 'Cliente Existente' };
 
 function fireConfetti() {
   confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['hsl(190,35%,45%)', 'hsl(150,40%,45%)', 'hsl(38,85%,50%)', '#fff'] });
