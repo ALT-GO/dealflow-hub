@@ -924,7 +924,88 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             </div>
           )}
 
-          {step === 'importing' && (
+          {step === 'duplicates' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-warning">
+                <Copy className="h-5 w-5" />
+                <p className="text-sm font-semibold text-foreground">Duplicatas Encontradas ({duplicates.length})</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Os registros abaixo já existem no sistema ou estão duplicados na planilha. Escolha a ação para cada um:
+                <strong> Pular</strong> = manter o registro atual, <strong>Importar</strong> = criar novo registro.
+              </p>
+
+              {/* Bulk actions */}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setDuplicates(prev => prev.map(d => ({ ...d, action: 'skip' })))}>
+                  Pular Todos
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setDuplicates(prev => prev.map(d => ({ ...d, action: 'import' })))}>
+                  Importar Todos como Novo
+                </Button>
+              </div>
+
+              <ScrollArea className="h-[45vh] border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs w-16">Linha</TableHead>
+                      <TableHead className="text-xs w-24">Tipo</TableHead>
+                      <TableHead className="text-xs">Nome</TableHead>
+                      <TableHead className="text-xs">Motivo</TableHead>
+                      <TableHead className="text-xs w-32 text-center">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {duplicates.map((dup, i) => (
+                      <TableRow key={i} className={dup.action === 'skip' ? 'opacity-60' : ''}>
+                        <TableCell className="text-xs font-medium">{dup.row}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-[10px] ${
+                            dup.type === 'company' ? 'border-blue-300 text-blue-700 dark:text-blue-300' :
+                            dup.type === 'contact' ? 'border-emerald-300 text-emerald-700 dark:text-emerald-300' :
+                            'border-amber-300 text-amber-700 dark:text-amber-300'
+                          }`}>
+                            {dup.type === 'company' ? 'Empresa' : dup.type === 'contact' ? 'Contato' : 'Negócio'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-medium text-foreground">{dup.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{dup.existingInfo}</TableCell>
+                        <TableCell className="text-center">
+                          <Select
+                            value={dup.action}
+                            onValueChange={(v: 'skip' | 'import') => setDuplicates(prev => prev.map((d, j) => j === i ? { ...d, action: v } : d))}
+                          >
+                            <SelectTrigger className="h-7 text-[11px] w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="skip">Pular</SelectItem>
+                              <SelectItem value="import">Importar Novo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <p>
+                  {duplicates.filter(d => d.action === 'skip').length} serão pulados · {duplicates.filter(d => d.action === 'import').length} serão importados como novos
+                </p>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setStep('map')}>Voltar</Button>
+                <Button onClick={handleImport}>
+                  Continuar Importação
+                </Button>
+              </div>
+            </div>
+          )}
+
             <div className="py-12 text-center space-y-3">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
               <p className="text-sm text-muted-foreground">Importando registros...</p>
