@@ -74,7 +74,7 @@ function getEstimatorLoadsForDate(
   }
 
   for (const eid of estimatorIds) {
-    if ((countByEstimator[eid] || 0) >= maxConcurrent) {
+    if ((countByEstimator[eid] || 0) >= 1) {
       busyEstimators.add(eid);
     }
   }
