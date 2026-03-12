@@ -197,16 +197,18 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Proprietário</Label>
-                <Select value={filters.ownerId || 'all'} onValueChange={(v) => onFiltersChange({ ...filters, ownerId: v === 'all' ? '' : v })}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="mine">Meus registros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {canSeeOwnerFilter && (
+                <div className="space-y-3">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Proprietário</Label>
+                  <Select value={filters.ownerId || 'all'} onValueChange={(v) => onFiltersChange({ ...filters, ownerId: v === 'all' ? '' : v })}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="mine">Meus registros</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {entityType === 'deals' && (
                 <div className="space-y-3">

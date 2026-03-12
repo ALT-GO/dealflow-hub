@@ -101,7 +101,7 @@ export default function Dashboard() {
         </div>
         <div className="mt-4">
           {viewMode === 'kanban' ? (
-            <KanbanBoard filters={effectiveFilters} />
+            <KanbanBoard filters={filters} />
           ) : (
             <EstimatorGantt />
           )}

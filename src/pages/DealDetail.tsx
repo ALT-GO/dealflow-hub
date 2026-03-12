@@ -452,18 +452,20 @@ export default function DealDetail() {
                     )}
                     <div>
                       <p className="text-muted-foreground text-xs">Data Início Orçamento</p>
-                      <InlineEdit
+                      <DatePickerField
                         value={dealAny.budget_start_date || ''}
-                        onSave={(v) => handleInlineEdit('budget_start_date', 'Data Início Orçamento', dealAny.budget_start_date || '', v)}
-                        icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                        onChange={(v) => handleInlineEdit('budget_start_date', 'Data Início Orçamento', dealAny.budget_start_date || '', v)}
+                        placeholder="Selecionar data"
+                        className="h-8 text-xs"
                       />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Data Entrega Proposta</p>
-                      <InlineEdit
+                      <DatePickerField
                         value={dealAny.proposal_delivery_date || ''}
-                        onSave={(v) => handleInlineEdit('proposal_delivery_date', 'Data Entrega Proposta', dealAny.proposal_delivery_date || '', v)}
-                        icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                        onChange={(v) => handleInlineEdit('proposal_delivery_date', 'Data Entrega Proposta', dealAny.proposal_delivery_date || '', v)}
+                        placeholder="Selecionar data"
+                        className="h-8 text-xs"
                       />
                     </div>
                     <div>
