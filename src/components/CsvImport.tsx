@@ -487,7 +487,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                             <span className="text-sm font-medium min-w-[140px] truncate text-foreground" title={h}>{h}</span>
                             <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             {category && <Badge className={`text-[9px] shrink-0 ${catColor}`}>{catLabel}</Badge>}
-                            <Select value={mapping[i] || ''} onValueChange={(v) => setMapping(prev => ({ ...prev, [i]: v === 'ignore' ? '' : v }))}>
+                            <Select value={mapping[i] || 'ignore'} onValueChange={(v) => setMapping(prev => ({ ...prev, [i]: v === 'ignore' ? '' : v }))}>
                               <SelectTrigger className="w-52 h-8 text-xs">
                                 <SelectValue placeholder="Selecione o campo" />
                               </SelectTrigger>
