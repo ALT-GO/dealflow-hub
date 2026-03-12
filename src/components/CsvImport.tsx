@@ -134,6 +134,12 @@ function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
+function truncateWords(s: string, maxWords = 10): string {
+  const words = s.split(/\s+/);
+  if (words.length <= maxWords) return s;
+  return words.slice(0, maxWords).join(' ') + '…';
+}
+
 function autoDetect(headers: string[]): FieldMapping {
   // All fields default to "ignore" (empty string)
   const map: FieldMapping = {};
@@ -542,10 +548,10 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                   return (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate" title={h}>{h}</p>
+                        <p className="text-sm font-medium text-foreground truncate" title={h}>{truncateWords(h)}</p>
                         {samples.length > 0 && (
                           <p className="text-[11px] text-muted-foreground truncate" title={samples.join(' | ')}>
-                            ex: {samples.join(' | ')}
+                            ex: {samples.map(s => truncateWords(s)).join(' | ')}
                           </p>
                         )}
                       </div>
