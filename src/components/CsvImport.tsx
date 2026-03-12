@@ -33,6 +33,7 @@ const COMPANY_FIELDS = [
   { value: 'company_sector', label: 'Setor' },
   { value: 'company_phone', label: 'Telefone' },
   { value: 'company_created_at', label: 'Data de Criação (Empresa)' },
+  { value: 'company_last_activity_at', label: 'Data Última Atividade (Empresa)' },
 ];
 
 const CONTACT_FIELDS = [
