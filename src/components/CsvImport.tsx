@@ -701,16 +701,29 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             }
             if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
             if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
+            // Resolve owner and orcamentista - always insert with current user for RLS compliance
             const resolvedOwner = resolveUser(vals.deal_owner);
-            if (resolvedOwner) dealRecord.owner_id = resolvedOwner;
-            else if (vals.deal_owner) allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Usuário não encontrado: "${vals.deal_owner}". Usando o usuário atual.` });
+            if (vals.deal_owner && !resolvedOwner) {
+              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Usuário não encontrado: "${vals.deal_owner}". Usando o usuário atual.` });
+            }
             const resolvedOrc = resolveUser(vals.deal_orcamentista);
+            if (vals.deal_orcamentista && !resolvedOrc) {
+              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Orçamentista', message: `Usuário não encontrado: "${vals.deal_orcamentista}". Importado sem orçamentista.` });
+            }
             if (resolvedOrc) dealRecord.orcamentista_id = resolvedOrc;
-            else if (vals.deal_orcamentista) allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Orçamentista', message: `Usuário não encontrado: "${vals.deal_orcamentista}".` });
-            const { error: dErr } = await supabase.from('deals').insert(dealRecord);
+
+            // Always insert with current user as owner (RLS requires owner_id = auth.uid())
+            dealRecord.owner_id = user.id;
+            const { data: newDeal, error: dErr } = await supabase.from('deals').insert(dealRecord).select('id').single();
             if (dErr) {
               rowHasError = true;
               allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${dErr.message}` });
+            } else if (newDeal && resolvedOwner && resolvedOwner !== user.id) {
+              // Update owner to the resolved user after successful insert
+              const { error: updErr } = await supabase.from('deals').update({ owner_id: resolvedOwner }).eq('id', newDeal.id);
+              if (updErr) {
+                allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Negócio criado, mas não foi possível alterar o proprietário para "${vals.deal_owner}".` });
+              }
             }
           } else {
             rowHasError = true;
