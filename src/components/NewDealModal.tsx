@@ -51,7 +51,7 @@ export function NewDealModal() {
   const [form, setForm] = useState({
     name: '',
     value: '',
-    stage: 'prospeccao',
+    stage: '',
     close_date: '',
     company_id: '',
     contact_id: '',
