@@ -38,7 +38,8 @@ type Props = {
 };
 
 export function AdvancedFilters({ entityType, filters, onFiltersChange, activeViewId, onViewSelect }: Props) {
-  const { user } = useAuth();
+  const { user, role: userRole } = useAuth();
+  const canSeeOwnerFilter = userRole === 'admin' || userRole === 'gerencia';
   const queryClient = useQueryClient();
   const [saveOpen, setSaveOpen] = useState(false);
   const [viewName, setViewName] = useState('');
