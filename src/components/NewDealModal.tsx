@@ -76,6 +76,12 @@ export function NewDealModal() {
   }, [stagesData, form.stage]);
 
   useEffect(() => {
+    if (open && STAGES.length > 0 && !form.stage) {
+      setForm(f => ({ ...f, stage: STAGES[0].value }));
+    }
+  }, [open, STAGES]);
+
+  useEffect(() => {
     if (open) {
       supabase.from('companies').select('id, name').order('name').then(({ data }) => {
         if (data) setCompanies(data);
