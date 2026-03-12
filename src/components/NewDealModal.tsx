@@ -116,6 +116,9 @@ export function NewDealModal() {
       business_area: form.business_area || null,
       origin_id: form.origin_id || null,
       qualification_score: score,
+      scope: form.scope || null,
+      budget_start_date: form.budget_start_date || null,
+      proposal_delivery_date: form.proposal_delivery_date || null,
     } as any).select('id').single();
 
     if (error) {
