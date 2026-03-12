@@ -73,7 +73,10 @@ export function NewDealModal() {
   const { data: workloadMap = {} } = useEstimatorWorkload();
   const isBudgetStage = useMemo(() => {
     const selectedStage = stagesData.find(s => s.key === form.stage);
-    return !!(selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento'));
+    if (!selectedStage) return false;
+    const k = selectedStage.key?.toLowerCase() || '';
+    const l = selectedStage.label?.toLowerCase() || '';
+    return k.includes('orcamento') || l.includes('orçamento') || k.includes('proposta') || l.includes('proposta');
   }, [stagesData, form.stage]);
 
   useEffect(() => {
