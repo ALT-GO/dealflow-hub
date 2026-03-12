@@ -586,33 +586,33 @@ export default function DealDetail() {
           </div>
 
           <Tabs defaultValue="timeline">
-            <TabsList className="flex-wrap h-auto gap-1">
-              <TabsTrigger value="timeline" className="text-xs gap-1.5">
-                <Clock className="h-3.5 w-3.5" />Timeline
+            <TabsList className="flex flex-wrap h-auto gap-1">
+              <TabsTrigger value="timeline" className="text-xs gap-1">
+                <Clock className="h-3.5 w-3.5" /><span className="hidden sm:inline">Timeline</span>
               </TabsTrigger>
-              <TabsTrigger value="comments" className="text-xs gap-1.5">
-                <MessageCircle className="h-3.5 w-3.5" />Comentários
+              <TabsTrigger value="comments" className="text-xs gap-1">
+                <MessageCircle className="h-3.5 w-3.5" /><span className="hidden sm:inline">Comentários</span>
                 {commentCount > 0 && (
-                  <span className="bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold ml-1">{commentCount}</span>
+                  <span className="bg-rose-100 text-rose-600 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{commentCount}</span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="text-xs gap-1.5">
-                <ListTodo className="h-3.5 w-3.5" />Tarefas
+              <TabsTrigger value="tasks" className="text-xs gap-1">
+                <ListTodo className="h-3.5 w-3.5" /><span className="hidden sm:inline">Tarefas</span>
                 {pendingTaskCount > 0 && (
-                  <span className="bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold ml-1">{pendingTaskCount}</span>
+                  <span className="bg-rose-100 text-rose-600 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{pendingTaskCount}</span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="files" className="text-xs gap-1.5">
-                <Paperclip className="h-3.5 w-3.5" />Arquivos
+              <TabsTrigger value="files" className="text-xs gap-1">
+                <Paperclip className="h-3.5 w-3.5" /><span className="hidden sm:inline">Arquivos</span>
               </TabsTrigger>
               {budgetFields.length > 0 && (
-                <TabsTrigger value="orcamentos" className="text-xs gap-1.5">
-                  <FileText className="h-3.5 w-3.5" />Orçamentos
+                <TabsTrigger value="orcamentos" className="text-xs gap-1">
+                  <FileText className="h-3.5 w-3.5" /><span className="hidden sm:inline">Orçamentos</span>
                 </TabsTrigger>
               )}
               {techFields.length > 0 && (
-                <TabsTrigger value="dados-tecnicos" className="text-xs gap-1.5">
-                  <Wrench className="h-3.5 w-3.5" />Dados Técnicos
+                <TabsTrigger value="dados-tecnicos" className="text-xs gap-1">
+                  <Wrench className="h-3.5 w-3.5" /><span className="hidden sm:inline">Dados Técnicos</span>
                 </TabsTrigger>
               )}
             </TabsList>

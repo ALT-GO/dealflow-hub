@@ -253,7 +253,7 @@ export function KanbanBoard({ filters = {} }: Props) {
           return (
             <div
               key={stage.key}
-              className="flex-shrink-0 w-72"
+              className="flex-shrink-0 w-64 sm:w-72"
               onDrop={(e) => handleDrop(e, stage.key)}
               onDragOver={handleDragOver}
             >

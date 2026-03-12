@@ -50,9 +50,9 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="flex gap-6 min-h-[600px]">
-        {/* Vertical sidebar menu */}
-        <nav className="w-56 shrink-0 space-y-1">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 min-h-[600px]">
+        {/* Vertical sidebar menu — horizontal scroll on mobile */}
+        <nav className="flex md:flex-col md:w-56 shrink-0 gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
           {MENU_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.key;
@@ -61,7 +61,7 @@ export default function Settings() {
                 key={item.key}
                 onClick={() => setActiveTab(item.key)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                  'flex items-center gap-2 md:gap-3 px-3 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-md'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',

@@ -160,14 +160,14 @@ export default function Companies() {
         <Input placeholder="Buscar empresas..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
 
-      <Card className="border-border">
-        <CardContent className="p-0">
-          <Table>
+      <Card className="border-border overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[480px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Domínio</TableHead>
-                <TableHead>Setor</TableHead>
+                <TableHead className="hidden sm:table-cell">Domínio</TableHead>
+                <TableHead className="hidden md:table-cell">Setor</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -175,10 +175,10 @@ export default function Companies() {
             <TableBody>
               {companies.map((c) => (
                 <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 group" onClick={() => navigate(`/companies/${c.id}`)}>
-                  <TableCell className="font-medium text-primary">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.domain || '-'}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.sector || '-'}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.phone || '-'}</TableCell>
+                  <TableCell className="font-medium text-primary truncate max-w-[150px]">{c.name}</TableCell>
+                  <TableCell className="text-muted-foreground hidden sm:table-cell truncate max-w-[150px]">{c.domain || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground hidden md:table-cell truncate max-w-[120px]">{c.sector || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground truncate max-w-[120px]">{c.phone || '-'}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

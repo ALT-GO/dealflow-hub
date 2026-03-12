@@ -222,16 +222,16 @@ export default function Contacts() {
         <Input placeholder="Buscar contatos..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
 
-      <Card className="border-border">
-        <CardContent className="p-0">
-          <Table>
+      <Card className="border-border overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Cargo</TableHead>
+                <TableHead className="hidden sm:table-cell">E-mail</TableHead>
+                <TableHead className="hidden md:table-cell">Cargo</TableHead>
                 <TableHead>Empresa</TableHead>
-                <TableHead>Origem</TableHead>
+                <TableHead className="hidden lg:table-cell">Origem</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -241,11 +241,11 @@ export default function Contacts() {
                 const statusDef = CONTACT_STATUSES.find((s) => s.value === c.status);
                 return (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 group" onClick={() => navigate(`/contacts/${c.id}`)}>
-                    <TableCell className="font-medium text-primary">{c.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.email || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.role || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.companies?.name || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{c.lead_source || '-'}</TableCell>
+                    <TableCell className="font-medium text-primary truncate max-w-[150px]">{c.name}</TableCell>
+                    <TableCell className="text-muted-foreground hidden sm:table-cell truncate max-w-[180px]">{c.email || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell truncate max-w-[120px]">{c.role || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-[120px]">{c.companies?.name || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs hidden lg:table-cell">{c.lead_source || '-'}</TableCell>
                     <TableCell>
                       {statusDef ? (
                         <Badge variant="secondary" className={`text-[10px] ${statusDef.color}`}>{statusDef.label}</Badge>
