@@ -51,14 +51,7 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
   const [selectedOrcamentista, setSelectedOrcamentista] = useState('');
   const { data: workloadMap = {} } = useEstimatorWorkload();
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-list'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('user_id, full_name');
-      return data || [];
-    },
-    enabled: open,
-  });
+  const { data: budgetMembers = [] } = useBudgetTeamMembers();
 
   const { data: companyName } = useQuery({
     queryKey: ['company-name', deal?.company_id],
