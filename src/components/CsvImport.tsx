@@ -121,6 +121,8 @@ const DETECT_MAP: Record<string, string> = {
   'orcamentista': 'deal_orcamentista', 'estimator': 'deal_orcamentista', 'orcamentista responsavel': 'deal_orcamentista',
   'etapa do funil': 'deal_stage', 'funil': 'deal_stage', 'pipeline': 'deal_stage',
   'criado em': 'deal_created_at', 'data criacao': 'deal_created_at', 'created at': 'deal_created_at', 'data de criacao': 'deal_created_at',
+  'ultima atividade': 'deal_last_activity_at', 'data ultima atividade': 'deal_last_activity_at', 'last activity': 'deal_last_activity_at',
+  'ultima atividade empresa': 'company_last_activity_at', 'ultima atividade contato': 'contact_last_activity_at',
 };
 
 function parseCSV(text: string): string[][] {
