@@ -154,7 +154,7 @@ export function NewDealModal() {
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '' });
+    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '' });
     setCustomValues({});
     setQualAnswers({});
   };
