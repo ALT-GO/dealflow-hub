@@ -311,7 +311,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center"><Percent className="h-5 w-5 text-emerald-600" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Lucro Total</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Lucro Total <InfoTip text="Soma do lucro estimado dos negócios fechados no mês, calculado como Valor × Margem de Lucro (%). A margem média é a média das margens individuais." /></p>
                 <p className="text-xl font-display font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
                 {avgProfitMargin > 0 && <p className="text-[10px] text-muted-foreground">Margem média: {avgProfitMargin.toFixed(1)}%</p>}
               </div>
