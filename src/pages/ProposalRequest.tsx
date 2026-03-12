@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle2, Send, CalendarRange } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import EstimatorGantt from '@/components/EstimatorGantt';
+import { DatePickerField } from '@/components/DatePickerField';
 
 const BUSINESS_AREAS = [
   'Infraestrutura Predial',
@@ -30,7 +31,7 @@ export default function ProposalRequest() {
     requester_name: '', requester_email: '',
     client_name: '', client_role: '', client_email: '', client_phone: '', client_company: '',
     business_area: '', address: '', state: '', team_type: '', project_phase: '',
-    has_team: false, team_description: '', qualification_level: '',
+    has_team: false, team_description: '', qualification_level: '', target_delivery_date: '',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -221,6 +222,10 @@ export default function ProposalRequest() {
                     <Textarea id="team_description" value={form.team_description} onChange={e => set('team_description', e.target.value)} maxLength={500} rows={2} />
                   </div>
                 )}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Data de Entrega Desejada</Label>
+                  <DatePickerField value={form.target_delivery_date} onChange={v => set('target_delivery_date', v)} placeholder="Selecionar data desejada" />
+                </div>
               </div>
             </CardContent>
           </Card>

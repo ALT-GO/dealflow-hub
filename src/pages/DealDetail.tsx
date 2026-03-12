@@ -340,9 +340,25 @@ export default function DealDetail() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {dealAny.business_area && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
+                        <Badge variant="secondary" className="text-xs">{BUSINESS_AREA_LABELS[dealAny.business_area] || dealAny.business_area}</Badge>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Data de Fechamento</p>
                       <InlineEdit value={deal.close_date || ''} onSave={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)} icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />} />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Data de Entrega Desejada</p>
+                      <InlineEdit value={dealAny.target_delivery_date || ''} onSave={(v) => handleInlineEdit('target_delivery_date', 'Data de Entrega Desejada', dealAny.target_delivery_date || '', v)} icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />} />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Status de Aprovação</p>
+                      <Badge variant={dealAny.approval_status === 'approved' ? 'default' : dealAny.approval_status === 'rejected' ? 'destructive' : 'secondary'} className="text-xs">
+                        {dealAny.approval_status === 'approved' ? 'Aprovado' : dealAny.approval_status === 'rejected' ? 'Reprovado' : 'Pendente'}
+                      </Badge>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Proprietário</p>
@@ -373,17 +389,24 @@ export default function DealDetail() {
               <Card className="border-0 shadow-none">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <FileText className="h-3 w-3" />Informações Comerciais
+                    <FileText className="h-3 w-3" />Dados de Orçamentos
                   </span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
-                    {dealAny.orcamentista_id && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Orçamentista Responsável</p>
-                        <p className="font-medium text-foreground text-sm">{profilesMap[dealAny.orcamentista_id] || 'Desconhecido'}</p>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-muted-foreground text-xs">Orçamentista Responsável</p>
+                      <Select value={dealAny.orcamentista_id || ''} onValueChange={async (v) => {
+                        await handleInlineEdit('orcamentista_id', 'Orçamentista Responsável', dealAny.orcamentista_id || '', v);
+                      }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar orçamentista" /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(profilesMap).map(([uid, name]) => (
+                            <SelectItem key={uid} value={uid}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     {dealAny.contract_type && (
                       <div>
                         <p className="text-muted-foreground text-xs">Tipo de Contrato</p>
@@ -394,12 +417,6 @@ export default function DealDetail() {
                       <div>
                         <p className="text-muted-foreground text-xs">Mercado</p>
                         <Badge variant="secondary" className="text-xs">{MARKET_LABELS[dealAny.market] || dealAny.market}</Badge>
-                      </div>
-                    )}
-                    {dealAny.business_area && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
-                        <Badge variant="secondary" className="text-xs">{BUSINESS_AREA_LABELS[dealAny.business_area] || dealAny.business_area}</Badge>
                       </div>
                     )}
                     {originLabel && (

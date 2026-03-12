@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Bell, AtSign, Briefcase, ListTodo, Check, CheckCheck } from 'lucide-react';
+import { Bell, AtSign, Briefcase, ListTodo, Check, CheckCheck, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { ApprovalModal } from '@/components/ApprovalModal';
 
 interface Notification {
   id: string;
@@ -26,12 +27,16 @@ const typeIcons: Record<string, typeof AtSign> = {
   mention: AtSign,
   deal_assigned: Briefcase,
   task_due: ListTodo,
+  approval_request: ShieldCheck,
+  approval_result: ShieldCheck,
 };
 
 const typeColors: Record<string, string> = {
   mention: 'bg-primary/10 text-primary',
   deal_assigned: 'bg-success/10 text-success',
   task_due: 'bg-warning/10 text-warning',
+  approval_request: 'bg-amber-500/10 text-amber-600',
+  approval_result: 'bg-emerald-500/10 text-emerald-600',
 };
 
 export function NotificationBell() {
@@ -39,6 +44,8 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [approvalDeal, setApprovalDeal] = useState<any>(null);
+  const [approvalOpen, setApprovalOpen] = useState(false);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['notifications', user?.id],
@@ -97,15 +104,25 @@ export function NotificationBell() {
     queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
   };
 
-  const handleClick = (n: Notification) => {
+  const handleClick = async (n: Notification) => {
     markAsRead(n.id);
     setOpen(false);
+
+    // Open approval modal for approval_request notifications
+    if (n.type === 'approval_request' && n.entity_type === 'deal' && n.entity_id) {
+      const { data: dealData } = await supabase.from('deals').select('*').eq('id', n.entity_id).single();
+      if (dealData) {
+        setApprovalDeal(dealData);
+        setApprovalOpen(true);
+        return;
+      }
+    }
 
     if (n.entity_type && n.entity_id) {
       const routes: Record<string, string> = {
         company: `/companies/${n.entity_id}`,
         contact: `/contacts/${n.entity_id}`,
-        deal: `/dashboard`,
+        deal: `/deals/${n.entity_id}`,
         task: `/dashboard`,
       };
       navigate(routes[n.entity_type] || '/dashboard');
@@ -173,6 +190,7 @@ export function NotificationBell() {
           )}
         </ScrollArea>
       </PopoverContent>
+      <ApprovalModal deal={approvalDeal} open={approvalOpen} onOpenChange={setApprovalOpen} />
     </Popover>
   );
 }

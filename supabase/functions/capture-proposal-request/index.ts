@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       requester_name, requester_email,
       client_name, client_role, client_email, client_phone, client_company,
       business_area, address, state, team_type, project_phase,
-      has_team, team_description, qualification_level,
+      has_team, team_description, qualification_level, target_delivery_date,
     } = body;
 
     // Validation
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join("\n");
 
     // 6. Create deal
-    const { error: dealError } = await supabase.from("deals").insert({
+    const { data: newDeal, error: dealError } = await supabase.from("deals").insert({
       name: `Proposta - ${client_company.trim()}`,
       proposal_id: proposalId,
       company_id: companyId,
@@ -120,7 +120,9 @@ Deno.serve(async (req) => {
       value: 0,
       business_area: business_area || null,
       market: null,
-    });
+      target_delivery_date: target_delivery_date || null,
+      approval_status: "pending",
+    }).select("id").single();
     if (dealError) throw dealError;
 
     // 7. Log an activity with the full description
@@ -132,6 +134,29 @@ Deno.serve(async (req) => {
       contact_id: newContact.id,
       created_by: ownerId,
     });
+
+    // 8. Notify Gerência of Orçamentos team for approval
+    if (newDeal?.id) {
+      const { data: orcTeam } = await supabase.from("teams").select("id").eq("name", "Orçamentos").maybeSingle();
+      if (orcTeam) {
+        const { data: teamMembers } = await supabase.from("team_members").select("user_id").eq("team_id", orcTeam.id);
+        if (teamMembers) {
+          for (const tm of teamMembers) {
+            const { data: hasGerencia } = await supabase.rpc("has_role", { _user_id: tm.user_id, _role: "gerencia" });
+            if (hasGerencia) {
+              await supabase.from("notifications").insert({
+                user_id: tm.user_id,
+                type: "approval_request",
+                title: `Aprovação pendente: Proposta - ${client_company.trim()}`,
+                description: `Nova solicitação de proposta aguarda aprovação.`,
+                entity_type: "deal",
+                entity_id: newDeal.id,
+              });
+            }
+          }
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
