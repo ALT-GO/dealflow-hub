@@ -49,6 +49,7 @@ const ESTIMATOR_PALETTE = [
 export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   const { user, role } = useAuth();
   const { data: funnelStages = [] } = useFunnelStages();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const totalDays = mini ? 21 : 56;
   const today = useMemo(() => new Date(), []);
