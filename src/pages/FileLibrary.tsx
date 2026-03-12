@@ -339,7 +339,7 @@ export default function FileLibrary() {
                     <span className="truncate">{f.file_name}</span>
                   </td>
                   <td className="p-3 text-muted-foreground hidden sm:table-cell">{humanSize(f.file_size)}</td>
-                  <td className="p-3 text-muted-foreground hidden md:table-cell">{(f as any).profiles?.full_name || '–'}</td>
+                  <td className="p-3 text-muted-foreground hidden md:table-cell">{f.uploader_name || '–'}</td>
                   <td className="p-3 text-muted-foreground hidden md:table-cell">{format(new Date(f.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}</td>
                   <td className="p-3">
                     <div className="flex gap-1 justify-end">
