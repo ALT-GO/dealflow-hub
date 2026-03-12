@@ -17,6 +17,7 @@ import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { useOrigins } from '@/components/settings/OriginsTab';
 import { useQualificationQuestions } from '@/components/settings/QualificationTab';
 import { QualificationForm, calculateScore } from '@/components/QualificationForm';
+import { useEstimatorWorkload } from '@/components/EstimatorGantt';
 
 const CONTRACT_TYPES = [
   { value: 'recorrente', label: 'Recorrente' },
