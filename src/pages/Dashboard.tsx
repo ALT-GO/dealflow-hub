@@ -98,19 +98,22 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <ViewTabs entityType="deals" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch id="only-mine" checked={onlyMine} onCheckedChange={setOnlyMine} />
+            <Label htmlFor="only-mine" className="text-sm text-muted-foreground cursor-pointer">Minhas negociações</Label>
+          </div>
+        </div>
         <div className="mt-4">
           <AdvancedFilters
             entityType="deals"
-            filters={filters}
+            filters={effectiveFilters}
             onFiltersChange={setFilters}
-            activeViewId={activeTab !== 'all' && activeTab !== 'mine' && activeTab !== 'recent' ? activeTab : undefined}
-            onViewSelect={(v) => setActiveTab(v?.id || 'all')}
           />
         </div>
         <div className="mt-4">
           {viewMode === 'kanban' ? (
-            <KanbanBoard filters={filters} />
+            <KanbanBoard filters={effectiveFilters} />
           ) : (
             <EstimatorGantt />
           )}

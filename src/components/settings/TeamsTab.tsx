@@ -485,37 +485,6 @@ export function TeamsTab() {
           </Card>
         </TabsContent>
 
-        {/* Teams Tab */}
-        <TabsContent value="teams">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {teams.map((team) => (
-                <Card key={team.id}>
-                  <CardContent className="pt-5 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{team.name}</p>
-                        <p className="text-xs text-muted-foreground">{team.member_count} membro(s)</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            {teams.length === 0 && (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">As equipes serão criadas automaticamente</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
         {/* Invitations Tab */}
         <TabsContent value="invitations">
           <Card>

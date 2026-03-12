@@ -226,6 +226,7 @@ export default function ProposalRequest() {
                   <Label>Data de Entrega Desejada</Label>
                   <DatePickerField value={form.target_delivery_date} onChange={v => set('target_delivery_date', v)} placeholder="Selecionar data desejada" />
                 </div>
+                {/* Other date fields intentionally hidden for external form - only target_delivery_date shown */}
               </div>
             </CardContent>
           </Card>
