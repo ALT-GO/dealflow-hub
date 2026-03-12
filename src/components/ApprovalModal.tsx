@@ -190,7 +190,6 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
                 <SmartDatePicker
                   value={deal.target_delivery_date || ''}
                   onChange={() => {}}
-                  estimatorId={selectedOrcamentista || deal.orcamentista_id || undefined}
                   placeholder="Data solicitada"
                   disabled
                 />
