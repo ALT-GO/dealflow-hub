@@ -36,6 +36,8 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
+const HARDCODED_TEAMS = ['Vendas', 'Orçamentos'];
+
 export function TeamsTab() {
   const { role, user } = useAuth();
   const queryClient = useQueryClient();
@@ -43,8 +45,6 @@ export function TeamsTab() {
   const [goalSaving, setGoalSaving] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteSaving, setInviteSaving] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
-  const [teamSaving, setTeamSaving] = useState(false);
   const [assignOpen, setAssignOpen] = useState<string | null>(null);
   const [subTab, setSubTab] = useState('members');
   const now = new Date();
@@ -56,7 +56,6 @@ export function TeamsTab() {
     target_deals_count: '',
   });
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'vendedor', team_id: '' });
-  const [teamName, setTeamName] = useState('');
   const [selectedTeamForAssign, setSelectedTeamForAssign] = useState('');
 
   // Fetch members
