@@ -43,6 +43,7 @@ const CONTACT_FIELDS = [
   { value: 'contact_lead_source', label: 'Origem do Lead' },
   { value: 'contact_status', label: 'Status' },
   { value: 'contact_created_at', label: 'Data de Criação (Contato)' },
+  { value: 'contact_last_activity_at', label: 'Data Última Atividade (Contato)' },
 ];
 
 const DEAL_FIELDS = [
