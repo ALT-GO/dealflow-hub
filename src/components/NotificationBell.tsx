@@ -36,6 +36,8 @@ const typeIcons: Record<string, typeof AtSign> = {
 const typeColors: Record<string, string> = {
   mention: 'bg-primary/10 text-primary',
   deal_assigned: 'bg-success/10 text-success',
+  deal_stage_changed: 'bg-blue-500/10 text-blue-600',
+  deal_comment: 'bg-indigo-500/10 text-indigo-600',
   task_due: 'bg-warning/10 text-warning',
   approval_request: 'bg-amber-500/10 text-amber-600',
   approval_result: 'bg-emerald-500/10 text-emerald-600',
