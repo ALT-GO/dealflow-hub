@@ -116,8 +116,15 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     deals.filter(d => (d.orcamentista_id === userId || d.owner_id === userId) &&
       !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage));
 
-  const getDealSpan = (deal: GanttDeal) => {
-    const dealStart = deal.budget_start_date ? parseISO(deal.budget_start_date) : parseISO(deal.created_at);
+  /** Determine the bar span based on the user's role context:
+   * - Orçamentista row: budget_start_date → proposal_delivery_date
+   * - Vendedor row: created_at → proposal_delivery_date (when available)
+   */
+  const getDealSpan = (deal: GanttDeal, userId: string) => {
+    const isEstimatorRow = deal.orcamentista_id === userId;
+    const dealStart = isEstimatorRow && deal.budget_start_date
+      ? parseISO(deal.budget_start_date)
+      : parseISO(deal.created_at);
     const dealEnd = deal.proposal_delivery_date
       ? parseISO(deal.proposal_delivery_date)
       : deal.target_delivery_date
