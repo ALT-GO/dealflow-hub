@@ -135,6 +135,29 @@ Deno.serve(async (req) => {
       created_by: ownerId,
     });
 
+    // 8. Notify Gerência of Orçamentos team for approval
+    if (newDeal?.id) {
+      const { data: orcTeam } = await supabase.from("teams").select("id").eq("name", "Orçamentos").maybeSingle();
+      if (orcTeam) {
+        const { data: teamMembers } = await supabase.from("team_members").select("user_id").eq("team_id", orcTeam.id);
+        if (teamMembers) {
+          for (const tm of teamMembers) {
+            const { data: hasGerencia } = await supabase.rpc("has_role", { _user_id: tm.user_id, _role: "gerencia" });
+            if (hasGerencia) {
+              await supabase.from("notifications").insert({
+                user_id: tm.user_id,
+                type: "approval_request",
+                title: `Aprovação pendente: Proposta - ${client_company.trim()}`,
+                description: `Nova solicitação de proposta aguarda aprovação.`,
+                entity_type: "deal",
+                entity_id: newDeal.id,
+              });
+            }
+          }
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -222,6 +222,10 @@ export default function ProposalRequest() {
                     <Textarea id="team_description" value={form.team_description} onChange={e => set('team_description', e.target.value)} maxLength={500} rows={2} />
                   </div>
                 )}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Data de Entrega Desejada</Label>
+                  <DatePickerField value={form.target_delivery_date} onChange={v => set('target_delivery_date', v)} placeholder="Selecionar data desejada" />
+                </div>
               </div>
             </CardContent>
           </Card>

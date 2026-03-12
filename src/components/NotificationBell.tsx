@@ -190,6 +190,7 @@ export function NotificationBell() {
           )}
         </ScrollArea>
       </PopoverContent>
+      <ApprovalModal deal={approvalDeal} open={approvalOpen} onOpenChange={setApprovalOpen} />
     </Popover>
   );
 }
