@@ -34,7 +34,7 @@ type ContactResult = {
   email: string | null;
   role: string | null;
   company_id: string;
-  companies: { name: string; phone: string | null } | null;
+  companies: { name: string; phone: string | null; domain: string | null } | null;
 };
 
 export default function ProposalRequest() {
@@ -74,7 +74,7 @@ export default function ProposalRequest() {
     searchTimeout.current = setTimeout(async () => {
       const { data } = await supabase
         .from('contacts')
-        .select('id, name, email, role, company_id, companies(name, phone)')
+        .select('id, name, email, role, company_id, companies(name, phone, domain)')
         .ilike('name', `%${contactSearch.trim()}%`)
         .limit(8);
       if (data) setContactResults(data as ContactResult[]);
@@ -89,6 +89,7 @@ export default function ProposalRequest() {
       client_role: contact.role || '',
       client_company: contact.companies?.name || '',
       client_phone: contact.companies?.phone || '',
+      client_address: contact.companies?.domain || '',
     }));
     setContactSearch(contact.name);
     setContactPopoverOpen(false);
