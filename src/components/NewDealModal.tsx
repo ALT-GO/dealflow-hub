@@ -12,14 +12,12 @@ import { Plus } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProperties } from '@/hooks/useCustomProperties';
-import { DatePickerField } from '@/components/DatePickerField';
 import { SmartDatePicker } from '@/components/SmartDatePicker';
 import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
 import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { useOrigins } from '@/components/settings/OriginsTab';
 import { useQualificationQuestions } from '@/components/settings/QualificationTab';
 import { QualificationForm, calculateScore } from '@/components/QualificationForm';
-import { useEstimatorWorkload } from '@/components/EstimatorGantt';
 
 const CONTRACT_TYPES = [
   { value: 'recorrente', label: 'Recorrente' },
