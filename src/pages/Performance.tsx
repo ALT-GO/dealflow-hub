@@ -220,8 +220,10 @@ export default function Performance() {
   lostDeals.forEach((d: any) => { lossReasonCounts[d.loss_reason!] = (lossReasonCounts[d.loss_reason!] || 0) + 1; });
   const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
     const found = lossReasonsList.find((r: any) => r.value === key);
-    return { name: found?.label || key, value: count };
+    const lostValue = lostDeals.filter((d: any) => d.loss_reason === key).reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
+    return { name: found?.label || key, value: count, lostValue };
   }).sort((a, b) => b.value - a.value);
+  const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
   const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
 
