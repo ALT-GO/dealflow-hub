@@ -37,7 +37,7 @@ const CONTACT_FIELDS = [
 const DEAL_FIELDS = [
   { value: 'deal_name', label: 'Nome do Negócio', required: true },
   { value: 'deal_value', label: 'Valor' },
-  { value: 'deal_stage', label: 'Estágio' },
+  { value: 'deal_stage', label: 'Etapa do Funil' },
   { value: 'deal_business_area', label: 'Área de Negócio' },
   { value: 'deal_market', label: 'Mercado' },
   { value: 'deal_contract_type', label: 'Tipo de Contrato' },
@@ -54,10 +54,12 @@ const DEAL_FIELDS = [
   { value: 'deal_qualification_level', label: 'Nível de Qualificação' },
   { value: 'deal_carbono_zero', label: 'Carbono Zero?' },
   { value: 'deal_cortex', label: 'Cortex?' },
-  { value: 'deal_estudo_equipe', label: 'Cliente possui equipe?' },
+  { value: 'deal_estudo_equipe', label: 'Há estudo de equipe definido?' },
   { value: 'deal_profit_margin', label: 'Margem de Lucro (%)' },
   { value: 'deal_origin_id', label: 'Origem (ID)' },
   { value: 'deal_loss_reason', label: 'Motivo de Perda' },
+  { value: 'deal_owner', label: 'Proprietário do Negócio' },
+  { value: 'deal_orcamentista', label: 'Orçamentista Responsável' },
 ];
 
 const ALL_FIELDS = [
