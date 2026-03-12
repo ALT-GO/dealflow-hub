@@ -30,7 +30,7 @@ export default function ProposalRequest() {
     requester_name: '', requester_email: '',
     client_name: '', client_role: '', client_email: '', client_phone: '', client_company: '',
     business_area: '', address: '', state: '', team_type: '', project_phase: '',
-    has_team: false, team_description: '', qualification_level: '',
+    has_team: false, team_description: '', qualification_level: '', target_delivery_date: '',
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
