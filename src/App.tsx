@@ -21,6 +21,7 @@ import Performance from "./pages/Performance";
 import EstimatorSchedule from "./pages/EstimatorSchedule";
 import ProposalRequest from "./pages/ProposalRequest";
 import FileLibrary from "./pages/FileLibrary";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
