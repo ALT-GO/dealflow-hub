@@ -73,6 +73,7 @@ const DEAL_FIELDS = [
   { value: 'deal_owner', label: 'Proprietário do Negócio' },
   { value: 'deal_orcamentista', label: 'Orçamentista Responsável' },
   { value: 'deal_created_at', label: 'Data de Criação (Negócio)' },
+  { value: 'deal_last_activity_at', label: 'Data Última Atividade (Negócio)' },
 ];
 
 const ALL_FIELDS = [
