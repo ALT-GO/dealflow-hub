@@ -432,7 +432,7 @@ export default function Performance() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Leaderboard */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" />Leaderboard de Vendas</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" />Leaderboard de Vendas <InfoTip text="Ranking dos vendedores ordenado por valor total fechado. Exibe Win Rate (taxa de conversão) e lucro individual." /></CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {leaderboard.slice(0, 10).map((seller, idx) => (
               <div key={seller.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
