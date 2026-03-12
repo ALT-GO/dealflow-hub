@@ -75,11 +75,9 @@ export function AppSidebar() {
       <SidebarContent>
         <div className={`px-4 py-5 ${collapsed ? 'px-2' : ''}`}>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary/20">
-              <span className="text-sidebar-primary font-display font-extrabold text-lg tracking-tighter">o</span>
-            </div>
+            <img src={logoOrion} alt="Orion CRM Hub" className="h-9 w-9 rounded-xl object-contain" />
             {!collapsed && (
-              <span className="text-lg font-display font-bold text-sidebar-foreground tracking-tight">CRM Pro</span>
+              <span className="text-lg font-display font-bold text-sidebar-foreground tracking-tight">Orion CRM Hub</span>
             )}
           </div>
         </div>
