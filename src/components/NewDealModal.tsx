@@ -158,10 +158,6 @@ export function NewDealModal() {
           score: matched ? matched.score : 0,
         } as any);
       }
-      // Add orcamentista as follower
-      if (form.orcamentista_id) {
-        await supabase.from('deal_followers').insert({ deal_id: data.id, user_id: form.orcamentista_id } as any);
-      }
       // Notify Gerência of Orçamentos team for approval
       try {
         const { data: orcTeam } = await supabase.from('teams').select('id').eq('name', 'Orçamentos').maybeSingle();
