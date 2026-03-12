@@ -82,7 +82,7 @@ export function FunnelTab() {
   const handleEdit = async () => {
     if (!editOpen || !form.label.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from('funnel_stages').update({ label: form.label.trim(), color: form.color, stage_type: form.stage_type, allowed_roles: form.allowed_roles } as any).eq('id', editOpen);
+    const { error } = await supabase.from('funnel_stages').update({ label: form.label.trim(), color: form.color, stage_type: form.stage_type, allowed_roles: visibilityToRoles(form.visibility) } as any).eq('id', editOpen);
     setSaving(false);
     if (error) { toast.error('Erro: ' + error.message); return; }
     toast.success('Estágio atualizado!');
