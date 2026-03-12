@@ -104,15 +104,25 @@ export function NotificationBell() {
     queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
   };
 
-  const handleClick = (n: Notification) => {
+  const handleClick = async (n: Notification) => {
     markAsRead(n.id);
     setOpen(false);
+
+    // Open approval modal for approval_request notifications
+    if (n.type === 'approval_request' && n.entity_type === 'deal' && n.entity_id) {
+      const { data: dealData } = await supabase.from('deals').select('*').eq('id', n.entity_id).single();
+      if (dealData) {
+        setApprovalDeal(dealData);
+        setApprovalOpen(true);
+        return;
+      }
+    }
 
     if (n.entity_type && n.entity_id) {
       const routes: Record<string, string> = {
         company: `/companies/${n.entity_id}`,
         contact: `/contacts/${n.entity_id}`,
-        deal: `/dashboard`,
+        deal: `/deals/${n.entity_id}`,
         task: `/dashboard`,
       };
       navigate(routes[n.entity_type] || '/dashboard');
