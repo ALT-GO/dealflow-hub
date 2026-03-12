@@ -229,6 +229,42 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     const { data: existingCompanies } = await supabase.from('companies').select('id, name');
     const companyMap = new Map<string, string>((existingCompanies || []).map(c => [c.name.toLowerCase(), c.id]));
 
+    // Build funnel stages cache for stage matching
+    const { data: funnelStages } = await supabase.from('funnel_stages').select('key, label').order('sort_order');
+    const stageList = funnelStages || [];
+    const resolveStage = (input: string | undefined): string => {
+      if (!input?.trim()) return 'prospeccao';
+      const n = normalize(input);
+      // Match by label (case-insensitive, accent-insensitive)
+      const byLabel = stageList.find(s => normalize(s.label) === n);
+      if (byLabel) return byLabel.key;
+      // Match by key
+      const byKey = stageList.find(s => s.key === n);
+      if (byKey) return byKey.key;
+      // Partial match
+      const partial = stageList.find(s => normalize(s.label).includes(n) || n.includes(normalize(s.label)));
+      if (partial) return partial.key;
+      return 'prospeccao';
+    };
+
+    // Build profiles cache for owner/orcamentista matching
+    const { data: profiles } = await supabase.from('profiles').select('user_id, full_name');
+    const profileList = profiles || [];
+    const resolveUser = (input: string | undefined): string | null => {
+      if (!input?.trim()) return null;
+      const n = normalize(input);
+      // Exact name match
+      const exact = profileList.find(p => p.full_name && normalize(p.full_name) === n);
+      if (exact) return exact.user_id;
+      // Partial match
+      const partial = profileList.find(p => p.full_name && (normalize(p.full_name).includes(n) || n.includes(normalize(p.full_name))));
+      if (partial) return partial.user_id;
+      // Email-like match
+      const byEmail = profileList.find(p => p.full_name && p.full_name.toLowerCase() === input.trim().toLowerCase());
+      if (byEmail) return byEmail.user_id;
+      return null;
+    };
+
     for (let ri = 0; ri < rows.length; ri++) {
       const row = rows[ri];
       try {
