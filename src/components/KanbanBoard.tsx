@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,9 @@ import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Building2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Building2, DollarSign, Calendar, AlertTriangle, ArrowUpDown } from 'lucide-react';
 import { LossReasonModal } from '@/components/LossReasonModal';
 import { ProfitMarginModal } from '@/components/ProfitMarginModal';
 import { StarRating } from '@/components/StarRating';
