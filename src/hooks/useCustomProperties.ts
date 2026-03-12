@@ -11,6 +11,7 @@ export type CustomProperty = {
   default_value: string | null;
   dropdown_options: string[] | null;
   sort_order: number;
+  display_section: string;
 };
 
 export function useCustomProperties(entityType: string) {
