@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Filter, X, Save, Trash2 } from 'lucide-react';
+import { DatePickerField } from '@/components/DatePickerField';
 
 export type Filters = {
   minValue?: string;
