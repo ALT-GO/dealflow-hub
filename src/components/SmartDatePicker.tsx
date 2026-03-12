@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface SmartDatePickerProps {
   value: string;
   onChange: (value: string) => void;
+  onEstimatorSelected?: (estimatorId: string, estimatorName: string) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
