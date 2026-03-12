@@ -328,7 +328,12 @@ export function NewDealModal() {
                 return isBudgetStage ? (
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
-                    <DatePickerField value={form.target_delivery_date} onChange={(v) => setForm({ ...form, target_delivery_date: v })} placeholder="Selecionar data" />
+                    <SmartDatePicker
+                      value={form.target_delivery_date}
+                      onChange={(v) => setForm({ ...form, target_delivery_date: v })}
+                      estimatorId={form.orcamentista_id || undefined}
+                      placeholder="Selecionar data"
+                    />
                   </div>
                 ) : null;
               })()}

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePickerField } from '@/components/DatePickerField';
+import { SmartDatePicker } from '@/components/SmartDatePicker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -79,7 +79,6 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
     const { error } = await supabase.from('deals').update(updateData).eq('id', deal.id);
     if (error) { toast.error('Erro ao aprovar'); setLoading(false); return; }
 
-    // Notify owner
     await supabase.from('notifications').insert({
       user_id: deal.owner_id,
       type: 'approval_result',
@@ -89,7 +88,6 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
       entity_id: deal.id,
     } as any);
 
-    // Add orcamentista as follower
     if (selectedOrcamentista) {
       await supabase.from('deal_followers').insert({ deal_id: deal.id, user_id: selectedOrcamentista } as any);
     }
@@ -153,7 +151,7 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
             </div>
             {deal.target_delivery_date && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Calendar className="h-3 w-3" />Data de Entrega Desejada: <span className="font-semibold text-foreground">{new Date(deal.target_delivery_date).toLocaleDateString('pt-BR')}</span>
+                <Calendar className="h-3 w-3" />Data Solicitada: <span className="font-semibold text-foreground">{new Date(deal.target_delivery_date).toLocaleDateString('pt-BR')}</span>
               </p>
             )}
             {deal.scope && (
@@ -185,11 +183,28 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Smart date picker: Approve with date awareness */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Aprovar Data de Entrega</Label>
+                <SmartDatePicker
+                  value={deal.target_delivery_date || ''}
+                  onChange={() => {}}
+                  estimatorId={selectedOrcamentista || deal.orcamentista_id || undefined}
+                  placeholder="Data solicitada"
+                  disabled
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Proponha uma nova data de entrega realista:</p>
-              <DatePickerField value={newDate} onChange={setNewDate} placeholder="Nova data de entrega" />
+              <SmartDatePicker
+                value={newDate}
+                onChange={setNewDate}
+                estimatorId={selectedOrcamentista || deal.orcamentista_id || undefined}
+                placeholder="Nova data de entrega"
+              />
             </div>
           )}
         </div>
@@ -201,7 +216,7 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
                 <XCircle className="h-4 w-4 mr-1" />Reprovar/Alterar Data
               </Button>
               <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleApprove} disabled={loading}>
-                <CheckCircle2 className="h-4 w-4 mr-1" />{loading ? 'Aprovando...' : 'Aprovar'}
+                <CheckCircle2 className="h-4 w-4 mr-1" />{loading ? 'Aprovando...' : 'Aprovar Data'}
               </Button>
             </>
           ) : (
