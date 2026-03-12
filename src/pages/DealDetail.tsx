@@ -142,8 +142,9 @@ export default function DealDetail() {
       title: `Alterou "${label}"`,
       description: `De "${oldValue || '(vazio)'}" para "${newValue || '(vazio)'}"`,
       company_id: deal?.company_id || null,
+      deal_id: id || null,
       created_by: user.id,
-    });
+    } as any);
     invalidateAll();
     toast.success('Atualizado!');
   };
