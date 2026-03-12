@@ -629,7 +629,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         }
 
         // 3. Import Deal
-        if (importDeals && vals.deal_name) {
+        const shouldSkipDeal = skipDeals.has(`${rowNum}`);
+        if (importDeals && vals.deal_name && !shouldSkipDeal) {
           if (!companyId && vals.company_name) {
             const { data: newC } = await supabase.from('companies').insert({ name: vals.company_name, created_by: user.id }).select('id').single();
             if (newC) { companyId = newC.id; companyMap.set(vals.company_name.toLowerCase(), newC.id); }
