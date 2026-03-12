@@ -917,7 +917,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={reset}>Voltar</Button>
-                <Button onClick={handleImport} disabled={!canImport}>
+                <Button onClick={handleCheckDuplicates} disabled={!canImport}>
                   Importar {rows.length} registros
                 </Button>
               </div>
