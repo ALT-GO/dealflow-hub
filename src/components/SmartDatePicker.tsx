@@ -83,7 +83,7 @@ function getEstimatorLoadsForDate(
   return { busyEstimators, freeEstimators };
 }
 
-export function SmartDatePicker({ value, onChange, placeholder = 'Selecionar data', className, disabled }: SmartDatePickerProps) {
+export function SmartDatePicker({ value, onChange, onEstimatorSelected, placeholder = 'Selecionar data', className, disabled }: SmartDatePickerProps) {
   const date = value ? parseISO(value) : undefined;
   const { estimators, dealSpans } = useGlobalEstimatorAvailability();
   const today = useMemo(() => startOfDay(new Date()), []);
