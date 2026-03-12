@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,11 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, Send, CalendarRange } from 'lucide-react';
+import { CheckCircle2, Send, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import EstimatorGantt from '@/components/EstimatorGantt';
 import { SmartDatePicker } from '@/components/SmartDatePicker';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const BUSINESS_AREAS = [
   'Infraestrutura Predial',
@@ -28,14 +28,23 @@ const STATES = [
 
 const TIPO_NEGOCIO_OPTIONS = ['Novo Cliente', 'Cliente Existente'];
 
+type ContactResult = {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string | null;
+  company_id: string;
+  companies: { name: string; phone: string | null } | null;
+};
+
 export default function ProposalRequest() {
   const [form, setForm] = useState({
     requester_name: '', requester_email: '',
     client_name: '', client_role: '', client_email: '', client_phone: '', client_company: '',
-    business_area: '', address: '', state: '', team_type: '', project_phase: '',
+    client_address: '',
+    business_area: '', state: '', team_type: '',
     has_team: false, team_description: '', qualification_level: '', target_delivery_date: '',
     orcamentista_id: '',
-    // New fields
     carbono_zero: false,
     cortex: false,
     endereco_execucao: '',
@@ -46,9 +55,44 @@ export default function ProposalRequest() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [showGantt, setShowGantt] = useState(false);
+
+  // Smart autocomplete state
+  const [contactSearch, setContactSearch] = useState('');
+  const [contactResults, setContactResults] = useState<ContactResult[]>([]);
+  const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
+
+  // Search contacts as user types
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (contactSearch.trim().length < 2) {
+      setContactResults([]);
+      return;
+    }
+    searchTimeout.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('contacts')
+        .select('id, name, email, role, company_id, companies(name, phone)')
+        .ilike('name', `%${contactSearch.trim()}%`)
+        .limit(8);
+      if (data) setContactResults(data as ContactResult[]);
+    }, 300);
+  }, [contactSearch]);
+
+  const handleSelectContact = (contact: ContactResult) => {
+    setForm(prev => ({
+      ...prev,
+      client_name: contact.name,
+      client_email: contact.email || '',
+      client_role: contact.role || '',
+      client_company: contact.companies?.name || '',
+      client_phone: contact.companies?.phone || '',
+    }));
+    setContactSearch(contact.name);
+    setContactPopoverOpen(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,9 +185,51 @@ export default function ProposalRequest() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="client_name">Nome *</Label>
-                  <Input id="client_name" value={form.client_name} onChange={e => set('client_name', e.target.value)} maxLength={100} />
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Nome do Cliente *</Label>
+                  <Popover open={contactPopoverOpen} onOpenChange={setContactPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          value={contactSearch || form.client_name}
+                          onChange={e => {
+                            setContactSearch(e.target.value);
+                            set('client_name', e.target.value);
+                            if (e.target.value.trim().length >= 2) setContactPopoverOpen(true);
+                          }}
+                          onFocus={() => { if (contactSearch.trim().length >= 2) setContactPopoverOpen(true); }}
+                          placeholder="Digite para buscar contato existente..."
+                          className="pl-9"
+                          maxLength={100}
+                        />
+                      </div>
+                    </PopoverTrigger>
+                    {contactResults.length > 0 && (
+                      <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" sideOffset={4}>
+                        <Command>
+                          <CommandList>
+                            <CommandGroup heading="Contatos encontrados">
+                              {contactResults.map(c => (
+                                <CommandItem
+                                  key={c.id}
+                                  onSelect={() => handleSelectContact(c)}
+                                  className="cursor-pointer"
+                                >
+                                  <div>
+                                    <p className="text-sm font-medium">{c.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {c.companies?.name || 'Sem empresa'}{c.email ? ` · ${c.email}` : ''}
+                                    </p>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="client_role">Cargo</Label>
@@ -155,11 +241,15 @@ export default function ProposalRequest() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="client_phone">Telefone</Label>
-                  <Input id="client_phone" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} maxLength={20} />
+                  <Input id="client_phone" value={form.client_phone} onChange={e => set('client_phone', e.target.value)} maxLength={20} placeholder="(00) 00000-0000" />
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="client_company">Empresa *</Label>
                   <Input id="client_company" value={form.client_company} onChange={e => set('client_company', e.target.value)} maxLength={100} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="client_address">Endereço</Label>
+                  <Input id="client_address" value={form.client_address} onChange={e => set('client_address', e.target.value)} maxLength={300} placeholder="Endereço da empresa" />
                 </div>
               </div>
             </CardContent>
@@ -201,14 +291,6 @@ export default function ProposalRequest() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="address">Endereço</Label>
-                  <Input id="address" value={form.address} onChange={e => set('address', e.target.value)} maxLength={200} />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="endereco_execucao">Endereço de Execução dos Serviços</Label>
-                  <Input id="endereco_execucao" value={form.endereco_execucao} onChange={e => set('endereco_execucao', e.target.value)} maxLength={300} />
-                </div>
-                <div className="space-y-1.5">
                   <Label>Equipe</Label>
                   <Select value={form.team_type} onValueChange={v => set('team_type', v)}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -218,9 +300,9 @@ export default function ProposalRequest() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="project_phase">Fase do Projeto</Label>
-                  <Input id="project_phase" value={form.project_phase} onChange={e => set('project_phase', e.target.value)} maxLength={100} />
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="endereco_execucao">Endereço de Execução dos Serviços</Label>
+                  <Input id="endereco_execucao" value={form.endereco_execucao} onChange={e => set('endereco_execucao', e.target.value)} maxLength={300} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Nível de Qualificação</Label>
@@ -246,7 +328,7 @@ export default function ProposalRequest() {
                   </div>
                 )}
 
-                {/* New toggles */}
+                {/* Toggles */}
                 <div className="space-y-1.5 flex items-end gap-3">
                   <div className="flex items-center gap-2">
                     <Switch checked={form.carbono_zero} onCheckedChange={v => set('carbono_zero', v)} />
@@ -281,22 +363,6 @@ export default function ProposalRequest() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-
-          {/* Gantt mini */}
-          <Card>
-            <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowGantt(!showGantt)}>
-              <div className="flex items-center gap-2">
-                <CalendarRange className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base">Ocupação da Equipe de Orçamentistas</CardTitle>
-              </div>
-              <CardDescription>Clique para {showGantt ? 'ocultar' : 'visualizar'} a disponibilidade</CardDescription>
-            </CardHeader>
-            {showGantt && (
-              <CardContent>
-                <EstimatorGantt mini />
-              </CardContent>
-            )}
           </Card>
 
           {error && (
