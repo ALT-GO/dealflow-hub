@@ -162,7 +162,14 @@ export function FunnelTab() {
                 <span className="text-sm font-medium text-foreground w-8">{index + 1}.</span>
                 <Badge className={`${stage.color} border-0 text-xs`}>{stage.label}</Badge>
                 <Badge className={`${STAGE_TYPE_COLORS[stage.stage_type]} border-0 text-[10px]`}>{STAGE_TYPE_LABELS[stage.stage_type]}</Badge>
-                <code className="text-xs text-muted-foreground font-mono ml-auto mr-2">{stage.key}</code>
+              const vis = rolesToVisibility(stage.allowed_roles || ['admin','gerencia','orcamentista','vendedor']);
+              return (
+                <Badge className={`text-[10px] border-0 ${vis === 'vendas' ? 'bg-blue-100 text-blue-700' : vis === 'orcamentos' ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground'}`}>
+                  {VISIBILITY_OPTIONS.find(v => v.value === vis)?.label}
+                </Badge>
+              );
+            })()}
+            <code className="text-xs text-muted-foreground font-mono ml-auto mr-2">{stage.key}</code>
                 {stage.is_system && <Badge variant="outline" className="text-[10px]">Sistema</Badge>}
                 {role === 'admin' && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
