@@ -2,32 +2,53 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { format, addDays, startOfWeek, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
 interface EstimatorGanttProps {
   mini?: boolean;
 }
 
-const DEAL_COLORS = [
-  'hsl(190 35% 50% / 0.7)',
-  'hsl(150 40% 45% / 0.7)',
-  'hsl(38 85% 50% / 0.65)',
-  'hsl(260 40% 55% / 0.6)',
-  'hsl(340 50% 50% / 0.6)',
-];
+type GanttDeal = {
+  id: string;
+  name: string;
+  proposal_id: string | null;
+  owner_id: string;
+  orcamentista_id: string | null;
+  budget_start_date: string | null;
+  proposal_delivery_date: string | null;
+  target_delivery_date: string | null;
+  created_at: string;
+  close_date: string | null;
+  stage: string;
+  value: number | null;
+};
+
+const STAGE_COLORS: Record<string, string> = {
+  prospeccao: 'hsl(220 60% 55%)',
+  qualificacao: 'hsl(260 45% 55%)',
+  proposta: 'hsl(38 85% 50%)',
+  negociacao: 'hsl(190 50% 45%)',
+  orcamento: 'hsl(150 45% 42%)',
+  fechamento: 'hsl(340 55% 50%)',
+};
+const DEFAULT_STAGE_COLOR = 'hsl(210 15% 55%)';
 
 export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
   const { user, role } = useAuth();
+  const { data: funnelStages = [] } = useFunnelStages();
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const totalDays = mini ? 21 : 56;
   const today = useMemo(() => new Date(), []);
   const startDate = useMemo(() => addDays(startOfWeek(today, { weekStartsOn: 1 }), -7), [today]);
   const days = useMemo(() => Array.from({ length: totalDays }, (_, i) => addDays(startDate, i)), [startDate, totalDays]);
 
-  // Fetch user's team membership for gerência filtering
   const { data: userTeamIds = [] } = useQuery({
     queryKey: ['user-teams', user?.id],
     queryFn: async () => {
@@ -38,25 +59,18 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     enabled: !!user && role === 'gerencia',
   });
 
-  // Fetch all profiles + roles, then filter by role-based visibility
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
     queryKey: ['gantt-users', role, user?.id, userTeamIds],
     queryFn: async () => {
       if (!user) return [];
-
-      // Vendedor/Orcamentista: only self
       if (role === 'vendedor' || role === 'orcamentista') {
         const { data } = await supabase.from('profiles').select('user_id, full_name').eq('user_id', user.id);
         return data || [];
       }
-
-      // Admin: all users
       if (role === 'admin') {
         const { data } = await supabase.from('profiles').select('user_id, full_name');
         return data || [];
       }
-
-      // Gerência: users in same team(s)
       if (role === 'gerencia' && userTeamIds.length > 0) {
         const { data: members } = await supabase.from('team_members').select('user_id').in('team_id', userTeamIds);
         const memberIds = [...new Set((members || []).map(m => m.user_id))];
@@ -64,30 +78,28 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
         const { data } = await supabase.from('profiles').select('user_id, full_name').in('user_id', memberIds);
         return data || [];
       }
-
       return [];
     },
     enabled: !!user,
   });
 
-  // Fetch deals with date ranges
-  const { data: deals = [], isLoading: loadingDeals } = useQuery({
+  const { data: deals = [], isLoading: loadingDeals } = useQuery<GanttDeal[]>({
     queryKey: ['gantt-deals'],
     queryFn: async () => {
       const { data } = await supabase
         .from('deals')
         .select('id, name, proposal_id, owner_id, orcamentista_id, budget_start_date, proposal_delivery_date, target_delivery_date, created_at, close_date, stage, value');
-      return (data || []) as any[];
+      return (data || []) as GanttDeal[];
     },
   });
 
   const isLoading = loadingUsers || loadingDeals;
-  const userIds = allUsers.map(u => u.user_id);
 
   const getDealsForUser = (userId: string) =>
-    deals.filter(d => d.owner_id === userId || d.orcamentista_id === userId);
+    deals.filter(d => (d.orcamentista_id === userId || d.owner_id === userId) &&
+      !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage));
 
-  const getDealSpan = (deal: any) => {
+  const getDealSpan = (deal: GanttDeal) => {
     const dealStart = deal.budget_start_date ? parseISO(deal.budget_start_date) : parseISO(deal.created_at);
     const dealEnd = deal.proposal_delivery_date
       ? parseISO(deal.proposal_delivery_date)
@@ -99,9 +111,25 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     return { start: dealStart, end: dealEnd };
   };
 
+  const getStageColor = (stageKey: string) => {
+    // Try exact match first
+    if (STAGE_COLORS[stageKey]) return STAGE_COLORS[stageKey];
+    // Try partial match
+    for (const [key, color] of Object.entries(STAGE_COLORS)) {
+      if (stageKey.includes(key)) return color;
+    }
+    // Use funnel stage color CSS class as fallback info
+    const fs = funnelStages.find(s => s.key === stageKey);
+    if (fs) {
+      const idx = funnelStages.indexOf(fs);
+      const hues = [220, 260, 38, 190, 150, 340, 280, 30];
+      return `hsl(${hues[idx % hues.length]} 50% 50%)`;
+    }
+    return DEFAULT_STAGE_COLOR;
+  };
+
   const todayOffset = differenceInDays(today, startDate);
 
-  // Week labels
   const weekLabels = useMemo(() => {
     const labels: { label: string; span: number; startIdx: number }[] = [];
     let i = 0;
@@ -118,6 +146,12 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     return labels;
   }, [days]);
 
+  const formatCurrency = (val: number | null) =>
+    val != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val) : '';
+
+  const toggleUser = (userId: string) =>
+    setCollapsed(prev => ({ ...prev, [userId]: !prev[userId] }));
+
   if (isLoading) {
     return <div className="space-y-2 p-4"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /></div>;
   }
@@ -126,11 +160,32 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     return <p className="text-sm text-muted-foreground p-4">Nenhum membro encontrado para exibir.</p>;
   }
 
-  const nameColWidth = mini ? 'w-28 min-w-28' : 'w-44 min-w-44';
+  const nameColWidth = mini ? 'w-32 min-w-32' : 'w-52 min-w-52';
+  const ROW_H = mini ? 24 : 32;
+
+  // Build legend from active stages
+  const activeStageKeys = [...new Set(deals.filter(d => !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage)).map(d => d.stage))];
+  const legendItems = activeStageKeys.map(key => {
+    const fs = funnelStages.find(s => s.key === key);
+    return { key, label: fs?.label || key, color: getStageColor(key) };
+  });
 
   return (
     <TooltipProvider>
-      <div className={`overflow-x-auto rounded-xl border border-border bg-card ${mini ? 'max-h-64' : ''}`}>
+      <div className={`overflow-x-auto rounded-xl border border-border bg-card ${mini ? 'max-h-72' : ''}`}>
+        {/* Stage color legend */}
+        {!mini && legendItems.length > 0 && (
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-muted/20 flex-wrap">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Etapas:</span>
+            {legendItems.map(l => (
+              <span key={l.key} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
+                {l.label}
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="min-w-[800px]">
           {/* Week header */}
           {!mini && (
@@ -138,11 +193,7 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
               <div className={`${nameColWidth} p-2 border-r border-border flex-shrink-0`} />
               <div className="flex flex-1">
                 {weekLabels.map((wk, idx) => (
-                  <div
-                    key={idx}
-                    className="text-[10px] font-semibold text-muted-foreground text-center border-r border-border py-1.5"
-                    style={{ flex: wk.span }}
-                  >
+                  <div key={idx} className="text-[10px] font-semibold text-muted-foreground text-center border-r border-border py-1.5" style={{ flex: wk.span }}>
                     {wk.label}
                   </div>
                 ))}
@@ -153,19 +204,14 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
           {/* Day header */}
           <div className="flex border-b border-border sticky top-0 bg-card z-10">
             <div className={`${nameColWidth} p-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-r border-border flex-shrink-0`}>
-              Membro
+              Orçamentista / Negócio
             </div>
             <div className="flex flex-1">
               {days.map((day, i) => {
                 const isToday = differenceInDays(day, today) === 0;
-                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                const isWkend = day.getDay() === 0 || day.getDay() === 6;
                 return (
-                  <div
-                    key={i}
-                    className={`flex-1 min-w-5 text-center text-[9px] py-1.5 border-r border-border last:border-r-0 ${
-                      isToday ? 'bg-primary/15 font-bold text-primary' : isWeekend ? 'bg-muted/40 text-muted-foreground/60' : 'text-muted-foreground'
-                    }`}
-                  >
+                  <div key={i} className={`flex-1 min-w-5 text-center text-[9px] py-1.5 border-r border-border last:border-r-0 ${isToday ? 'bg-primary/15 font-bold text-primary' : isWkend ? 'bg-muted/40 text-muted-foreground/60' : 'text-muted-foreground'}`}>
                     <div>{format(day, 'EEE', { locale: ptBR }).charAt(0).toUpperCase()}</div>
                     <div className="font-semibold">{format(day, 'd')}</div>
                   </div>
@@ -174,85 +220,109 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
             </div>
           </div>
 
-          {/* Rows */}
+          {/* User groups */}
           {allUsers.map((usr) => {
             const userDeals = getDealsForUser(usr.user_id);
-            const activeCount = userDeals.filter(d => !['fechado', 'perdido', '__won__', '__lost__'].includes(d.stage)).length;
+            const isCollapsed = collapsed[usr.user_id] ?? false;
 
             return (
-              <div key={usr.user_id} className="flex border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors group">
-                <div className={`${nameColWidth} p-2 text-xs font-medium truncate border-r border-border flex-shrink-0 flex items-center gap-2`}>
-                  <span className="truncate">{usr.full_name || 'Sem nome'}</span>
-                  {!mini && (
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
-                      {activeCount}
+              <div key={usr.user_id}>
+                {/* User header row */}
+                <div
+                  className="flex border-b border-border bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => toggleUser(usr.user_id)}
+                >
+                  <div className={`${nameColWidth} px-2 py-1.5 text-xs font-semibold border-r border-border flex-shrink-0 flex items-center gap-1.5`}>
+                    {isCollapsed ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    <span className="truncate text-foreground">{usr.full_name || 'Sem nome'}</span>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 shrink-0 ml-auto">
+                      {userDeals.length}
                     </Badge>
-                  )}
+                  </div>
+                  <div className="flex flex-1 relative" style={{ height: ROW_H }}>
+                    {days.map((day, i) => {
+                      const isWkend = day.getDay() === 0 || day.getDay() === 6;
+                      return <div key={i} className={`flex-1 min-w-5 border-r border-border/30 last:border-r-0 ${isWkend ? 'bg-muted/20' : ''}`} />;
+                    })}
+                    {todayOffset >= 0 && todayOffset < totalDays && (
+                      <div className="absolute top-0 bottom-0 w-[2px] bg-primary z-20 pointer-events-none" style={{ left: `${((todayOffset + 0.5) / totalDays) * 100}%` }} />
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-1 relative" style={{ minHeight: mini ? 28 : 40 }}>
-                  {/* Grid cells */}
-                  {days.map((day, i) => {
-                    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                    return (
-                      <div key={i} className={`flex-1 min-w-5 border-r border-border/50 last:border-r-0 ${isWeekend ? 'bg-muted/20' : ''}`} />
-                    );
-                  })}
 
-                  {/* Today marker */}
-                  {todayOffset >= 0 && todayOffset < totalDays && (
-                    <div
-                      className="absolute top-0 bottom-0 w-[2px] bg-primary z-20 pointer-events-none"
-                      style={{ left: `${((todayOffset + 0.5) / totalDays) * 100}%` }}
-                    />
-                  )}
+                {/* Deal rows - one per deal, non-overlapping */}
+                {!isCollapsed && userDeals.map((deal) => {
+                  const { start, end } = getDealSpan(deal);
+                  const startOffset = Math.max(0, differenceInDays(start, startDate));
+                  const endOffset = Math.min(totalDays - 1, differenceInDays(end, startDate));
+                  const visible = endOffset >= 0 && startOffset < totalDays;
+                  const leftPct = (startOffset / totalDays) * 100;
+                  const widthPct = ((endOffset - startOffset + 1) / totalDays) * 100;
+                  const color = getStageColor(deal.stage);
+                  const stageLabel = funnelStages.find(s => s.key === deal.stage)?.label || deal.stage;
 
-                  {/* Deal blocks - stacked */}
-                  {userDeals.map((deal, dIdx) => {
-                    const { start, end } = getDealSpan(deal);
-                    const startOffset = Math.max(0, differenceInDays(start, startDate));
-                    const endOffset = Math.min(totalDays - 1, differenceInDays(end, startDate));
-                    if (endOffset < 0 || startOffset >= totalDays) return null;
-                    const leftPct = (startOffset / totalDays) * 100;
-                    const widthPct = ((endOffset - startOffset + 1) / totalDays) * 100;
-                    const color = DEAL_COLORS[dIdx % DEAL_COLORS.length];
-                    const rowHeight = mini ? 20 : 28;
-                    const topOffset = mini ? 4 : 6;
+                  return (
+                    <div key={deal.id} className="flex border-b border-border/50 hover:bg-muted/10 transition-colors">
+                      <div className={`${nameColWidth} px-2 py-0.5 text-[11px] border-r border-border flex-shrink-0 flex items-center gap-1.5 pl-7`}>
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="truncate text-muted-foreground">{deal.proposal_id || deal.name}</span>
+                      </div>
+                      <div className="flex flex-1 relative" style={{ height: ROW_H }}>
+                        {days.map((day, i) => {
+                          const isWkend = day.getDay() === 0 || day.getDay() === 6;
+                          return <div key={i} className={`flex-1 min-w-5 border-r border-border/30 last:border-r-0 ${isWkend ? 'bg-muted/10' : ''}`} />;
+                        })}
+                        {todayOffset >= 0 && todayOffset < totalDays && (
+                          <div className="absolute top-0 bottom-0 w-[2px] bg-primary/40 z-20 pointer-events-none" style={{ left: `${((todayOffset + 0.5) / totalDays) * 100}%` }} />
+                        )}
+                        {visible && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className="absolute rounded cursor-pointer hover:brightness-110 transition-all shadow-sm"
+                                style={{
+                                  left: `${leftPct}%`,
+                                  width: `${Math.max(widthPct, 1.5)}%`,
+                                  top: 4,
+                                  height: ROW_H - 8,
+                                  backgroundColor: color,
+                                }}
+                              >
+                                {widthPct > 6 && (
+                                  <span className="text-[10px] px-1.5 truncate block text-white font-medium drop-shadow-sm" style={{ lineHeight: `${ROW_H - 8}px` }}>
+                                    {deal.proposal_id || deal.name}
+                                  </span>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              <p className="font-semibold text-sm">{deal.proposal_id || deal.name}</p>
+                              <p className="text-xs text-muted-foreground">{stageLabel}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(start, 'dd/MM/yyyy')} — {format(end, 'dd/MM/yyyy')}
+                              </p>
+                              {deal.value != null && deal.value > 0 && (
+                                <p className="text-xs font-semibold text-primary mt-0.5">{formatCurrency(deal.value)}</p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
 
-                    return (
-                      <Tooltip key={deal.id}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className="absolute rounded-md cursor-pointer hover:brightness-110 transition-all shadow-sm"
-                            style={{
-                              left: `${leftPct}%`,
-                              width: `${Math.max(widthPct, 1.5)}%`,
-                              top: topOffset,
-                              height: rowHeight,
-                              backgroundColor: color,
-                            }}
-                          >
-                            {!mini && widthPct > 5 && (
-                              <span className="text-[10px] px-1.5 truncate block leading-7 text-white font-medium drop-shadow-sm">
-                                {deal.proposal_id || deal.name}
-                              </span>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <p className="font-semibold text-sm">{deal.proposal_id || deal.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(start, 'dd/MM/yyyy')} — {format(end, 'dd/MM/yyyy')}
-                          </p>
-                          {deal.value > 0 && (
-                            <p className="text-xs font-semibold text-primary mt-0.5">
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deal.value)}
-                            </p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
+                {/* Empty state for user with no deals */}
+                {!isCollapsed && userDeals.length === 0 && (
+                  <div className="flex border-b border-border/50">
+                    <div className={`${nameColWidth} px-2 py-1 text-[11px] text-muted-foreground/50 border-r border-border flex-shrink-0 pl-7`}>
+                      Sem negócios ativos
+                    </div>
+                    <div className="flex flex-1" style={{ height: ROW_H }}>
+                      {days.map((_, i) => <div key={i} className="flex-1 min-w-5 border-r border-border/30 last:border-r-0" />)}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
