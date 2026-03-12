@@ -82,6 +82,7 @@ export default function Performance() {
   // Modals
   const [showNoTasks, setShowNoTasks] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
+  const [showNoActivity, setShowNoActivity] = useState(false);
 
   const { data: allDeals = [] } = useQuery({
     queryKey: ['perf-deals'],
