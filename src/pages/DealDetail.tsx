@@ -340,9 +340,25 @@ export default function DealDetail() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {dealAny.business_area && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Área de Negócio</p>
+                        <Badge variant="secondary" className="text-xs">{BUSINESS_AREA_LABELS[dealAny.business_area] || dealAny.business_area}</Badge>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground text-xs">Data de Fechamento</p>
                       <InlineEdit value={deal.close_date || ''} onSave={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)} icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />} />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Data de Entrega Desejada</p>
+                      <InlineEdit value={dealAny.target_delivery_date || ''} onSave={(v) => handleInlineEdit('target_delivery_date', 'Data de Entrega Desejada', dealAny.target_delivery_date || '', v)} icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />} />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Status de Aprovação</p>
+                      <Badge variant={dealAny.approval_status === 'approved' ? 'default' : dealAny.approval_status === 'rejected' ? 'destructive' : 'secondary'} className="text-xs">
+                        {dealAny.approval_status === 'approved' ? 'Aprovado' : dealAny.approval_status === 'rejected' ? 'Reprovado' : 'Pendente'}
+                      </Badge>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Proprietário</p>
