@@ -18,29 +18,36 @@ export default function Dashboard() {
   const [filters, setFilters] = useState<Filters>({});
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
+  // Helper to apply filters to a deals query
+  const applyFilters = (query: any, f: Filters) => {
+    let q = query;
+    if (f.minValue) q = q.gte('value', Number(f.minValue));
+    if (f.maxValue) q = q.lte('value', Number(f.maxValue));
+    if (f.createdAfter) q = q.gte('created_at', f.createdAfter);
+    if (f.createdBefore) q = q.lte('created_at', f.createdBefore);
+    if (f.ownerId) q = q.eq('owner_id', f.ownerId);
+    return q;
+  };
+
   const { data: stats } = useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', filters],
     queryFn: async () => {
-      const [companiesRes, contactsRes, dealsRes] = await Promise.all([
-        supabase.from('companies').select('id', { count: 'exact', head: true }),
-        supabase.from('contacts').select('id', { count: 'exact', head: true }),
-        supabase.from('deals').select('value'),
-      ]);
-      const totalValue = (dealsRes.data || []).reduce((s, d) => s + (d.value || 0), 0);
+      const dealsQuery = applyFilters(supabase.from('deals').select('value'), filters);
+      const { data: dealsData } = await dealsQuery;
       return {
-        companies: companiesRes.count || 0,
-        contacts: contactsRes.count || 0,
-        deals: dealsRes.data?.length || 0,
-        totalValue,
+        deals: dealsData?.length || 0,
       };
     },
   });
 
   const { data: dealMetrics } = useQuery({
-    queryKey: ['deal-metrics'],
+    queryKey: ['deal-metrics', filters],
     queryFn: async () => {
-      const { data: deals } = await supabase.from('deals').select('value, stage');
-      const { data: stages } = await supabase.from('funnel_stages').select('key, stage_type');
+      const dealsQuery = applyFilters(supabase.from('deals').select('value, stage'), filters);
+      const [{ data: deals }, { data: stages }] = await Promise.all([
+        dealsQuery,
+        supabase.from('funnel_stages').select('key, stage_type'),
+      ]);
       if (!deals || !stages) return null;
 
       const closedKeys = stages.filter(s => s.stage_type === 'won').map(s => s.key);
@@ -53,7 +60,6 @@ export default function Dashboard() {
       const sum = (arr: typeof deals) => arr.reduce((s, d) => s + (d.value || 0), 0);
       const avg = (arr: typeof deals) => arr.length ? sum(arr) / arr.length : 0;
 
-      // Valor ponderado: peso por posição no funil (simplificado)
       const activeStages = stages
         .filter(s => s.stage_type === 'normal')
         .sort((a, b) => a.key.localeCompare(b.key));
