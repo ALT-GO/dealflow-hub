@@ -300,7 +300,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Fechado no Mês</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Fechado no Mês <InfoTip text="Valor total dos negócios fechados (ganhos) no mês atual. Considera apenas negócios no estágio 'Fechado'." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{formatCurrency(closedValue)}</p>
               </div>
             </div>
