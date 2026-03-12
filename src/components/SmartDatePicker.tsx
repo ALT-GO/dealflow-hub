@@ -86,7 +86,10 @@ function getEstimatorLoadsForDate(
 
 export function SmartDatePicker({ value, onChange, onEstimatorSelected, placeholder = 'Selecionar data', className, disabled }: SmartDatePickerProps) {
   const date = value ? parseISO(value) : undefined;
-  const { estimators, dealSpans } = useGlobalEstimatorAvailability();
+  const { estimators: allEstimators, dealSpans } = useGlobalEstimatorAvailability();
+  const { data: budgetMembers = [] } = useBudgetTeamMembers();
+  const budgetUserIds = useMemo(() => new Set(budgetMembers.map(m => m.user_id)), [budgetMembers]);
+  const estimators = useMemo(() => allEstimators.filter(e => budgetUserIds.has(e.user_id)), [allEstimators, budgetUserIds]);
   const today = useMemo(() => startOfDay(new Date()), []);
   const estimatorIds = useMemo(() => estimators.map(e => e.user_id), [estimators]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(date);
