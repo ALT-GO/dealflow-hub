@@ -24,8 +24,12 @@ export default function Dashboard() {
     if (f.minValue) q = q.gte('value', Number(f.minValue));
     if (f.maxValue) q = q.lte('value', Number(f.maxValue));
     if (f.createdAfter) q = q.gte('created_at', f.createdAfter);
-    if (f.createdBefore) q = q.lte('created_at', f.createdBefore);
-    if (f.ownerId) q = q.eq('owner_id', f.ownerId);
+    if (f.createdBefore) q = q.lte('created_at', f.createdBefore + 'T23:59:59');
+    if (f.ownerId === 'mine' && user) q = q.eq('owner_id', user.id);
+    if ((f as any).minStars) {
+      const minScore = (Number((f as any).minStars) - 1) * 20 + 1;
+      q = q.gte('qualification_score', minScore);
+    }
     return q;
   };
 
