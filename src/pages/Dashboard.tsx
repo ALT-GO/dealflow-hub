@@ -45,8 +45,6 @@ export default function Dashboard() {
     { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
   ];
 
-  const effectiveFilters = onlyMine ? { ...filters, ownerId: 'mine' } : filters;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -95,18 +93,11 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Switch id="only-mine" checked={onlyMine} onCheckedChange={setOnlyMine} />
-            <Label htmlFor="only-mine" className="text-sm text-muted-foreground cursor-pointer">Minhas negociações</Label>
-          </div>
-        </div>
-        <div className="mt-4">
-          <AdvancedFilters
-            entityType="deals"
-            filters={effectiveFilters}
-            onFiltersChange={setFilters}
-          />
+        <AdvancedFilters
+          entityType="deals"
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
         </div>
         <div className="mt-4">
           {viewMode === 'kanban' ? (
