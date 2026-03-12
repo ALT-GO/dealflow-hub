@@ -88,17 +88,29 @@ export function TeamsTab() {
     },
   });
 
-  // Fetch teams
+  // Fetch/ensure hardcoded teams
   const { data: teams = [] } = useQuery({
     queryKey: ['teams'],
     queryFn: async () => {
       const { data: teamsData, error } = await supabase.from('teams').select('id, name, created_at');
       if (error) throw error;
+      // Auto-create hardcoded teams if missing
+      for (const teamName of HARDCODED_TEAMS) {
+        if (!(teamsData || []).find(t => t.name === teamName)) {
+          if (user) {
+            await supabase.from('teams').insert({ name: teamName, created_by: user.id });
+          }
+        }
+      }
+      // Re-fetch after potential inserts
+      const { data: finalTeams } = await supabase.from('teams').select('id, name, created_at');
       const { data: teamMembers } = await supabase.from('team_members').select('team_id');
-      return (teamsData || []).map((t) => ({
-        ...t,
-        member_count: (teamMembers || []).filter((m: any) => m.team_id === t.id).length,
-      })) as Team[];
+      return ((finalTeams || [])
+        .filter(t => HARDCODED_TEAMS.includes(t.name))
+        .map((t) => ({
+          ...t,
+          member_count: (teamMembers || []).filter((m: any) => m.team_id === t.id).length,
+        }))) as Team[];
     },
   });
 
