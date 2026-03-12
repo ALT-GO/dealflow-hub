@@ -43,6 +43,21 @@ const DEAL_FIELDS = [
   { value: 'deal_contract_type', label: 'Tipo de Contrato' },
   { value: 'deal_scope', label: 'Escopo' },
   { value: 'deal_close_date', label: 'Data de Fechamento' },
+  { value: 'deal_target_delivery_date', label: 'Data de Entrega Alvo' },
+  { value: 'deal_proposal_delivery_date', label: 'Data de Entrega da Proposta' },
+  { value: 'deal_budget_start_date', label: 'Data Início Orçamento' },
+  { value: 'deal_vendedor_externo', label: 'Vendedor Externo' },
+  { value: 'deal_tipo_negocio', label: 'Tipo de Negócio' },
+  { value: 'deal_endereco_execucao', label: 'Endereço de Execução' },
+  { value: 'deal_state', label: 'Estado (UF)' },
+  { value: 'deal_team_type', label: 'Tipo de Equipe' },
+  { value: 'deal_qualification_level', label: 'Nível de Qualificação' },
+  { value: 'deal_carbono_zero', label: 'Carbono Zero?' },
+  { value: 'deal_cortex', label: 'Cortex?' },
+  { value: 'deal_estudo_equipe', label: 'Cliente possui equipe?' },
+  { value: 'deal_profit_margin', label: 'Margem de Lucro (%)' },
+  { value: 'deal_origin_id', label: 'Origem (ID)' },
+  { value: 'deal_loss_reason', label: 'Motivo de Perda' },
 ];
 
 const ALL_FIELDS = [
@@ -71,6 +86,20 @@ const DETECT_MAP: Record<string, string> = {
   'tipo de contrato': 'deal_contract_type', 'contrato': 'deal_contract_type',
   'escopo': 'deal_scope', 'scope': 'deal_scope',
   'data fechamento': 'deal_close_date', 'close date': 'deal_close_date', 'data de fechamento': 'deal_close_date',
+  'data entrega': 'deal_target_delivery_date', 'data de entrega': 'deal_target_delivery_date', 'prazo': 'deal_target_delivery_date',
+  'data proposta': 'deal_proposal_delivery_date', 'entrega proposta': 'deal_proposal_delivery_date',
+  'data inicio orcamento': 'deal_budget_start_date', 'inicio orcamento': 'deal_budget_start_date',
+  'vendedor externo': 'deal_vendedor_externo', 'vendedor': 'deal_vendedor_externo', 'parceiro': 'deal_vendedor_externo',
+  'tipo de negocio': 'deal_tipo_negocio', 'tipo negocio': 'deal_tipo_negocio',
+  'endereco execucao': 'deal_endereco_execucao', 'endereco de execucao': 'deal_endereco_execucao', 'local': 'deal_endereco_execucao',
+  'estado': 'deal_state', 'uf': 'deal_state', 'state': 'deal_state',
+  'tipo de equipe': 'deal_team_type', 'equipe': 'deal_team_type', 'team type': 'deal_team_type',
+  'nivel de qualificacao': 'deal_qualification_level', 'qualificacao': 'deal_qualification_level',
+  'carbono zero': 'deal_carbono_zero', 'carbono': 'deal_carbono_zero',
+  'cortex': 'deal_cortex',
+  'cliente possui equipe': 'deal_estudo_equipe', 'possui equipe': 'deal_estudo_equipe', 'estudo equipe': 'deal_estudo_equipe',
+  'margem': 'deal_profit_margin', 'margem de lucro': 'deal_profit_margin', 'profit margin': 'deal_profit_margin',
+  'motivo de perda': 'deal_loss_reason', 'motivo perda': 'deal_loss_reason', 'loss reason': 'deal_loss_reason',
 };
 
 function parseCSV(text: string): string[][] {
@@ -88,6 +117,11 @@ function parseCSV(text: string): string[][] {
     result.push(current.trim());
     return result;
   });
+}
+
+function parseBool(s: string): boolean {
+  const n = s.toLowerCase().trim();
+  return ['sim', 'yes', 'true', '1', 's', 'y', 'verdadeiro'].includes(n);
 }
 
 function normalize(s: string) {
@@ -281,6 +315,25 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             if (vals.deal_contract_type) dealRecord.contract_type = vals.deal_contract_type;
             if (vals.deal_scope) dealRecord.scope = vals.deal_scope;
             if (vals.deal_close_date) dealRecord.close_date = vals.deal_close_date;
+            if (vals.deal_target_delivery_date) dealRecord.target_delivery_date = vals.deal_target_delivery_date;
+            if (vals.deal_proposal_delivery_date) dealRecord.proposal_delivery_date = vals.deal_proposal_delivery_date;
+            if (vals.deal_budget_start_date) dealRecord.budget_start_date = vals.deal_budget_start_date;
+            if (vals.deal_vendedor_externo) dealRecord.vendedor_externo = vals.deal_vendedor_externo;
+            if (vals.deal_tipo_negocio) dealRecord.tipo_negocio = vals.deal_tipo_negocio;
+            if (vals.deal_endereco_execucao) dealRecord.endereco_execucao = vals.deal_endereco_execucao;
+            if (vals.deal_state) dealRecord.state = vals.deal_state;
+            if (vals.deal_team_type) dealRecord.team_type = vals.deal_team_type;
+            if (vals.deal_qualification_level) dealRecord.qualification_level = vals.deal_qualification_level;
+            if (vals.deal_estudo_equipe) dealRecord.estudo_equipe = vals.deal_estudo_equipe;
+            if (vals.deal_origin_id) dealRecord.origin_id = vals.deal_origin_id;
+            if (vals.deal_loss_reason) dealRecord.loss_reason = vals.deal_loss_reason;
+            if (vals.deal_profit_margin) {
+              const pm = parseFloat(vals.deal_profit_margin.replace(/[^\d.,]/g, '').replace(',', '.'));
+              if (!isNaN(pm)) dealRecord.profit_margin = pm;
+            }
+            // Boolean fields — parse "sim", "yes", "true", "1" as true
+            if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
+            if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
             const { error: dErr } = await supabase.from('deals').insert(dealRecord);
             if (dErr) {
               details.push(`Linha ${ri + 2}: Erro negócio "${vals.deal_name}"`);
