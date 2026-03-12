@@ -167,6 +167,7 @@ export type Database = {
           created_by: string | null
           domain: string | null
           id: string
+          last_activity_at: string | null
           name: string
           phone: string | null
           sector: string | null
@@ -177,6 +178,7 @@ export type Database = {
           created_by?: string | null
           domain?: string | null
           id?: string
+          last_activity_at?: string | null
           name: string
           phone?: string | null
           sector?: string | null
@@ -187,6 +189,7 @@ export type Database = {
           created_by?: string | null
           domain?: string | null
           id?: string
+          last_activity_at?: string | null
           name?: string
           phone?: string | null
           sector?: string | null
@@ -271,6 +274,7 @@ export type Database = {
           created_by: string | null
           email: string | null
           id: string
+          last_activity_at: string | null
           lead_source: string | null
           name: string
           role: string | null
@@ -283,6 +287,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          last_activity_at?: string | null
           lead_source?: string | null
           name: string
           role?: string | null
@@ -295,6 +300,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          last_activity_at?: string | null
           lead_source?: string | null
           name?: string
           role?: string | null
@@ -496,6 +502,7 @@ export type Database = {
           endereco_execucao: string | null
           estudo_equipe: string | null
           id: string
+          last_activity_at: string | null
           loss_reason: string | null
           market: string | null
           name: string
@@ -534,6 +541,7 @@ export type Database = {
           endereco_execucao?: string | null
           estudo_equipe?: string | null
           id?: string
+          last_activity_at?: string | null
           loss_reason?: string | null
           market?: string | null
           name: string
@@ -572,6 +580,7 @@ export type Database = {
           endereco_execucao?: string | null
           estudo_equipe?: string | null
           id?: string
+          last_activity_at?: string | null
           loss_reason?: string | null
           market?: string | null
           name?: string

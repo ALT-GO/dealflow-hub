@@ -33,6 +33,7 @@ const COMPANY_FIELDS = [
   { value: 'company_sector', label: 'Setor' },
   { value: 'company_phone', label: 'Telefone' },
   { value: 'company_created_at', label: 'Data de Criação (Empresa)' },
+  { value: 'company_last_activity_at', label: 'Data Última Atividade (Empresa)' },
 ];
 
 const CONTACT_FIELDS = [
@@ -42,6 +43,7 @@ const CONTACT_FIELDS = [
   { value: 'contact_lead_source', label: 'Origem do Lead' },
   { value: 'contact_status', label: 'Status' },
   { value: 'contact_created_at', label: 'Data de Criação (Contato)' },
+  { value: 'contact_last_activity_at', label: 'Data Última Atividade (Contato)' },
 ];
 
 const DEAL_FIELDS = [
@@ -71,6 +73,7 @@ const DEAL_FIELDS = [
   { value: 'deal_owner', label: 'Proprietário do Negócio' },
   { value: 'deal_orcamentista', label: 'Orçamentista Responsável' },
   { value: 'deal_created_at', label: 'Data de Criação (Negócio)' },
+  { value: 'deal_last_activity_at', label: 'Data Última Atividade (Negócio)' },
 ];
 
 const ALL_FIELDS = [
@@ -118,6 +121,8 @@ const DETECT_MAP: Record<string, string> = {
   'orcamentista': 'deal_orcamentista', 'estimator': 'deal_orcamentista', 'orcamentista responsavel': 'deal_orcamentista',
   'etapa do funil': 'deal_stage', 'funil': 'deal_stage', 'pipeline': 'deal_stage',
   'criado em': 'deal_created_at', 'data criacao': 'deal_created_at', 'created at': 'deal_created_at', 'data de criacao': 'deal_created_at',
+  'ultima atividade': 'deal_last_activity_at', 'data ultima atividade': 'deal_last_activity_at', 'last activity': 'deal_last_activity_at',
+  'ultima atividade empresa': 'company_last_activity_at', 'ultima atividade contato': 'contact_last_activity_at',
 };
 
 function parseCSV(text: string): string[][] {
@@ -367,6 +372,11 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               if (d) companyRecord.created_at = d;
               else allErrors.push({ row: rowNum, entity: 'Empresa', field: 'Data de Criação', message: `Formato de data inválido: "${vals.company_created_at}"` });
             }
+            if (vals.company_last_activity_at) {
+              const d = parseDate(vals.company_last_activity_at);
+              if (d) companyRecord.last_activity_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Empresa', field: 'Última Atividade', message: `Formato de data inválido: "${vals.company_last_activity_at}"` });
+            }
             const { data: newC, error: cErr } = await supabase.from('companies').insert(companyRecord).select('id').single();
             if (cErr) {
               rowHasError = true;
@@ -403,6 +413,11 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               const d = parseDate(vals.contact_created_at);
               if (d) contactRecord.created_at = d;
               else allErrors.push({ row: rowNum, entity: 'Contato', field: 'Data de Criação', message: `Formato de data inválido: "${vals.contact_created_at}"` });
+            }
+            if (vals.contact_last_activity_at) {
+              const d = parseDate(vals.contact_last_activity_at);
+              if (d) contactRecord.last_activity_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Contato', field: 'Última Atividade', message: `Formato de data inválido: "${vals.contact_last_activity_at}"` });
             }
             const { data: newContact, error: ctErr } = await supabase.from('contacts').insert(contactRecord).select('id').single();
             if (ctErr) {
@@ -466,6 +481,11 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
               const d = parseDate(vals.deal_created_at);
               if (d) dealRecord.created_at = d;
               else allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Data de Criação', message: `Formato de data inválido: "${vals.deal_created_at}"` });
+            }
+            if (vals.deal_last_activity_at) {
+              const d = parseDate(vals.deal_last_activity_at);
+              if (d) dealRecord.last_activity_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Última Atividade', message: `Formato de data inválido: "${vals.deal_last_activity_at}"` });
             }
 
             if (vals.deal_vendedor_externo) dealRecord.vendedor_externo = vals.deal_vendedor_externo;
