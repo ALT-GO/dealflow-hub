@@ -41,9 +41,9 @@ export default function EstimatorGantt({ mini = false }: EstimatorGanttProps) {
     queryFn: async () => {
       const { data } = await supabase
         .from('deals')
-        .select('id, name, proposal_id, orcamentista_id, created_at, close_date, stage, company_id')
+        .select('id, name, proposal_id, orcamentista_id, budget_start_date, proposal_delivery_date, created_at, close_date, stage, company_id')
         .not('orcamentista_id', 'is', null);
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
