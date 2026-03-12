@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -415,22 +415,46 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     return importCompanies || importContacts || importDeals;
   }, [importCompanies, importContacts, importDeals]);
 
-  // Group fields for the mapping UI
-  const getFieldsForSelect = () => {
-    const items: { value: string; label: string; group?: string }[] = [{ value: '', label: '— Ignorar —' }];
-    if (importCompanies) {
-      COMPANY_FIELDS.forEach(f => items.push({ ...f, group: 'Empresa' }));
+  // Similarity score between two strings (higher = more similar)
+  const similarity = (a: string, b: string): number => {
+    const na = normalize(a);
+    const nb = normalize(b);
+    if (na === nb) return 100;
+    if (nb.includes(na) || na.includes(nb)) return 80;
+    // Count common words
+    const wordsA = na.split(/\s+/);
+    const wordsB = nb.split(/\s+/);
+    let common = 0;
+    for (const w of wordsA) {
+      if (w.length < 2) continue;
+      if (wordsB.some(wb => wb.includes(w) || w.includes(wb))) common++;
     }
-    if (importContacts) {
-      CONTACT_FIELDS.forEach(f => items.push({ ...f, group: 'Contato' }));
+    if (common > 0) return 30 + common * 20;
+    // Check character overlap
+    let overlap = 0;
+    for (let i = 0; i < Math.min(na.length, nb.length); i++) {
+      if (na[i] === nb[i]) overlap++;
     }
-    if (importDeals) {
-      DEAL_FIELDS.forEach(f => items.push({ ...f, group: 'Negócio' }));
-    }
-    return items;
+    return Math.round((overlap / Math.max(na.length, nb.length)) * 30);
   };
 
-  const selectFields = getFieldsForSelect();
+  // Build grouped and sorted fields for a given header
+  const getFieldsForHeader = (headerText: string) => {
+    const groups = [
+      { key: 'Empresa', fields: COMPANY_FIELDS },
+      { key: 'Contato', fields: CONTACT_FIELDS },
+      { key: 'Negócio', fields: DEAL_FIELDS },
+    ];
+
+    // Sort groups: put the group with highest similarity first
+    const scoredGroups = groups.map(g => {
+      const maxScore = Math.max(...g.fields.map(f => similarity(headerText, f.label)));
+      const sortedFields = [...g.fields].sort((a, b) => similarity(headerText, b.label) - similarity(headerText, a.label));
+      return { ...g, fields: sortedFields, maxScore };
+    }).sort((a, b) => b.maxScore - a.maxScore);
+
+    return scoredGroups;
+  };
 
   return (
     <>
@@ -525,10 +549,16 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                                 <SelectValue placeholder="Selecione o campo" />
                               </SelectTrigger>
                               <SelectContent>
-                                {selectFields.map(f => (
-                                  <SelectItem key={f.value || 'ignore'} value={f.value || 'ignore'}>
-                                    {f.group ? `${f.group} → ${f.label}` : f.label}
-                                  </SelectItem>
+                                <SelectItem value="ignore">— Ignorar —</SelectItem>
+                                {getFieldsForHeader(h).map(group => (
+                                  <SelectGroup key={group.key}>
+                                    <SelectLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{group.key}</SelectLabel>
+                                    {group.fields.map(f => (
+                                      <SelectItem key={f.value} value={f.value}>
+                                        {f.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
                                 ))}
                               </SelectContent>
                             </Select>
