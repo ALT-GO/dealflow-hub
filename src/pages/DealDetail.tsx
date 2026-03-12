@@ -422,6 +422,29 @@ export default function DealDetail() {
                         <p className="font-bold text-primary text-sm">{formatCurrency((deal.value || 0) * (dealAny.profit_margin / 100))}</p>
                       </div>
                     )}
+                    <div>
+                      <p className="text-muted-foreground text-xs">Data Início Orçamento</p>
+                      <InlineEdit
+                        value={dealAny.budget_start_date || ''}
+                        onSave={(v) => handleInlineEdit('budget_start_date', 'Data Início Orçamento', dealAny.budget_start_date || '', v)}
+                        icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Data Entrega Proposta</p>
+                      <InlineEdit
+                        value={dealAny.proposal_delivery_date || ''}
+                        onSave={(v) => handleInlineEdit('proposal_delivery_date', 'Data Entrega Proposta', dealAny.proposal_delivery_date || '', v)}
+                        icon={<Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Escopo</p>
+                      <InlineEdit
+                        value={dealAny.scope || ''}
+                        onSave={(v) => handleInlineEdit('scope', 'Escopo', dealAny.scope || '', v)}
+                      />
+                    </div>
                   </CardContent>
                 </AccordionContent>
               </Card>
