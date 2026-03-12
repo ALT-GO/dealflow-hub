@@ -467,6 +467,7 @@ export type Database = {
       }
       deals: {
         Row: {
+          approval_status: string
           budget_start_date: string | null
           business_area: string | null
           close_date: string | null
@@ -487,10 +488,12 @@ export type Database = {
           qualification_score: number | null
           scope: string | null
           stage: string
+          target_delivery_date: string | null
           updated_at: string
           value: number | null
         }
         Insert: {
+          approval_status?: string
           budget_start_date?: string | null
           business_area?: string | null
           close_date?: string | null
@@ -511,10 +514,12 @@ export type Database = {
           qualification_score?: number | null
           scope?: string | null
           stage?: string
+          target_delivery_date?: string | null
           updated_at?: string
           value?: number | null
         }
         Update: {
+          approval_status?: string
           budget_start_date?: string | null
           business_area?: string | null
           close_date?: string | null
@@ -535,6 +540,7 @@ export type Database = {
           qualification_score?: number | null
           scope?: string | null
           stage?: string
+          target_delivery_date?: string | null
           updated_at?: string
           value?: number | null
         }
