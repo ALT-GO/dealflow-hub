@@ -701,7 +701,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             }
             if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
             if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
-            // Resolve owner and orcamentista - always insert with current user for RLS compliance
+            // Resolve owner and orcamentista
             const resolvedOwner = resolveUser(vals.deal_owner);
             if (vals.deal_owner && !resolvedOwner) {
               allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Usuário não encontrado: "${vals.deal_owner}". Usando o usuário atual.` });
@@ -712,17 +712,23 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             }
             if (resolvedOrc) dealRecord.orcamentista_id = resolvedOrc;
 
-            // Always insert with current user as owner (RLS requires owner_id = auth.uid())
-            dealRecord.owner_id = user.id;
+            // Admins can set any owner; others must use themselves
+            dealRecord.owner_id = resolvedOwner || user.id;
             const { data: newDeal, error: dErr } = await supabase.from('deals').insert(dealRecord).select('id').single();
             if (dErr) {
-              rowHasError = true;
-              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${dErr.message}` });
-            } else if (newDeal && resolvedOwner && resolvedOwner !== user.id) {
-              // Update owner to the resolved user after successful insert
-              const { error: updErr } = await supabase.from('deals').update({ owner_id: resolvedOwner }).eq('id', newDeal.id);
-              if (updErr) {
-                allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Negócio criado, mas não foi possível alterar o proprietário para "${vals.deal_owner}".` });
+              // If RLS fails (non-admin setting different owner), retry with current user
+              if (dErr.message.includes('row-level security') && dealRecord.owner_id !== user.id) {
+                dealRecord.owner_id = user.id;
+                const { error: retryErr } = await supabase.from('deals').insert(dealRecord);
+                if (retryErr) {
+                  rowHasError = true;
+                  allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${retryErr.message}` });
+                } else {
+                  allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Negócio "${vals.deal_name}" importado com o usuário atual como proprietário (sem permissão para atribuir a outro).` });
+                }
+              } else {
+                rowHasError = true;
+                allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${dErr.message}` });
               }
             }
           } else {
