@@ -520,55 +520,10 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                 </div>
               </div>
 
-              {/* Field mapping grouped by category */}
-              <Accordion type="multiple" defaultValue={['mapping']} className="w-full">
-                <AccordionItem value="mapping" className="border-border">
-                  <AccordionTrigger className="text-sm font-semibold">
-                    Mapeamento de Campos ({Object.values(mapping).filter(v => v).length} mapeados)
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-2">
-                      {headers.map((h, i) => {
-                        const currentField = ALL_FIELDS.find(f => f.value === mapping[i]);
-                        const category = mapping[i]?.startsWith('company_') ? 'company'
-                          : mapping[i]?.startsWith('contact_') ? 'contact'
-                          : mapping[i]?.startsWith('deal_') ? 'deal' : null;
-                        const catColor = category === 'company' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                          : category === 'contact' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                          : category === 'deal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          : '';
-                        const catLabel = category === 'company' ? 'Empresa' : category === 'contact' ? 'Contato' : category === 'deal' ? 'Negócio' : '';
-
-                        return (
-                          <div key={i} className="flex items-center gap-2">
-                            <span className="text-sm font-medium min-w-[140px] truncate text-foreground" title={h}>{h}</span>
-                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            {category && <Badge className={`text-[9px] shrink-0 ${catColor}`}>{catLabel}</Badge>}
-                            <Select value={mapping[i] || 'ignore'} onValueChange={(v) => setMapping(prev => ({ ...prev, [i]: v === 'ignore' ? '' : v }))}>
-                              <SelectTrigger className="w-52 h-8 text-xs">
-                                <SelectValue placeholder="Selecione o campo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="ignore">— Ignorar —</SelectItem>
-                                {getFieldsForHeader(h).map(group => (
-                                  <SelectGroup key={group.key}>
-                                    <SelectLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{group.key}</SelectLabel>
-                                    {group.fields.map(f => (
-                                      <SelectItem key={f.value} value={f.value}>
-                                        {f.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+              {/* Mapped fields count */}
+              <p className="text-xs text-muted-foreground">
+                {Object.values(mapping).filter(v => v).length} campo(s) mapeado(s). Vincule as colunas da planilha aos campos do sistema na tabela abaixo.
+              </p>
 
               {/* Preview with mapping */}
               <div className="border rounded-lg overflow-x-auto">
