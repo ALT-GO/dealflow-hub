@@ -122,7 +122,7 @@ export function NewDealModal() {
       contact_id: form.contact_id || null,
       owner_id: user.id,
       proposal_id: proposalId,
-      orcamentista_id: null,
+      orcamentista_id: form.orcamentista_id || null,
       contract_type: form.contract_type || null,
       market: form.market || null,
       business_area: form.business_area || null,
