@@ -89,6 +89,7 @@ export default function ProposalRequest() {
       client_role: contact.role || '',
       client_company: contact.companies?.name || '',
       client_phone: contact.companies?.phone || '',
+      client_address: contact.companies?.domain || '',
     }));
     setContactSearch(contact.name);
     setContactPopoverOpen(false);
