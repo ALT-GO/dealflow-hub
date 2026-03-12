@@ -69,11 +69,18 @@ export default function FileLibrary() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('library_files')
-        .select('*, profiles:uploaded_by(full_name)')
+        .select('*')
         .eq('folder_id', activeFolderId!)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as any[];
+      // Fetch uploader names
+      const uploaderIds = [...new Set((data || []).map(f => f.uploaded_by))];
+      const { data: profiles } = uploaderIds.length > 0
+        ? await supabase.from('profiles').select('user_id, full_name').in('user_id', uploaderIds)
+        : { data: [] };
+      const profileMap: Record<string, string> = {};
+      (profiles || []).forEach(p => { if (p.full_name) profileMap[p.user_id] = p.full_name; });
+      return (data || []).map(f => ({ ...f, uploader_name: profileMap[f.uploaded_by] || 'Desconhecido' }));
     },
   });
 
@@ -269,7 +276,7 @@ export default function FileLibrary() {
                 <span className="text-xs font-medium text-foreground truncate w-full" title={f.file_name}>{f.file_name}</span>
                 <span className="text-[10px] text-muted-foreground">{humanSize(f.file_size)}</span>
                 <span className="text-[10px] text-muted-foreground">
-                  {(f as any).profiles?.full_name || 'Desconhecido'} · {format(new Date(f.created_at), 'dd/MM/yy', { locale: ptBR })}
+                  {f.uploader_name || 'Desconhecido'} · {format(new Date(f.created_at), 'dd/MM/yy', { locale: ptBR })}
                 </span>
                 <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {f.file_type.startsWith('image/') || f.file_type.includes('pdf') ? (
@@ -332,7 +339,7 @@ export default function FileLibrary() {
                     <span className="truncate">{f.file_name}</span>
                   </td>
                   <td className="p-3 text-muted-foreground hidden sm:table-cell">{humanSize(f.file_size)}</td>
-                  <td className="p-3 text-muted-foreground hidden md:table-cell">{(f as any).profiles?.full_name || '–'}</td>
+                  <td className="p-3 text-muted-foreground hidden md:table-cell">{f.uploader_name || '–'}</td>
                   <td className="p-3 text-muted-foreground hidden md:table-cell">{format(new Date(f.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}</td>
                   <td className="p-3">
                     <div className="flex gap-1 justify-end">
