@@ -148,6 +148,31 @@ function parseBool(s: string): boolean {
   return ['sim', 'yes', 'true', '1', 's', 'y', 'verdadeiro'].includes(n);
 }
 
+/** Extract email from a name field like "Adalgisa Batista (gisa@cietec.org.br)" or "João <joao@email.com>" */
+function extractNameAndEmail(input: string): { name: string; email: string | null } {
+  if (!input?.trim()) return { name: input, email: null };
+  const s = input.trim();
+  
+  // Pattern: "Name (email@domain.com)" or "Name <email@domain.com>"
+  const parenMatch = s.match(/^(.+?)\s*[\(<]\s*([^\s@]+@[^\s@]+\.[^\s@>\)]+)\s*[\)>]?\s*$/);
+  if (parenMatch) {
+    return { name: parenMatch[1].trim(), email: parenMatch[2].trim().toLowerCase() };
+  }
+  
+  // Pattern: "email@domain.com" alone or "Name email@domain.com"
+  const emailRegex = /([^\s@]+@[^\s@]+\.[^\s@]+)/;
+  const emailMatch = s.match(emailRegex);
+  if (emailMatch) {
+    const email = emailMatch[1].trim().toLowerCase();
+    const name = s.replace(emailMatch[0], '').replace(/[()<>]/g, '').trim();
+    if (name) return { name, email };
+    // If the whole field is just an email, keep it as name too
+    return { name: s, email };
+  }
+  
+  return { name: s, email: null };
+}
+
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
