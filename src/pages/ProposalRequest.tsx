@@ -91,6 +91,38 @@ export default function ProposalRequest() {
     }, 300);
   }, [contactSearch]);
 
+  // Search companies as user types
+  useEffect(() => {
+    if (companyTimeout.current) clearTimeout(companyTimeout.current);
+    if (form.client_company.trim().length < 2) { setCompanyResults([]); return; }
+    companyTimeout.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('companies')
+        .select('id, name')
+        .ilike('name', `%${form.client_company.trim()}%`)
+        .limit(6);
+      if (data) setCompanyResults(data);
+    }, 300);
+  }, [form.client_company]);
+
+  // Search roles as user types
+  useEffect(() => {
+    if (roleTimeout.current) clearTimeout(roleTimeout.current);
+    if (form.client_role.trim().length < 2) { setRoleResults([]); return; }
+    roleTimeout.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('contacts')
+        .select('role')
+        .ilike('role', `%${form.client_role.trim()}%`)
+        .not('role', 'is', null)
+        .limit(20);
+      if (data) {
+        const unique = [...new Set(data.map(d => d.role).filter(Boolean) as string[])];
+        setRoleResults(unique.slice(0, 6));
+      }
+    }, 300);
+  }, [form.client_role]);
+
   const handleSelectContact = (contact: ContactResult) => {
     setForm(prev => ({
       ...prev,
