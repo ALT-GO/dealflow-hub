@@ -62,6 +62,16 @@ export default function ProposalRequest() {
   const [contactPopoverOpen, setContactPopoverOpen] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Company autocomplete
+  const [companyResults, setCompanyResults] = useState<{ id: string; name: string }[]>([]);
+  const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
+  const companyTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Role autocomplete
+  const [roleResults, setRoleResults] = useState<string[]>([]);
+  const [rolePopoverOpen, setRolePopoverOpen] = useState(false);
+  const roleTimeout = useRef<NodeJS.Timeout | null>(null);
+
   const set = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   // Search contacts as user types
