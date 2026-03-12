@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Building2, Users, Briefcase, Plus, Trash2, Search } from 'lucide-react';
+import { Building2, Users, Briefcase, Plus, Trash2, Search, Pencil } from 'lucide-react';
 
 type PropertyDef = {
   name: string;
@@ -23,6 +23,7 @@ type PropertyDef = {
   default?: string;
   isSystem: boolean;
   displaySection?: string;
+  id?: string;
 };
 
 type CustomProperty = {
@@ -78,7 +79,7 @@ const FIELD_TYPES = [
 ];
 
 const DISPLAY_SECTIONS = [
-  'Informações do Negócio',
+  'Dados Principais',
   'Dados de Orçamentos',
   'Dados Técnicos',
   'Resumo',
@@ -105,7 +106,17 @@ export function ObjectsTab() {
     is_required: false,
     default_value: '',
     dropdown_options: '',
-    display_section: 'Informações do Negócio',
+    display_section: 'Dados Principais',
+  });
+
+  // Edit modal state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    id: '',
+    field_label: '',
+    field_type: 'text',
+    display_section: 'Dados Principais',
   });
 
   const { data: customProps = [] } = useQuery({
@@ -133,7 +144,7 @@ export function ObjectsTab() {
       dropdown_options: form.field_type === 'dropdown' && form.dropdown_options
         ? form.dropdown_options.split(',').map((s) => s.trim()).filter(Boolean)
         : null,
-      display_section: activeEntity === 'deals' ? form.display_section : 'Informações do Negócio',
+      display_section: activeEntity === 'deals' ? form.display_section : 'Dados Principais',
       created_by: user.id,
     } as any);
     setSaving(false);
@@ -142,7 +153,7 @@ export function ObjectsTab() {
     } else {
       toast.success('Propriedade criada!');
       setOpen(false);
-      setForm({ field_name: '', field_label: '', field_type: 'text', is_required: false, default_value: '', dropdown_options: '', display_section: 'Informações do Negócio' });
+      setForm({ field_name: '', field_label: '', field_type: 'text', is_required: false, default_value: '', dropdown_options: '', display_section: 'Dados Principais' });
       queryClient.invalidateQueries({ queryKey: ['custom-properties'] });
     }
   };
@@ -153,6 +164,35 @@ export function ObjectsTab() {
       toast.error('Erro ao excluir');
     } else {
       toast.success('Propriedade excluída');
+      queryClient.invalidateQueries({ queryKey: ['custom-properties'] });
+    }
+  };
+
+  const openEditModal = (cp: CustomProperty) => {
+    setEditForm({
+      id: cp.id,
+      field_label: cp.field_label,
+      field_type: cp.field_type,
+      display_section: cp.display_section || 'Dados Principais',
+    });
+    setEditOpen(true);
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.id) return;
+    setEditSaving(true);
+    const { error } = await supabase.from('custom_properties').update({
+      field_label: editForm.field_label.trim(),
+      field_type: editForm.field_type,
+      display_section: editForm.display_section,
+    } as any).eq('id', editForm.id);
+    setEditSaving(false);
+    if (error) {
+      toast.error('Erro ao atualizar: ' + error.message);
+    } else {
+      toast.success('Propriedade atualizada!');
+      setEditOpen(false);
       queryClient.invalidateQueries({ queryKey: ['custom-properties'] });
     }
   };
@@ -170,6 +210,7 @@ export function ObjectsTab() {
       default: p.default_value || undefined,
       isSystem: false,
       displaySection: p.display_section,
+      id: p.id,
     })),
   ];
 
@@ -294,7 +335,7 @@ export function ObjectsTab() {
                 <TableHead>Obrigatório</TableHead>
                 <TableHead>Padrão</TableHead>
                 <TableHead>Origem</TableHead>
-                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -329,12 +370,20 @@ export function ObjectsTab() {
                   </TableCell>
                   <TableCell>
                     {!p.isSystem && role === 'admin' && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => {
-                        const cp = entityCustomProps.find((c) => c.field_name === p.name);
-                        if (cp) handleDelete(cp.id);
-                      }}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10 hover:text-primary" onClick={() => {
+                          const cp = entityCustomProps.find((c) => c.field_name === p.name);
+                          if (cp) openEditModal(cp);
+                        }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => {
+                          const cp = entityCustomProps.find((c) => c.field_name === p.name);
+                          if (cp) handleDelete(cp.id);
+                        }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
@@ -350,6 +399,41 @@ export function ObjectsTab() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Propriedade</DialogTitle></DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome do Campo (Label)</Label>
+              <Input value={editForm.field_label} onChange={(e) => setEditForm({ ...editForm, field_label: e.target.value })} required maxLength={50} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={editForm.field_type} onValueChange={(v) => setEditForm({ ...editForm, field_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {activeEntity === 'deals' && (
+              <div className="space-y-2">
+                <Label>Seção de Exibição</Label>
+                <Select value={editForm.display_section} onValueChange={(v) => setEditForm({ ...editForm, display_section: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DISPLAY_SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Define onde o campo aparece na página de detalhes do negócio.</p>
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={editSaving}>{editSaving ? 'Salvando...' : 'Salvar Alterações'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
