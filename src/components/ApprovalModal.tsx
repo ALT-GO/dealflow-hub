@@ -171,9 +171,17 @@ export function ApprovalModal({ deal, open, onOpenChange }: Props) {
                 <Select value={selectedOrcamentista} onValueChange={setSelectedOrcamentista}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {profiles.map(p => (
-                      <SelectItem key={p.user_id} value={p.user_id}>{p.full_name || p.user_id}</SelectItem>
-                    ))}
+                    {profiles.map(p => {
+                      const count = workloadMap[p.user_id] || 0;
+                      return (
+                        <SelectItem key={p.user_id} value={p.user_id}>
+                          <span className="flex items-center gap-2">
+                            <span>{p.full_name || p.user_id}</span>
+                            {count > 0 && <span className="text-[10px] text-muted-foreground">({count} {count === 1 ? 'projeto' : 'projetos'})</span>}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
