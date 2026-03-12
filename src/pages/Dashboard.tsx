@@ -5,14 +5,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { NewDealModal } from '@/components/NewDealModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users, Briefcase, DollarSign } from 'lucide-react';
+import { Building2, Users, Briefcase, DollarSign, LayoutGrid, GanttChart } from 'lucide-react';
 import { AdvancedFilters, type Filters } from '@/components/AdvancedFilters';
 import { ViewTabs, type ViewTab } from '@/components/ViewTabs';
+import { Button } from '@/components/ui/button';
+import EstimatorGantt from '@/components/EstimatorGantt';
+
+type ViewMode = 'kanban' | 'gantt';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>({});
   const [activeTab, setActiveTab] = useState<ViewTab>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -54,7 +59,30 @@ export default function Dashboard() {
           <h1 className="text-2xl font-display font-bold text-foreground">Negócios</h1>
           <p className="text-muted-foreground text-sm">Pipeline de vendas e negócios em andamento</p>
         </div>
-        <NewDealModal />
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex items-center bg-muted rounded-lg p-0.5">
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 px-3 text-xs gap-1.5 rounded-md"
+              onClick={() => setViewMode('kanban')}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Kanban
+            </Button>
+            <Button
+              variant={viewMode === 'gantt' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 px-3 text-xs gap-1.5 rounded-md"
+              onClick={() => setViewMode('gantt')}
+            >
+              <GanttChart className="h-3.5 w-3.5" />
+              Visão Gantt
+            </Button>
+          </div>
+          <NewDealModal />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -72,7 +100,6 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <h2 className="text-lg font-display font-semibold text-foreground mb-4">Pipeline de Negócios</h2>
         <ViewTabs entityType="deals" activeTab={activeTab} onTabChange={handleTabChange} currentFilters={filters} />
         <div className="mt-4">
           <AdvancedFilters
@@ -84,7 +111,11 @@ export default function Dashboard() {
           />
         </div>
         <div className="mt-4">
-          <KanbanBoard filters={filters} />
+          {viewMode === 'kanban' ? (
+            <KanbanBoard filters={filters} />
+          ) : (
+            <EstimatorGantt />
+          )}
         </div>
       </div>
     </div>
