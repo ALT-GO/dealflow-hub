@@ -310,6 +310,25 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             if (vals.deal_contract_type) dealRecord.contract_type = vals.deal_contract_type;
             if (vals.deal_scope) dealRecord.scope = vals.deal_scope;
             if (vals.deal_close_date) dealRecord.close_date = vals.deal_close_date;
+            if (vals.deal_target_delivery_date) dealRecord.target_delivery_date = vals.deal_target_delivery_date;
+            if (vals.deal_proposal_delivery_date) dealRecord.proposal_delivery_date = vals.deal_proposal_delivery_date;
+            if (vals.deal_budget_start_date) dealRecord.budget_start_date = vals.deal_budget_start_date;
+            if (vals.deal_vendedor_externo) dealRecord.vendedor_externo = vals.deal_vendedor_externo;
+            if (vals.deal_tipo_negocio) dealRecord.tipo_negocio = vals.deal_tipo_negocio;
+            if (vals.deal_endereco_execucao) dealRecord.endereco_execucao = vals.deal_endereco_execucao;
+            if (vals.deal_state) dealRecord.state = vals.deal_state;
+            if (vals.deal_team_type) dealRecord.team_type = vals.deal_team_type;
+            if (vals.deal_qualification_level) dealRecord.qualification_level = vals.deal_qualification_level;
+            if (vals.deal_estudo_equipe) dealRecord.estudo_equipe = vals.deal_estudo_equipe;
+            if (vals.deal_origin_id) dealRecord.origin_id = vals.deal_origin_id;
+            if (vals.deal_loss_reason) dealRecord.loss_reason = vals.deal_loss_reason;
+            if (vals.deal_profit_margin) {
+              const pm = parseFloat(vals.deal_profit_margin.replace(/[^\d.,]/g, '').replace(',', '.'));
+              if (!isNaN(pm)) dealRecord.profit_margin = pm;
+            }
+            // Boolean fields — parse "sim", "yes", "true", "1" as true
+            if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
+            if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
             const { error: dErr } = await supabase.from('deals').insert(dealRecord);
             if (dErr) {
               details.push(`Linha ${ri + 2}: Erro negócio "${vals.deal_name}"`);
