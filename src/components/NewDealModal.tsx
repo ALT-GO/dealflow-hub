@@ -246,10 +246,6 @@ export function NewDealModal() {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Dados de Orçamentos</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Orçamentista Responsável</Label>
-                <NativeSelect value={form.orcamentista_id} onChange={(v) => setForm({ ...form, orcamentista_id: v })} placeholder="Selecione..." options={profiles.map(p => { const count = workloadMap[p.user_id] || 0; return { value: p.user_id, label: p.full_name || p.user_id, detail: count > 0 ? `(${count} ${count === 1 ? 'projeto ativo' : 'projetos ativos'})` : undefined }; })} />
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Tipo de Contrato</Label>
                 <NativeSelect value={form.contract_type} onChange={(v) => setForm({ ...form, contract_type: v })} options={CONTRACT_TYPES} placeholder="Selecione..." />
               </div>
