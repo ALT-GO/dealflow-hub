@@ -265,6 +265,16 @@ export default function Performance() {
               <SelectItem value="all">Todo Período</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterValueRange} onValueChange={setFilterValueRange}>
+            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Faixas</SelectItem>
+              <SelectItem value="0-50k">Até R$ 50k</SelectItem>
+              <SelectItem value="50k-500k">R$ 50k – 500k</SelectItem>
+              <SelectItem value="500k-5m">R$ 500k – 5M</SelectItem>
+              <SelectItem value="5m+">Acima de R$ 5M</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
