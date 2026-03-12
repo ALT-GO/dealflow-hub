@@ -204,6 +204,9 @@ export function NewDealModal() {
         <DialogHeader>
           <DialogTitle>Novo Negócio</DialogTitle>
         </DialogHeader>
+        {STAGES.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">Carregando...</div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Proposal ID preview */}
           {selectedCompanyName && (
