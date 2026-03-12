@@ -153,12 +153,34 @@ export function NewDealModal() {
       if (form.orcamentista_id) {
         await supabase.from('deal_followers').insert({ deal_id: data.id, user_id: form.orcamentista_id } as any);
       }
+      // Notify Gerência of Orçamentos team for approval
+      try {
+        const { data: orcTeam } = await supabase.from('teams').select('id').eq('name', 'Orçamentos').maybeSingle();
+        if (orcTeam) {
+          const { data: teamMembers } = await supabase.from('team_members').select('user_id').eq('team_id', orcTeam.id);
+          if (teamMembers) {
+            for (const tm of teamMembers) {
+              const { data: hasGerencia } = await supabase.rpc('has_role', { _user_id: tm.user_id, _role: 'gerencia' });
+              if (hasGerencia) {
+                await supabase.from('notifications').insert({
+                  user_id: tm.user_id,
+                  type: 'approval_request',
+                  title: `Aprovação pendente: ${form.name}`,
+                  description: `Novo negócio aguarda aprovação de orçamento.`,
+                  entity_type: 'deal',
+                  entity_id: data.id,
+                } as any);
+              }
+            }
+          }
+        }
+      } catch (_) { /* non-blocking */ }
     }
     setLoading(false);
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '' });
+    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '' });
     setCustomValues({});
     setQualAnswers({});
   };
