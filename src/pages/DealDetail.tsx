@@ -484,12 +484,21 @@ export default function DealDetail() {
                       <p className="text-muted-foreground text-xs">Proprietário</p>
                       <p className="font-medium text-foreground text-sm">{profilesMap[deal.owner_id] || 'Desconhecido'}</p>
                     </div>
-                    {(dealAny.qualification_score ?? 0) > 0 && (
-                      <div>
-                        <p className="text-muted-foreground text-xs">Qualificação</p>
-                        <StarRating score={dealAny.qualification_score || 0} size="md" />
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-muted-foreground text-xs">Qualificação</p>
+                      <StarRating
+                        score={dealAny.qualification_score || 0}
+                        size="md"
+                        editable
+                        onChangeStars={async (stars) => {
+                          const newScore = stars * 20;
+                          const oldScore = dealAny.qualification_score || 0;
+                          await handleInlineEdit('qualification_score', 'Qualificação', `${Math.round(oldScore / 20)} estrelas`, `${stars} estrelas`);
+                          await supabase.from('deals').update({ qualification_score: newScore } as any).eq('id', id);
+                          invalidateAll();
+                        }}
+                      />
+                    </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Criado em</p>
                       <p className="font-medium text-foreground text-sm">{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
