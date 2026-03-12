@@ -20,7 +20,7 @@ interface CsvImportProps {
 }
 
 const COMPANY_FIELDS = [
-  { value: 'company_name', label: 'Nome da Empresa', required: true },
+  { value: 'company_name', label: 'Nome da Empresa' },
   { value: 'company_domain', label: 'Domínio' },
   { value: 'company_sector', label: 'Setor' },
   { value: 'company_phone', label: 'Telefone' },
