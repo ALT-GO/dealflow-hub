@@ -335,7 +335,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center"><Activity className="h-5 w-5 text-accent" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Prob. Histórica</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Prob. Histórica <InfoTip text="Probabilidade histórica de fechar negócios baseada em todo o histórico. Fórmula: Total de Ganhos ÷ (Ganhos + Perdidos) × 100." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{historicalProb.toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">{historicalWon.length}/{historicalTotal.length} finalizados</p>
               </div>
