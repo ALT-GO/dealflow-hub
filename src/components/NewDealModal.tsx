@@ -68,6 +68,7 @@ export function NewDealModal() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
+  const { data: workloadMap = {} } = useEstimatorWorkload();
 
   useEffect(() => {
     if (open) {
