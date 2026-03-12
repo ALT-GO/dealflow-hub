@@ -1,9 +1,12 @@
 import { Briefcase, Building2, Users, LogOut, Settings, Zap, TrendingUp, CalendarRange, FolderOpen } from 'lucide-react';
 import logoOrion from '@/assets/logo-orion.png';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Sidebar,
   SidebarContent,
@@ -37,11 +40,28 @@ export function AppSidebar() {
   const { signOut, user, role } = useAuth();
   const { canAccess } = usePagePermissions();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('user_id', user!.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const isActive = (url: string) => {
     if (url === '/') return location.pathname === '/';
     return location.pathname.startsWith(url);
   };
+
+  const getInitials = (name: string) =>
+    name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   const renderNavItem = (item: typeof navItems[0]) => {
     if (!canAccess(item.url)) return null;
@@ -69,6 +89,9 @@ export function AppSidebar() {
       </SidebarMenuItem>
     );
   };
+
+  const displayName = profile?.full_name || user?.email || '';
+  const roleLabel = role === 'admin' ? 'Admin' : role === 'gerencia' ? 'Gerência' : role === 'orcamentista' ? 'Orçamentista' : 'Vendedor';
 
   return (
     <Sidebar collapsible="icon">
@@ -102,14 +125,23 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3">
-        {!collapsed && (
-          <div className="mb-2 px-2">
-            <p className="text-xs text-sidebar-muted truncate">{user?.email}</p>
-            <p className="text-[11px] font-semibold text-sidebar-primary capitalize">
-              {role === 'admin' ? 'Admin' : role === 'gerencia' ? 'Gerência' : role === 'orcamentista' ? 'Orçamentista' : 'Vendedor'}
-            </p>
-          </div>
-        )}
+        <div
+          className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-sidebar-accent cursor-pointer transition-colors"
+          onClick={() => navigate('/perfil')}
+        >
+          <Avatar className="h-8 w-8 shrink-0">
+            <AvatarImage src={profile?.avatar_url || undefined} />
+            <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+              {getInitials(displayName)}
+            </AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
+              <p className="text-[10px] text-sidebar-muted truncate">{roleLabel}</p>
+            </div>
+          )}
+        </div>
         <Button variant="ghost" size={collapsed ? 'icon' : 'sm'} className="w-full text-sidebar-foreground hover:bg-sidebar-accent rounded-lg text-[13px]" onClick={signOut}>
           <LogOut className="h-4 w-4" />
           {!collapsed && <span className="ml-2">Sair</span>}

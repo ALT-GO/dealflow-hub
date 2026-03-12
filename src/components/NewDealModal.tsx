@@ -114,6 +114,17 @@ export function NewDealModal() {
   }, [form.company_id]);
 
   const selectedCompanyName = companies.find(c => c.id === form.company_id)?.name || '';
+  const selectedContactName = contacts.find(c => c.id === form.contact_id)?.name || '';
+
+  // Auto-generate deal name: [Company] - [Contact]
+  useEffect(() => {
+    if (selectedCompanyName) {
+      const autoName = selectedContactName
+        ? `${selectedCompanyName} - ${selectedContactName}`
+        : selectedCompanyName;
+      setForm(f => ({ ...f, name: autoName }));
+    }
+  }, [selectedCompanyName, selectedContactName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

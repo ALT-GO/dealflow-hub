@@ -39,8 +39,6 @@ export default function Dashboard() {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   const statCards = [
-    { title: 'Empresas', value: stats?.companies || 0, icon: Building2 },
-    { title: 'Contatos', value: stats?.contacts || 0, icon: Users },
     { title: 'Negócios', value: stats?.deals || 0, icon: Briefcase },
     { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
   ];
@@ -78,7 +76,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {statCards.map((stat) => (
           <Card key={stat.title} className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">

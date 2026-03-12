@@ -21,6 +21,7 @@ import Performance from "./pages/Performance";
 import EstimatorSchedule from "./pages/EstimatorSchedule";
 import ProposalRequest from "./pages/ProposalRequest";
 import FileLibrary from "./pages/FileLibrary";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ function ProtectedRoutes() {
         <Route path="/performance" element={<RoleGuard path="/performance"><Performance /></RoleGuard>} />
         <Route path="/ocupacao" element={<EstimatorSchedule />} /> {/* Legacy redirect */}
         <Route path="/biblioteca" element={<FileLibrary />} />
+        <Route path="/perfil" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
