@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerField } from '@/components/DatePickerField';
@@ -29,14 +28,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import {
-  ArrowLeft, Building2, DollarSign, Calendar, Clock, Layers, Eye,
+  ArrowLeft, Building2, DollarSign, Clock, Layers, Eye,
   Activity, ListTodo, MessageCircle, Paperclip, Users, Trash2,
-  Trophy, XCircle, Percent, FileText,
+  Trophy, XCircle, Percent, FileText, Wrench,
 } from 'lucide-react';
 import { useFunnelStages } from '@/hooks/useFunnelStages';
 import type { CustomProperty } from '@/hooks/useCustomProperties';
 
-// Native deal columns that can be rendered dynamically
 const NATIVE_DEAL_COLUMNS = new Set([
   'orcamentista_id', 'contract_type', 'market', 'profit_margin',
   'budget_start_date', 'proposal_delivery_date', 'scope',
@@ -44,7 +42,6 @@ const NATIVE_DEAL_COLUMNS = new Set([
   'endereco_execucao', 'estudo_equipe',
   'comissao_carbono_zero', 'comissao_cortex', 'comissao_valor_venda',
 ]);
-
 const BOOLEAN_FIELDS = new Set(['carbono_zero', 'cortex']);
 const DATE_FIELDS = new Set(['budget_start_date', 'proposal_delivery_date']);
 const CURRENCY_FIELDS = new Set(['comissao_carbono_zero', 'comissao_cortex', 'comissao_valor_venda']);
@@ -57,7 +54,7 @@ function fireConfetti() {
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, role: userRole } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: stagesData = [] } = useFunnelStages();
   const stageLabels: Record<string, string> = {};
@@ -81,11 +78,7 @@ export default function DealDetail() {
   const { data: deal } = useQuery({
     queryKey: ['deal', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('deals')
-        .select('*, companies(id, name)')
-        .eq('id', id!)
-        .single();
+      const { data, error } = await supabase.from('deals').select('*, companies(id, name)').eq('id', id!).single();
       if (error) throw error;
       return data;
     },
@@ -133,6 +126,27 @@ export default function DealDetail() {
     enabled: !!(deal as any)?.origin_id,
   });
 
+  // Badge counts
+  const { data: commentCount = 0 } = useQuery({
+    queryKey: ['deal-comment-count', id],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('comments').select('id', { count: 'exact', head: true }).eq('entity_type', 'deal').eq('entity_id', id!);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
+  const { data: pendingTaskCount = 0 } = useQuery({
+    queryKey: ['deal-pending-task-count', id],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('deal_id', id!).eq('completed', false);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!id,
+  });
+
   // Group custom properties by display_section
   const sectionGroups = useMemo(() => {
     const groups: Record<string, CustomProperty[]> = {};
@@ -148,6 +162,8 @@ export default function DealDetail() {
     queryClient.invalidateQueries({ queryKey: ['deal', id] });
     queryClient.invalidateQueries({ queryKey: ['deal-activities', id] });
     queryClient.invalidateQueries({ queryKey: ['deals'] });
+    queryClient.invalidateQueries({ queryKey: ['deal-comment-count', id] });
+    queryClient.invalidateQueries({ queryKey: ['deal-pending-task-count', id] });
   };
 
   const handleInlineEdit = async (field: string, label: string, oldValue: string, newValue: string) => {
@@ -158,12 +174,9 @@ export default function DealDetail() {
     const { error } = await supabase.from('deals').update(updateData).eq('id', id);
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
-      type: 'property_changed',
-      title: `Alterou "${label}"`,
+      type: 'property_changed', title: `Alterou "${label}"`,
       description: `De "${oldValue || '(vazio)'}" para "${newValue || '(vazio)'}"`,
-      company_id: deal?.company_id || null,
-      deal_id: id || null,
-      created_by: user.id,
+      company_id: deal?.company_id || null, deal_id: id || null, created_by: user.id,
     } as any);
     invalidateAll();
     toast.success('Atualizado!');
@@ -264,7 +277,6 @@ export default function DealDetail() {
   const isDealClosed = currentStageData?.stage_type === 'won' || currentStageData?.stage_type === 'lost' || deal.stage === '__won__' || deal.stage === '__lost__';
   const dealAny = deal as any;
 
-  // Helper to get native deal value for a field
   const getNativeValue = (fieldName: string): string => {
     const val = dealAny[fieldName];
     if (val === null || val === undefined) return '';
@@ -272,12 +284,10 @@ export default function DealDetail() {
     return String(val);
   };
 
-  // Render a single dynamic property field
   const renderDynamicField = (prop: CustomProperty) => {
     const isNative = NATIVE_DEAL_COLUMNS.has(prop.field_name);
     const value = isNative ? getNativeValue(prop.field_name) : (customValues[prop.id] || '');
 
-    // Special rendering for orcamentista_id (user reference)
     if (prop.field_name === 'orcamentista_id') {
       return (
         <div key={prop.id}>
@@ -296,119 +306,85 @@ export default function DealDetail() {
       );
     }
 
-    // Boolean fields
     if (BOOLEAN_FIELDS.has(prop.field_name)) {
       const boolVal = dealAny[prop.field_name];
       return (
         <div key={prop.id}>
           <p className="text-muted-foreground text-xs">{prop.field_label}</p>
-          <Badge
-            variant={boolVal ? 'default' : 'secondary'}
-            className="text-xs cursor-pointer"
-            onClick={() => handleInlineEdit(prop.field_name, prop.field_label, String(boolVal), String(!boolVal))}
-          >
+          <Badge variant={boolVal ? 'default' : 'secondary'} className="text-xs cursor-pointer"
+            onClick={() => handleInlineEdit(prop.field_name, prop.field_label, String(boolVal), String(!boolVal))}>
             {boolVal ? 'Sim' : 'Não'}
           </Badge>
         </div>
       );
     }
 
-    // Date fields
     if (DATE_FIELDS.has(prop.field_name)) {
       return (
         <div key={prop.id}>
           <p className="text-muted-foreground text-xs">{prop.field_label}</p>
-          <DatePickerField
-            value={dealAny[prop.field_name] || ''}
-            onChange={(v) => handleInlineEdit(prop.field_name, prop.field_label, dealAny[prop.field_name] || '', v)}
-            placeholder="Selecionar data"
-            className="h-8 text-xs"
-          />
+          <DatePickerField value={dealAny[prop.field_name] || ''} onChange={(v) => handleInlineEdit(prop.field_name, prop.field_label, dealAny[prop.field_name] || '', v)} placeholder="Selecionar data" className="h-8 text-xs" />
         </div>
       );
     }
 
-    // Currency fields
     if (CURRENCY_FIELDS.has(prop.field_name)) {
       return (
         <div key={prop.id}>
           <p className="text-muted-foreground text-xs">{prop.field_label} (R$)</p>
-          <InlineEdit
-            value={String(dealAny[prop.field_name] || '')}
-            onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, String(dealAny[prop.field_name] || ''), v)}
-            icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />}
-          />
+          <InlineEdit value={String(dealAny[prop.field_name] || '')} onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, String(dealAny[prop.field_name] || ''), v)} icon={<DollarSign className="h-3 w-3 shrink-0 text-muted-foreground" />} />
         </div>
       );
     }
 
-    // Number fields
     if (NUMBER_FIELDS.has(prop.field_name)) {
       return (
         <div key={prop.id}>
           <p className="text-muted-foreground text-xs">{prop.field_label}</p>
-          <InlineEdit
-            value={String(dealAny[prop.field_name] || '')}
-            onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, String(dealAny[prop.field_name] || ''), v)}
-            icon={<Percent className="h-3 w-3 shrink-0 text-muted-foreground" />}
-          />
+          <InlineEdit value={String(dealAny[prop.field_name] || '')} onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, String(dealAny[prop.field_name] || ''), v)} icon={<Percent className="h-3 w-3 shrink-0 text-muted-foreground" />} />
         </div>
       );
     }
 
-    // Native text fields (inline edit directly on deals table)
     if (isNative) {
       return (
         <div key={prop.id}>
           <p className="text-muted-foreground text-xs">{prop.field_label}</p>
-          <InlineEdit
-            value={value}
-            onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, value, v)}
-          />
+          <InlineEdit value={value} onSave={(v) => handleInlineEdit(prop.field_name, prop.field_label, value, v)} />
         </div>
       );
     }
 
-    // EAV custom fields (stored in custom_property_values)
     return (
       <div key={prop.id}>
         <p className="text-muted-foreground text-xs">{prop.field_label}</p>
-        <InlineEdit
-          value={value}
-          onSave={async (v) => {
-            await saveCustomPropertyValues(id!, { [prop.id]: v }, supabase);
-            queryClient.invalidateQueries({ queryKey: ['custom-property-values', id] });
-            toast.success('Atualizado!');
-          }}
-        />
+        <InlineEdit value={value} onSave={async (v) => {
+          await saveCustomPropertyValues(id!, { [prop.id]: v }, supabase);
+          queryClient.invalidateQueries({ queryKey: ['custom-property-values', id] });
+          toast.success('Atualizado!');
+        }} />
       </div>
     );
   };
 
-  // Ordered section keys
-  const SECTION_ORDER = ['Informações do Negócio', 'Dados de Orçamentos', 'Dados Técnicos', 'Resumo'];
-  const sectionsToRender = SECTION_ORDER.filter(s => sectionGroups[s]?.length);
-  // Also include any extra sections not in the predefined order
-  Object.keys(sectionGroups).forEach(s => {
-    if (!SECTION_ORDER.includes(s) && sectionGroups[s]?.length) sectionsToRender.push(s);
-  });
+  // Section rendering helpers
+  const infoFields = sectionGroups['Informações do Negócio'] || [];
+  const budgetFields = sectionGroups['Dados de Orçamentos'] || [];
+  const techFields = sectionGroups['Dados Técnicos'] || [];
 
-  const SECTION_ICONS: Record<string, React.ReactNode> = {
-    'Informações do Negócio': <Layers className="h-3 w-3" />,
-    'Dados de Orçamentos': <FileText className="h-3 w-3" />,
-    'Dados Técnicos': <Activity className="h-3 w-3" />,
-    'Resumo': <Eye className="h-3 w-3" />,
-  };
+  // Extra sections that go in the center tabs
+  const centerSections = Object.entries(sectionGroups).filter(([name]) =>
+    !['Informações do Negócio', 'Dados de Orçamentos', 'Dados Técnicos', 'Resumo'].includes(name)
+  );
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}><ArrowLeft className="h-5 w-5" /></Button>
           <div>
-            {dealAny.proposal_id && (
-              <p className="text-[10px] font-mono text-muted-foreground">{dealAny.proposal_id}</p>
-            )}
+            {dealAny.proposal_id && <p className="text-[10px] font-mono text-muted-foreground">{dealAny.proposal_id}</p>}
             <h1 className="text-xl font-display font-bold text-foreground">{deal.name}</h1>
             <p className="text-xs text-muted-foreground">Negócio{company ? ` · ${company.name}` : ''}</p>
           </div>
@@ -432,7 +408,7 @@ export default function DealDetail() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-sm">
               <DialogHeader><DialogTitle>Confirmar Exclusão</DialogTitle></DialogHeader>
-              <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir o negócio "{deal.name}"? Esta ação não pode ser desfeita.</p>
+              <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir o negócio &ldquo;{deal.name}&rdquo;? Esta ação não pode ser desfeita.</p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDeleteConfirm(false)}>Cancelar</Button>
                 <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
@@ -442,11 +418,12 @@ export default function DealDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
-        {/* LEFT: Properties — Core fields + Dynamic sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-4">
+        {/* ═══════════════════════════════════════════════════════════════════
+            LEFT SIDEBAR — Core fields + Informações do Negócio section only
+           ═══════════════════════════════════════════════════════════════════ */}
         <div className="space-y-3">
-          <Accordion type="multiple" defaultValue={['core', ...sectionsToRender]}>
-            {/* Core fields that always remain (special widgets) */}
+          <Accordion type="multiple" defaultValue={['core', 'info-section']}>
             <AccordionItem value="core" className="border-border">
               <Card className="border-0 shadow-none">
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
@@ -467,20 +444,13 @@ export default function DealDetail() {
                       <Select value={deal.stage} onValueChange={handleStageChange}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {STAGES.map((s) => (
-                            <SelectItem key={s} value={s}>{stageLabels[s] || s}</SelectItem>
-                          ))}
+                          {STAGES.map((s) => <SelectItem key={s} value={s}>{stageLabels[s] || s}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Data de Fechamento</p>
-                      <DatePickerField
-                        value={deal.close_date || ''}
-                        onChange={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)}
-                        placeholder="Selecionar data"
-                        className="h-8 text-xs"
-                      />
+                      <DatePickerField value={deal.close_date || ''} onChange={(v) => handleInlineEdit('close_date', 'Data de Fechamento', deal.close_date || '', v)} placeholder="Selecionar data" className="h-8 text-xs" />
                     </div>
                     <div>
                       <p className="text-muted-foreground text-xs">Status de Aprovação</p>
@@ -520,7 +490,6 @@ export default function DealDetail() {
                         <Badge variant="secondary" className="text-xs">{dealAny.business_area}</Badge>
                       </div>
                     )}
-                    {/* Computed: Lucro Estimado */}
                     {dealAny.profit_margin && deal.value ? (
                       <div className="bg-muted/50 rounded-lg p-2">
                         <p className="text-muted-foreground text-xs">Lucro Estimado</p>
@@ -532,41 +501,33 @@ export default function DealDetail() {
               </Card>
             </AccordionItem>
 
-            {/* Dynamic sections from custom_properties grouped by display_section */}
-            {sectionsToRender.map((sectionName) => (
-              <AccordionItem key={sectionName} value={sectionName} className="border-border">
+            {/* Dynamic: Informações do Negócio section only */}
+            {infoFields.length > 0 && (
+              <AccordionItem value="info-section" className="border-border">
                 <Card className="border-0 shadow-none">
                   <AccordionTrigger className="px-4 py-3 hover:no-underline">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      {SECTION_ICONS[sectionName] || <Layers className="h-3 w-3" />}
-                      {sectionName}
+                      <Layers className="h-3 w-3" />Informações do Negócio
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
                     <CardContent className="space-y-3 text-sm pt-0 px-4 pb-4">
-                      {sectionGroups[sectionName].map(renderDynamicField)}
+                      {infoFields.map(renderDynamicField)}
                     </CardContent>
                   </AccordionContent>
                 </Card>
               </AccordionItem>
-            ))}
+            )}
           </Accordion>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Eye className="h-4 w-4" />Seguidores</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DealFollowers dealId={id!} />
-            </CardContent>
-          </Card>
         </div>
 
-        {/* CENTER: Timeline */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            CENTER — The Workspace (Tabs)
+           ═══════════════════════════════════════════════════════════════════ */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-muted-foreground" />Histórico
+              <Clock className="h-4 w-4 text-muted-foreground" />Área de Trabalho
             </h2>
             <Dialog open={activityOpen} onOpenChange={setActivityOpen}>
               <DialogTrigger asChild>
@@ -600,20 +561,87 @@ export default function DealDetail() {
           </div>
 
           <Tabs defaultValue="timeline">
-            <TabsList>
-              <TabsTrigger value="timeline" className="text-xs gap-1.5"><Clock className="h-3.5 w-3.5" />Timeline</TabsTrigger>
-              <TabsTrigger value="comments" className="text-xs gap-1.5"><MessageCircle className="h-3.5 w-3.5" />Comentários</TabsTrigger>
-              <TabsTrigger value="tasks" className="text-xs gap-1.5"><ListTodo className="h-3.5 w-3.5" />Tarefas</TabsTrigger>
-              <TabsTrigger value="files" className="text-xs gap-1.5"><Paperclip className="h-3.5 w-3.5" />Arquivos</TabsTrigger>
+            <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="timeline" className="text-xs gap-1.5">
+                <Clock className="h-3.5 w-3.5" />Timeline
+              </TabsTrigger>
+              <TabsTrigger value="comments" className="text-xs gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5" />Comentários
+                {commentCount > 0 && (
+                  <span className="bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold ml-1">{commentCount}</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="text-xs gap-1.5">
+                <ListTodo className="h-3.5 w-3.5" />Tarefas
+                {pendingTaskCount > 0 && (
+                  <span className="bg-rose-100 text-rose-600 rounded-full px-2 py-0.5 text-xs font-bold ml-1">{pendingTaskCount}</span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="files" className="text-xs gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />Arquivos
+              </TabsTrigger>
+              {budgetFields.length > 0 && (
+                <TabsTrigger value="orcamentos" className="text-xs gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />Orçamentos
+                </TabsTrigger>
+              )}
+              {techFields.length > 0 && (
+                <TabsTrigger value="dados-tecnicos" className="text-xs gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" />Dados Técnicos
+                </TabsTrigger>
+              )}
             </TabsList>
-            <TabsContent value="timeline" className="mt-3"><ActivityTimeline activities={activities} profiles={profilesMap} /></TabsContent>
-            <TabsContent value="comments" className="mt-3"><CommentBox entityType="deal" entityId={id!} /></TabsContent>
-            <TabsContent value="tasks" className="mt-3"><TasksChecklist dealId={id} /></TabsContent>
-            <TabsContent value="files" className="mt-3"><FileManager entityType="deal" entityId={id!} /></TabsContent>
+
+            <TabsContent value="timeline" className="mt-3">
+              <ActivityTimeline activities={activities} profiles={profilesMap} />
+            </TabsContent>
+            <TabsContent value="comments" className="mt-3">
+              <CommentBox entityType="deal" entityId={id!} />
+            </TabsContent>
+            <TabsContent value="tasks" className="mt-3">
+              <TasksChecklist dealId={id} />
+            </TabsContent>
+            <TabsContent value="files" className="mt-3">
+              <FileManager entityType="deal" entityId={id!} />
+            </TabsContent>
+
+            {/* Dynamic: Orçamentos tab */}
+            {budgetFields.length > 0 && (
+              <TabsContent value="orcamentos" className="mt-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                      <FileText className="h-4 w-4" />Dados de Orçamentos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    {budgetFields.map(renderDynamicField)}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Dynamic: Dados Técnicos tab */}
+            {techFields.length > 0 && (
+              <TabsContent value="dados-tecnicos" className="mt-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
+                      <Wrench className="h-4 w-4" />Dados Técnicos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    {techFields.map(renderDynamicField)}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
 
-        {/* RIGHT: Associations */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            RIGHT SIDEBAR — Associations + Resumo + Seguidores
+           ═══════════════════════════════════════════════════════════════════ */}
         <div className="space-y-4">
           {company && (
             <Card>
@@ -665,6 +693,16 @@ export default function DealDetail() {
                 <span className="text-muted-foreground text-xs">Última atualização</span>
                 <span className="text-xs text-muted-foreground">{new Date(deal.updated_at).toLocaleDateString('pt-BR')}</span>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Seguidores — moved from left to right */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Eye className="h-4 w-4" />Seguidores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DealFollowers dealId={id!} />
             </CardContent>
           </Card>
         </div>
