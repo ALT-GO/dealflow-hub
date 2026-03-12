@@ -366,6 +366,7 @@ export function NewDealModal() {
             {loading ? 'Criando...' : 'Criar Negócio'}
           </Button>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
