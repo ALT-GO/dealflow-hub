@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NativeSelect } from '@/components/NativeSelect';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -233,34 +233,19 @@ export function NewDealModal() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Etapa</Label>
-              <Select value={form.stage} onValueChange={(v) => setForm({ ...form, stage: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger>
-                <SelectContent>
-                  {STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <NativeSelect value={form.stage} onChange={(v) => setForm({ ...form, stage: v })} options={STAGES} placeholder="Selecione a etapa" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Empresa</Label>
-              <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v, contact_id: '' })}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-                <SelectContent>
-                  {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <NativeSelect value={form.company_id} onChange={(v) => setForm({ ...form, company_id: v, contact_id: '' })} options={companies.map(c => ({ value: c.id, label: c.name }))} placeholder="Selecione a empresa" />
             </div>
             {contacts.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Contato</Label>
-                <Select value={form.contact_id} onValueChange={(v) => setForm({ ...form, contact_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o contato" /></SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.contact_id} onChange={(v) => setForm({ ...form, contact_id: v })} options={contacts.map(c => ({ value: c.id, label: c.name }))} placeholder="Selecione o contato" />
               </div>
             )}
           </div>
@@ -270,58 +255,23 @@ export function NewDealModal() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Orçamentista Responsável</Label>
-                <Select value={form.orcamentista_id} onValueChange={(v) => setForm({ ...form, orcamentista_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {profiles.map((p) => {
-                      const count = workloadMap[p.user_id] || 0;
-                      return (
-                        <SelectItem key={p.user_id} value={p.user_id}>
-                          <span className="flex items-center justify-between w-full gap-2">
-                            <span>{p.full_name || p.user_id}</span>
-                            {count > 0 && <span className="text-[10px] text-muted-foreground ml-1">({count} {count === 1 ? 'projeto ativo' : 'projetos ativos'})</span>}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.orcamentista_id} onChange={(v) => setForm({ ...form, orcamentista_id: v })} placeholder="Selecione..." options={profiles.map(p => { const count = workloadMap[p.user_id] || 0; return { value: p.user_id, label: p.full_name || p.user_id, detail: count > 0 ? `(${count} ${count === 1 ? 'projeto ativo' : 'projetos ativos'})` : undefined }; })} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Tipo de Contrato</Label>
-                <Select value={form.contract_type} onValueChange={(v) => setForm({ ...form, contract_type: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {CONTRACT_TYPES.map(ct => <SelectItem key={ct.value} value={ct.value}>{ct.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.contract_type} onChange={(v) => setForm({ ...form, contract_type: v })} options={CONTRACT_TYPES} placeholder="Selecione..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Mercado</Label>
-                <Select value={form.market} onValueChange={(v) => setForm({ ...form, market: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {MARKETS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.market} onChange={(v) => setForm({ ...form, market: v })} options={MARKETS} placeholder="Selecione..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Área de Negócio</Label>
-                <Select value={form.business_area} onValueChange={(v) => setForm({ ...form, business_area: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {BUSINESS_AREAS.map(ba => <SelectItem key={ba.value} value={ba.value}>{ba.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.business_area} onChange={(v) => setForm({ ...form, business_area: v })} options={BUSINESS_AREAS} placeholder="Selecione..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Origem</Label>
-                <Select value={form.origin_id} onValueChange={(v) => setForm({ ...form, origin_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {origins.map(o => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <NativeSelect value={form.origin_id} onChange={(v) => setForm({ ...form, origin_id: v })} options={origins.map(o => ({ value: o.id, label: o.label }))} placeholder="Selecione..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Data de Fechamento</Label>
