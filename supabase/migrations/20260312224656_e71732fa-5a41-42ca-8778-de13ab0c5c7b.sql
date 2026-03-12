@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_deal_stage_change ON public.deals;
