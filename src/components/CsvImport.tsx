@@ -148,6 +148,31 @@ function parseBool(s: string): boolean {
   return ['sim', 'yes', 'true', '1', 's', 'y', 'verdadeiro'].includes(n);
 }
 
+/** Extract email from a name field like "Adalgisa Batista (gisa@cietec.org.br)" or "João <joao@email.com>" */
+function extractNameAndEmail(input: string): { name: string; email: string | null } {
+  if (!input?.trim()) return { name: input, email: null };
+  const s = input.trim();
+  
+  // Pattern: "Name (email@domain.com)" or "Name <email@domain.com>"
+  const parenMatch = s.match(/^(.+?)\s*[\(<]\s*([^\s@]+@[^\s@]+\.[^\s@>\)]+)\s*[\)>]?\s*$/);
+  if (parenMatch) {
+    return { name: parenMatch[1].trim(), email: parenMatch[2].trim().toLowerCase() };
+  }
+  
+  // Pattern: "email@domain.com" alone or "Name email@domain.com"
+  const emailRegex = /([^\s@]+@[^\s@]+\.[^\s@]+)/;
+  const emailMatch = s.match(emailRegex);
+  if (emailMatch) {
+    const email = emailMatch[1].trim().toLowerCase();
+    const name = s.replace(emailMatch[0], '').replace(/[()<>]/g, '').trim();
+    if (name) return { name, email };
+    // If the whole field is just an email, keep it as name too
+    return { name: s, email };
+  }
+  
+  return { name: s, email: null };
+}
+
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
@@ -596,12 +621,16 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             }
           }
           if (companyId) {
+            // Extract email from name field if present (e.g. "Name (email@domain.com)")
+            const extracted = extractNameAndEmail(vals.contact_name);
             const contactRecord: any = {
-              name: vals.contact_name,
+              name: extracted.name,
               company_id: companyId,
               created_by: user.id,
             };
+            // Explicit email field takes priority, then extracted from name
             if (vals.contact_email) contactRecord.email = vals.contact_email;
+            else if (extracted.email) contactRecord.email = extracted.email;
             if (vals.contact_role) contactRecord.role = vals.contact_role;
             if (vals.contact_lead_source) contactRecord.lead_source = vals.contact_lead_source;
             if (vals.contact_status) contactRecord.status = vals.contact_status;
