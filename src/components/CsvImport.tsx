@@ -7,8 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Upload, FileSpreadsheet, ArrowRight, Building2, Users, Briefcase, CheckCircle2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, ArrowRight, Building2, Users, Briefcase, CheckCircle2, AlertTriangle, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -19,11 +20,19 @@ interface CsvImportProps {
   onComplete: () => void;
 }
 
+interface ImportError {
+  row: number;
+  entity: string;
+  field: string;
+  message: string;
+}
+
 const COMPANY_FIELDS = [
   { value: 'company_name', label: 'Nome da Empresa' },
   { value: 'company_domain', label: 'Domínio' },
   { value: 'company_sector', label: 'Setor' },
   { value: 'company_phone', label: 'Telefone' },
+  { value: 'company_created_at', label: 'Data de Criação (Empresa)' },
 ];
 
 const CONTACT_FIELDS = [
@@ -32,6 +41,7 @@ const CONTACT_FIELDS = [
   { value: 'contact_role', label: 'Cargo' },
   { value: 'contact_lead_source', label: 'Origem do Lead' },
   { value: 'contact_status', label: 'Status' },
+  { value: 'contact_created_at', label: 'Data de Criação (Contato)' },
 ];
 
 const DEAL_FIELDS = [
@@ -60,6 +70,7 @@ const DEAL_FIELDS = [
   { value: 'deal_loss_reason', label: 'Motivo de Perda' },
   { value: 'deal_owner', label: 'Proprietário do Negócio' },
   { value: 'deal_orcamentista', label: 'Orçamentista Responsável' },
+  { value: 'deal_created_at', label: 'Data de Criação (Negócio)' },
 ];
 
 const ALL_FIELDS = [
@@ -106,6 +117,7 @@ const DETECT_MAP: Record<string, string> = {
   'proprietario': 'deal_owner', 'owner': 'deal_owner', 'responsavel': 'deal_owner', 'proprietario do negocio': 'deal_owner',
   'orcamentista': 'deal_orcamentista', 'estimator': 'deal_orcamentista', 'orcamentista responsavel': 'deal_orcamentista',
   'etapa do funil': 'deal_stage', 'funil': 'deal_stage', 'pipeline': 'deal_stage',
+  'criado em': 'deal_created_at', 'data criacao': 'deal_created_at', 'created at': 'deal_created_at', 'data de criacao': 'deal_created_at',
 };
 
 function parseCSV(text: string): string[][] {
@@ -141,7 +153,6 @@ function truncateWords(s: string, maxWords = 10): string {
 }
 
 function autoDetect(headers: string[]): FieldMapping {
-  // All fields default to "ignore" (empty string)
   const map: FieldMapping = {};
   headers.forEach((_h, i) => {
     map[i] = '';
@@ -155,6 +166,78 @@ function getEntityLabel(entityType: CsvImportProps['entityType']) {
   return 'Negócios';
 }
 
+/** Try to parse a date string to ISO format */
+function parseDate(input: string): string | null {
+  if (!input?.trim()) return null;
+  const s = input.trim();
+  // Try ISO format directly
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  // Try dd/mm/yyyy or dd-mm-yyyy
+  const brMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (brMatch) return `${brMatch[3]}-${brMatch[2].padStart(2, '0')}-${brMatch[1].padStart(2, '0')}`;
+  // Try mm/dd/yyyy
+  const usMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (usMatch) return `${usMatch[3]}-${usMatch[1].padStart(2, '0')}-${usMatch[2].padStart(2, '0')}`;
+  // Try Date parse as fallback
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().substring(0, 10);
+  return null;
+}
+
+function generateErrorsPDF(errors: ImportError[]) {
+  // Build HTML content for PDF
+  const rows = errors.map((e, i) => `
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;font-size:12px;">${i + 1}</td>
+      <td style="padding:6px 8px;font-size:12px;">Linha ${e.row}</td>
+      <td style="padding:6px 8px;font-size:12px;">${e.entity}</td>
+      <td style="padding:6px 8px;font-size:12px;">${e.field}</td>
+      <td style="padding:6px 8px;font-size:12px;">${e.message}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <html>
+    <head>
+      <title>Relatório de Erros - Importação</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; color: #1a1a1a; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        p { font-size: 12px; color: #666; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f3f4f6; padding: 8px; font-size: 11px; text-transform: uppercase; text-align: left; border-bottom: 2px solid #d1d5db; }
+        tr:nth-child(even) { background: #f9fafb; }
+      </style>
+    </head>
+    <body>
+      <h1>Relatório de Erros da Importação</h1>
+      <p>Total de erros: ${errors.length} — Gerado em ${new Date().toLocaleString('pt-BR')}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Linha</th>
+            <th>Entidade</th>
+            <th>Campo</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, '_blank');
+  if (w) {
+    w.onload = () => {
+      setTimeout(() => { w.print(); URL.revokeObjectURL(url); }, 300);
+    };
+  }
+}
+
 export function CsvImport({ entityType, onComplete }: CsvImportProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -162,7 +245,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
   const [rows, setRows] = useState<string[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<FieldMapping>({});
-  const [importResult, setImportResult] = useState({ success: 0, errors: 0, details: '' });
+  const [importResult, setImportResult] = useState({ success: 0, errors: 0 });
+  const [importErrors, setImportErrors] = useState<ImportError[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Toggles for what to import
@@ -215,8 +299,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     if (!user) return;
     setStep('importing');
     let success = 0;
-    let errors = 0;
-    const details: string[] = [];
+    const allErrors: ImportError[] = [];
 
     // Build company cache
     const { data: existingCompanies } = await supabase.from('companies').select('id, name');
@@ -228,13 +311,10 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     const resolveStage = (input: string | undefined): string => {
       if (!input?.trim()) return 'appointmentscheduled';
       const n = normalize(input);
-      // Match by label (case-insensitive, accent-insensitive)
       const byLabel = stageList.find(s => normalize(s.label) === n);
       if (byLabel) return byLabel.key;
-      // Match by key
       const byKey = stageList.find(s => s.key === n);
       if (byKey) return byKey.key;
-      // Partial match
       const partial = stageList.find(s => normalize(s.label).includes(n) || n.includes(normalize(s.label)));
       if (partial) return partial.key;
       return 'appointmentscheduled';
@@ -246,13 +326,10 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     const resolveUser = (input: string | undefined): string | null => {
       if (!input?.trim()) return null;
       const n = normalize(input);
-      // Exact name match
       const exact = profileList.find(p => p.full_name && normalize(p.full_name) === n);
       if (exact) return exact.user_id;
-      // Partial match
       const partial = profileList.find(p => p.full_name && (normalize(p.full_name).includes(n) || n.includes(normalize(p.full_name))));
       if (partial) return partial.user_id;
-      // Email-like match
       const byEmail = profileList.find(p => p.full_name && p.full_name.toLowerCase() === input.trim().toLowerCase());
       if (byEmail) return byEmail.user_id;
       return null;
@@ -260,6 +337,9 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
 
     for (let ri = 0; ri < rows.length; ri++) {
       const row = rows[ri];
+      const rowNum = ri + 2;
+      let rowHasError = false;
+
       try {
         // Extract values by category
         const vals: Record<string, string> = {};
@@ -282,16 +362,21 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             if (vals.company_domain) companyRecord.domain = vals.company_domain;
             if (vals.company_sector) companyRecord.sector = vals.company_sector;
             if (vals.company_phone) companyRecord.phone = vals.company_phone;
+            if (vals.company_created_at) {
+              const d = parseDate(vals.company_created_at);
+              if (d) companyRecord.created_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Empresa', field: 'Data de Criação', message: `Formato de data inválido: "${vals.company_created_at}"` });
+            }
             const { data: newC, error: cErr } = await supabase.from('companies').insert(companyRecord).select('id').single();
             if (cErr) {
-              details.push(`Linha ${ri + 2}: Erro empresa "${vals.company_name}"`);
+              rowHasError = true;
+              allErrors.push({ row: rowNum, entity: 'Empresa', field: 'Nome', message: `Erro ao inserir empresa "${vals.company_name}": ${cErr.message}` });
             } else if (newC) {
               companyId = newC.id;
               companyMap.set(vals.company_name.toLowerCase(), newC.id);
             }
           }
         } else if (vals.company_name) {
-          // Even if not importing companies, resolve existing
           companyId = companyMap.get(vals.company_name.toLowerCase()) || null;
         }
 
@@ -299,7 +384,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
         let contactId: string | null = null;
         if (importContacts && vals.contact_name) {
           if (!companyId) {
-            // Try to create company from name if available
             if (vals.company_name) {
               const { data: newC } = await supabase.from('companies').insert({ name: vals.company_name, created_by: user.id }).select('id').single();
               if (newC) { companyId = newC.id; companyMap.set(vals.company_name.toLowerCase(), newC.id); }
@@ -315,14 +399,21 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             if (vals.contact_role) contactRecord.role = vals.contact_role;
             if (vals.contact_lead_source) contactRecord.lead_source = vals.contact_lead_source;
             if (vals.contact_status) contactRecord.status = vals.contact_status;
+            if (vals.contact_created_at) {
+              const d = parseDate(vals.contact_created_at);
+              if (d) contactRecord.created_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Contato', field: 'Data de Criação', message: `Formato de data inválido: "${vals.contact_created_at}"` });
+            }
             const { data: newContact, error: ctErr } = await supabase.from('contacts').insert(contactRecord).select('id').single();
             if (ctErr) {
-              details.push(`Linha ${ri + 2}: Erro contato "${vals.contact_name}"`);
+              rowHasError = true;
+              allErrors.push({ row: rowNum, entity: 'Contato', field: 'Nome', message: `Erro ao inserir contato "${vals.contact_name}": ${ctErr.message}` });
             } else if (newContact) {
               contactId = newContact.id;
             }
           } else {
-            details.push(`Linha ${ri + 2}: Contato "${vals.contact_name}" sem empresa vinculada`);
+            rowHasError = true;
+            allErrors.push({ row: rowNum, entity: 'Contato', field: 'Empresa', message: `Contato "${vals.contact_name}" sem empresa vinculada. É necessário mapear o campo "Nome da Empresa".` });
           }
         }
 
@@ -342,19 +433,41 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             if (contactId) dealRecord.contact_id = contactId;
             if (vals.deal_value) {
               const parsed = parseFloat(vals.deal_value.replace(/[^\d.,]/g, '').replace(',', '.'));
-              dealRecord.value = isNaN(parsed) ? 0 : parsed;
+              if (isNaN(parsed)) {
+                allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Valor', message: `Valor inválido: "${vals.deal_value}". Usando 0.` });
+                dealRecord.value = 0;
+              } else {
+                dealRecord.value = parsed;
+              }
             }
-            // Stage — resolve to valid funnel key or fallback to 'prospeccao'
             dealRecord.stage = resolveStage(vals.deal_stage);
 
             if (vals.deal_business_area) dealRecord.business_area = vals.deal_business_area;
             if (vals.deal_market) dealRecord.market = vals.deal_market;
             if (vals.deal_contract_type) dealRecord.contract_type = vals.deal_contract_type;
             if (vals.deal_scope) dealRecord.scope = vals.deal_scope;
-            if (vals.deal_close_date) dealRecord.close_date = vals.deal_close_date;
-            if (vals.deal_target_delivery_date) dealRecord.target_delivery_date = vals.deal_target_delivery_date;
-            if (vals.deal_proposal_delivery_date) dealRecord.proposal_delivery_date = vals.deal_proposal_delivery_date;
-            if (vals.deal_budget_start_date) dealRecord.budget_start_date = vals.deal_budget_start_date;
+            
+            // Date fields with validation
+            const dateFields = [
+              { key: 'deal_close_date', db: 'close_date', label: 'Data de Fechamento' },
+              { key: 'deal_target_delivery_date', db: 'target_delivery_date', label: 'Data de Entrega Alvo' },
+              { key: 'deal_proposal_delivery_date', db: 'proposal_delivery_date', label: 'Data Entrega Proposta' },
+              { key: 'deal_budget_start_date', db: 'budget_start_date', label: 'Data Início Orçamento' },
+            ];
+            for (const df of dateFields) {
+              if (vals[df.key]) {
+                const d = parseDate(vals[df.key]);
+                if (d) dealRecord[df.db] = d;
+                else allErrors.push({ row: rowNum, entity: 'Negócio', field: df.label, message: `Formato de data inválido: "${vals[df.key]}"` });
+              }
+            }
+
+            if (vals.deal_created_at) {
+              const d = parseDate(vals.deal_created_at);
+              if (d) dealRecord.created_at = d;
+              else allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Data de Criação', message: `Formato de data inválido: "${vals.deal_created_at}"` });
+            }
+
             if (vals.deal_vendedor_externo) dealRecord.vendedor_externo = vals.deal_vendedor_externo;
             if (vals.deal_tipo_negocio) dealRecord.tipo_negocio = vals.deal_tipo_negocio;
             if (vals.deal_endereco_execucao) dealRecord.endereco_execucao = vals.deal_endereco_execucao;
@@ -367,35 +480,36 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             if (vals.deal_profit_margin) {
               const pm = parseFloat(vals.deal_profit_margin.replace(/[^\d.,]/g, '').replace(',', '.'));
               if (!isNaN(pm)) dealRecord.profit_margin = pm;
+              else allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Margem de Lucro', message: `Valor inválido: "${vals.deal_profit_margin}"` });
             }
-            // Boolean fields — parse "sim", "yes", "true", "1" as true
             if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
             if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
-            // Owner — resolve user by name/email or keep current user
             const resolvedOwner = resolveUser(vals.deal_owner);
             if (resolvedOwner) dealRecord.owner_id = resolvedOwner;
-            // Orcamentista — resolve user by name/email
+            else if (vals.deal_owner) allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Proprietário', message: `Usuário não encontrado: "${vals.deal_owner}". Usando o usuário atual.` });
             const resolvedOrc = resolveUser(vals.deal_orcamentista);
             if (resolvedOrc) dealRecord.orcamentista_id = resolvedOrc;
+            else if (vals.deal_orcamentista) allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Orçamentista', message: `Usuário não encontrado: "${vals.deal_orcamentista}".` });
             const { error: dErr } = await supabase.from('deals').insert(dealRecord);
             if (dErr) {
-              details.push(`Linha ${ri + 2}: Erro negócio "${vals.deal_name}"`);
+              rowHasError = true;
+              allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Inserção', message: `Erro ao inserir negócio "${vals.deal_name}": ${dErr.message}` });
             }
           } else {
-            details.push(`Linha ${ri + 2}: Negócio "${vals.deal_name}" sem empresa vinculada`);
+            rowHasError = true;
+            allErrors.push({ row: rowNum, entity: 'Negócio', field: 'Empresa', message: `Negócio "${vals.deal_name}" sem empresa vinculada. É necessário mapear o campo "Nome da Empresa".` });
           }
         }
 
-        // Count success if at least one entity was processed without error for this row
         const hasEntity = (importCompanies && vals.company_name) || (importContacts && vals.contact_name) || (importDeals && vals.deal_name);
-        if (hasEntity) success++;
-      } catch {
-        errors++;
-        details.push(`Linha ${ri + 2}: Erro inesperado`);
+        if (hasEntity && !rowHasError) success++;
+      } catch (err: any) {
+        allErrors.push({ row: rowNum, entity: 'Geral', field: '-', message: `Erro inesperado: ${err?.message || 'desconhecido'}` });
       }
     }
 
-    setImportResult({ success, errors: details.length, details: details.slice(0, 20).join('\n') });
+    setImportErrors(allErrors);
+    setImportResult({ success, errors: allErrors.filter(e => e.field === 'Inserção' || e.field === 'Nome' || e.field === 'Empresa' || e.field === '-').length });
     setStep('done');
   };
 
@@ -404,7 +518,8 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     setRows([]);
     setHeaders([]);
     setMapping({});
-    setImportResult({ success: 0, errors: 0, details: '' });
+    setImportResult({ success: 0, errors: 0 });
+    setImportErrors([]);
     setImportCompanies(true);
     setImportContacts(entityType === 'contacts' || entityType === 'deals');
     setImportDeals(entityType === 'deals');
@@ -416,18 +531,15 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     setOpen(o);
   };
 
-  // Check if required fields are mapped for enabled categories
   const canImport = useMemo(() => {
     return importCompanies || importContacts || importDeals;
   }, [importCompanies, importContacts, importDeals]);
 
-  // Similarity score between two strings (higher = more similar)
   const similarity = (a: string, b: string): number => {
     const na = normalize(a);
     const nb = normalize(b);
     if (na === nb) return 100;
     if (nb.includes(na) || na.includes(nb)) return 80;
-    // Count common words
     const wordsA = na.split(/\s+/);
     const wordsB = nb.split(/\s+/);
     let common = 0;
@@ -436,7 +548,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
       if (wordsB.some(wb => wb.includes(w) || w.includes(wb))) common++;
     }
     if (common > 0) return 30 + common * 20;
-    // Check character overlap
     let overlap = 0;
     for (let i = 0; i < Math.min(na.length, nb.length); i++) {
       if (na[i] === nb[i]) overlap++;
@@ -444,7 +555,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     return Math.round((overlap / Math.max(na.length, nb.length)) * 30);
   };
 
-  // Build grouped and sorted fields for a given header
   const getFieldsForHeader = (headerText: string) => {
     const groups = [
       { key: 'Empresa', fields: COMPANY_FIELDS },
@@ -452,7 +562,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
       { key: 'Negócio', fields: DEAL_FIELDS },
     ];
 
-    // Sort groups: put the group with highest similarity first
     const scoredGroups = groups.map(g => {
       const maxScore = Math.max(...g.fields.map(f => similarity(headerText, f.label)));
       const sortedFields = [...g.fields].sort((a, b) => similarity(headerText, b.label) - similarity(headerText, a.label));
@@ -542,7 +651,6 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
                     : category === 'deal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                     : '';
                   const catLabel = category === 'company' ? 'Empresa' : category === 'contact' ? 'Contato' : category === 'deal' ? 'Negócio' : '';
-                  // Sample values from first 2 rows
                   const samples = rows.slice(0, 2).map(r => r[i]).filter(Boolean);
 
                   return (
@@ -606,27 +714,67 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
           )}
 
           {step === 'done' && (
-            <div className="py-8 text-center space-y-4">
-              <CheckCircle2 className="h-12 w-12 mx-auto text-primary" />
-              <p className="text-lg font-bold text-foreground">Importação Concluída</p>
-              <div className="flex justify-center gap-6">
-                <div>
-                  <p className="text-2xl font-bold text-primary">{importResult.success}</p>
-                  <p className="text-xs text-muted-foreground">Linhas processadas</p>
-                </div>
-                {importResult.errors > 0 && (
+            <div className="py-6 space-y-5">
+              <div className="text-center space-y-3">
+                <CheckCircle2 className="h-12 w-12 mx-auto text-primary" />
+                <p className="text-lg font-bold text-foreground">Importação Concluída</p>
+                <div className="flex justify-center gap-6">
                   <div>
-                    <p className="text-2xl font-bold text-destructive">{importResult.errors}</p>
-                    <p className="text-xs text-muted-foreground">Avisos/Erros</p>
+                    <p className="text-2xl font-bold text-primary">{importResult.success}</p>
+                    <p className="text-xs text-muted-foreground">Importados com sucesso</p>
                   </div>
-                )}
+                  {importErrors.length > 0 && (
+                    <div>
+                      <p className="text-2xl font-bold text-destructive">{importErrors.length}</p>
+                      <p className="text-xs text-muted-foreground">Avisos/Erros</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              {importResult.details && (
-                <div className="text-left bg-muted/50 rounded-lg p-3 max-h-32 overflow-y-auto">
-                  <p className="text-xs text-muted-foreground whitespace-pre-line">{importResult.details}</p>
+
+              {/* Detailed errors */}
+              {importErrors.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <p className="text-sm font-semibold text-foreground">Detalhes dos erros ({importErrors.length})</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => generateErrorsPDF(importErrors)}>
+                      <Download className="h-3.5 w-3.5" />
+                      Exportar PDF
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[300px] border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs w-16">Linha</TableHead>
+                          <TableHead className="text-xs w-24">Entidade</TableHead>
+                          <TableHead className="text-xs w-28">Campo</TableHead>
+                          <TableHead className="text-xs">Motivo</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {importErrors.map((err, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-xs font-medium">{err.row}</TableCell>
+                            <TableCell className="text-xs">
+                              <Badge variant="outline" className="text-[10px]">{err.entity}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{err.field}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground break-words">{err.message}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
                 </div>
               )}
-              <Button onClick={() => handleClose(false)}>Fechar</Button>
+
+              <div className="flex justify-center">
+                <Button onClick={() => handleClose(false)}>Fechar</Button>
+              </div>
             </div>
           )}
         </DialogContent>
