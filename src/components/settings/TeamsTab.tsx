@@ -142,17 +142,19 @@ export function TeamsTab() {
     e.preventDefault();
     if (!user) return;
     setGoalSaving(true);
+    // Delete existing goal for same user/periodicity/period/year
     await supabase.from('sales_goals').delete()
       .eq('user_id', goalForm.user_id)
-      .eq('month', Number(goalForm.month))
       .eq('year', Number(goalForm.year));
     const { error } = await supabase.from('sales_goals').insert({
       user_id: goalForm.user_id,
-      month: Number(goalForm.month),
+      month: Number(goalForm.period_start),
       year: Number(goalForm.year),
       target_value: Number(goalForm.target_value) || 0,
       target_deals_count: Number(goalForm.target_deals_count) || 0,
-    });
+      periodicity: goalForm.periodicity,
+      period_start: Number(goalForm.period_start),
+    } as any);
     setGoalSaving(false);
     if (error) { toast.error('Erro ao definir meta: ' + error.message); }
     else { toast.success('Meta definida!'); setGoalOpen(false); queryClient.invalidateQueries({ queryKey: ['sales-goals'] }); }
