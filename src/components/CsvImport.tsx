@@ -27,7 +27,7 @@ const COMPANY_FIELDS = [
 ];
 
 const CONTACT_FIELDS = [
-  { value: 'contact_name', label: 'Nome do Contato', required: true },
+  { value: 'contact_name', label: 'Nome do Contato' },
   { value: 'contact_email', label: 'E-mail' },
   { value: 'contact_role', label: 'Cargo' },
   { value: 'contact_lead_source', label: 'Origem do Lead' },
