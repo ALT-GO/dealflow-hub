@@ -35,13 +35,50 @@ export default function Dashboard() {
     },
   });
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  const { data: dealMetrics } = useQuery({
+    queryKey: ['deal-metrics'],
+    queryFn: async () => {
+      const { data: deals } = await supabase.from('deals').select('value, stage');
+      const { data: stages } = await supabase.from('funnel_stages').select('key, stage_type');
+      if (!deals || !stages) return null;
 
-  const statCards = [
-    { title: 'Negócios', value: stats?.deals || 0, icon: Briefcase },
-    { title: 'Pipeline Total', value: formatCurrency(stats?.totalValue || 0), icon: DollarSign },
-  ];
+      const closedKeys = stages.filter(s => s.stage_type === 'won').map(s => s.key);
+      const lostKeys = stages.filter(s => s.stage_type === 'lost').map(s => s.key);
+
+      const all = deals;
+      const open = deals.filter(d => !closedKeys.includes(d.stage) && !lostKeys.includes(d.stage));
+      const closed = deals.filter(d => closedKeys.includes(d.stage));
+
+      const sum = (arr: typeof deals) => arr.reduce((s, d) => s + (d.value || 0), 0);
+      const avg = (arr: typeof deals) => arr.length ? sum(arr) / arr.length : 0;
+
+      // Valor ponderado: peso por posição no funil (simplificado)
+      const activeStages = stages
+        .filter(s => s.stage_type === 'normal')
+        .sort((a, b) => a.key.localeCompare(b.key));
+      const totalStages = activeStages.length || 1;
+      const stageWeights: Record<string, number> = {};
+      activeStages.forEach((s, i) => { stageWeights[s.key] = (i + 1) / totalStages; });
+      closedKeys.forEach(k => { stageWeights[k] = 1; });
+
+      const weighted = deals
+        .filter(d => !lostKeys.includes(d.stage))
+        .reduce((s, d) => s + (d.value || 0) * (stageWeights[d.stage] || 0.5), 0);
+
+      return {
+        total: sum(all), totalAvg: avg(all), count: all.length,
+        weighted, weightedAvg: all.length ? weighted / all.filter(d => !lostKeys.includes(d.stage)).length : 0,
+        open: sum(open), openAvg: avg(open),
+        closed: sum(closed), closedAvg: avg(closed),
+      };
+    },
+  });
+
+  const formatCompact = (val: number) => {
+    if (val >= 1_000_000) return `R$ ${(val / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} mi`;
+    if (val >= 1_000) return `R$ ${(val / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} mil`;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  };
 
   return (
     <div className="space-y-6">
@@ -76,15 +113,32 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {statCards.map((stat) => (
-          <Card key={stat.title} className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <Card className="border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Negócios</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-card-foreground">{stats?.deals || 0}</p>
+          </CardContent>
+        </Card>
+        {[
+          { title: 'Valor Total de Negócio', value: dealMetrics?.total, avg: dealMetrics?.totalAvg, color: 'text-foreground' },
+          { title: 'Valor Ponderado de Negócio', value: dealMetrics?.weighted, avg: dealMetrics?.weightedAvg, color: 'text-primary' },
+          { title: 'Valor de Negócio Aberto', value: dealMetrics?.open, avg: dealMetrics?.openAvg, color: 'text-sky-600' },
+          { title: 'Valor de Negócio Fechado', value: dealMetrics?.closed, avg: dealMetrics?.closedAvg, color: 'text-emerald-600' },
+        ].map((m) => (
+          <Card key={m.title} className="border-border">
+            <CardHeader className="pb-1 pt-4 px-4">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{m.title}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
+            <CardContent className="px-4 pb-4">
+              <p className={`text-xl font-bold ${m.color}`}>{formatCompact(m.value || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Média por negócio<br />
+                <span className="font-medium">{formatCompact(m.avg || 0)}</span>
+              </p>
             </CardContent>
           </Card>
         ))}
