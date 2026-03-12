@@ -226,6 +226,34 @@ export default function Performance() {
   }).sort((a, b) => b.value - a.value);
   const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
+  // Revenue by tipo_negocio (donut)
+  const revenueByTipo = (() => {
+    const map: Record<string, number> = {};
+    filteredDeals.filter(d => d.stage === 'fechado').forEach((d: any) => {
+      const key = d.tipo_negocio || 'Não informado';
+      map[key] = (map[key] || 0) + (Number(d.value) || 0);
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  })();
+
+  // Ranking de Parceiros Externos
+  const parceirosRanking = (() => {
+    const map: Record<string, { total: number; won: number; count: number }> = {};
+    filteredDeals.forEach((d: any) => {
+      const v = d.vendedor_externo?.trim();
+      if (!v) return;
+      if (!map[v]) map[v] = { total: 0, won: 0, count: 0 };
+      map[v].count++;
+      if (d.stage === 'fechado') {
+        map[v].total += Number(d.value) || 0;
+        map[v].won++;
+      }
+    });
+    return Object.entries(map)
+      .map(([name, s]) => ({ name, total: s.total, winRate: s.count > 0 ? Math.round((s.won / s.count) * 100) : 0, deals: s.count, won: s.won }))
+      .sort((a, b) => b.total - a.total);
+  })();
+
   const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
