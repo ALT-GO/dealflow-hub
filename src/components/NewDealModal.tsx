@@ -240,12 +240,7 @@ export function NewDealModal() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Empresa</Label>
-              <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v, contact_id: '' })}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-                <SelectContent>
-                  {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <NativeSelect value={form.company_id} onChange={(v) => setForm({ ...form, company_id: v, contact_id: '' })} options={companies.map(c => ({ value: c.id, label: c.name }))} placeholder="Selecione a empresa" />
             </div>
             {contacts.length > 0 && (
               <div className="space-y-1.5">
