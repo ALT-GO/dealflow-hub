@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle2, Send, CalendarRange } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import EstimatorGantt from '@/components/EstimatorGantt';
-import { DatePickerField } from '@/components/DatePickerField';
+import { SmartDatePicker } from '@/components/SmartDatePicker';
 
 const BUSINESS_AREAS = [
   'Infraestrutura Predial',
@@ -224,7 +224,7 @@ export default function ProposalRequest() {
                 )}
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Data de Entrega Desejada</Label>
-                  <DatePickerField value={form.target_delivery_date} onChange={v => set('target_delivery_date', v)} placeholder="Selecionar data desejada" />
+                  <SmartDatePicker value={form.target_delivery_date} onChange={v => set('target_delivery_date', v)} placeholder="Selecionar data desejada" />
                 </div>
                 {/* Other date fields intentionally hidden for external form - only target_delivery_date shown */}
               </div>

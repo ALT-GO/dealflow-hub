@@ -12,14 +12,12 @@ import { Plus } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProperties } from '@/hooks/useCustomProperties';
-import { DatePickerField } from '@/components/DatePickerField';
 import { SmartDatePicker } from '@/components/SmartDatePicker';
 import { DynamicFields, saveCustomPropertyValues } from '@/components/DynamicFields';
 import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { useOrigins } from '@/components/settings/OriginsTab';
 import { useQualificationQuestions } from '@/components/settings/QualificationTab';
 import { QualificationForm, calculateScore } from '@/components/QualificationForm';
-import { useEstimatorWorkload } from '@/components/EstimatorGantt';
 
 const CONTRACT_TYPES = [
   { value: 'recorrente', label: 'Recorrente' },
@@ -48,7 +46,6 @@ export function NewDealModal() {
   const [open, setOpen] = useState(false);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
-  const [profiles, setProfiles] = useState<{ user_id: string; full_name: string | null }[]>([]);
   const [form, setForm] = useState({
     name: '',
     value: '',
@@ -56,7 +53,6 @@ export function NewDealModal() {
     close_date: '',
     company_id: '',
     contact_id: '',
-    orcamentista_id: '',
     contract_type: '',
     market: '',
     business_area: '',
@@ -70,7 +66,6 @@ export function NewDealModal() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
-  const { data: workloadMap = {} } = useEstimatorWorkload();
   const isBudgetStage = useMemo(() => {
     const selectedStage = stagesData.find(s => s.key === form.stage);
     if (!selectedStage) return false;
@@ -89,9 +84,6 @@ export function NewDealModal() {
     if (open) {
       supabase.from('companies').select('id, name').order('name').then(({ data }) => {
         if (data) setCompanies(data);
-      });
-      supabase.from('profiles').select('user_id, full_name').then(({ data }) => {
-        if (data) setProfiles(data);
       });
     }
   }, [open]);
@@ -129,7 +121,7 @@ export function NewDealModal() {
       contact_id: form.contact_id || null,
       owner_id: user.id,
       proposal_id: proposalId,
-      orcamentista_id: form.orcamentista_id || null,
+      orcamentista_id: null,
       contract_type: form.contract_type || null,
       market: form.market || null,
       business_area: form.business_area || null,
@@ -166,10 +158,6 @@ export function NewDealModal() {
           score: matched ? matched.score : 0,
         } as any);
       }
-      // Add orcamentista as follower
-      if (form.orcamentista_id) {
-        await supabase.from('deal_followers').insert({ deal_id: data.id, user_id: form.orcamentista_id } as any);
-      }
       // Notify Gerência of Orçamentos team for approval
       try {
         const { data: orcTeam } = await supabase.from('teams').select('id').eq('name', 'Orçamentos').maybeSingle();
@@ -197,7 +185,7 @@ export function NewDealModal() {
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '' });
+    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '' });
     setCustomValues({});
     setQualAnswers({});
   };
@@ -258,10 +246,6 @@ export function NewDealModal() {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Dados de Orçamentos</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Orçamentista Responsável</Label>
-                <NativeSelect value={form.orcamentista_id} onChange={(v) => setForm({ ...form, orcamentista_id: v })} placeholder="Selecione..." options={profiles.map(p => { const count = workloadMap[p.user_id] || 0; return { value: p.user_id, label: p.full_name || p.user_id, detail: count > 0 ? `(${count} ${count === 1 ? 'projeto ativo' : 'projetos ativos'})` : undefined }; })} />
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Tipo de Contrato</Label>
                 <NativeSelect value={form.contract_type} onChange={(v) => setForm({ ...form, contract_type: v })} options={CONTRACT_TYPES} placeholder="Selecione..." />
               </div>
@@ -278,12 +262,11 @@ export function NewDealModal() {
                 <NativeSelect value={form.origin_id} onChange={(v) => setForm({ ...form, origin_id: v })} options={origins.map(o => ({ value: o.id, label: o.label }))} placeholder="Selecione..." />
               </div>
               {isBudgetStage && (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 col-span-2">
                   <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
                   <SmartDatePicker
                     value={form.target_delivery_date}
                     onChange={(v) => setForm({ ...form, target_delivery_date: v })}
-                    estimatorId={form.orcamentista_id || undefined}
                     placeholder="Selecionar data"
                   />
                 </div>
