@@ -44,6 +44,8 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [approvalDeal, setApprovalDeal] = useState<any>(null);
+  const [approvalOpen, setApprovalOpen] = useState(false);
 
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['notifications', user?.id],
