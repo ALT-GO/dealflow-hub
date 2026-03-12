@@ -198,6 +198,20 @@ export default function Performance() {
   const overdueTasks = allTasks.filter(t => !t.completed && t.due_date && t.due_date < todayStr);
   const overdueDeals = [...new Set(overdueTasks.filter(t => t.deal_id).map(t => t.deal_id))];
 
+  // Deals without recent activity (>7 days)
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const dealsNoRecentActivity = useMemo(() => activeDeals
+    .map(d => {
+      const lastAct = d.last_activity_at ? new Date(d.last_activity_at) : null;
+      if (lastAct && lastAct >= sevenDaysAgo) return null;
+      const refDate = lastAct || new Date(d.created_at);
+      const diffDays = Math.floor((now.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24));
+      return { ...d, daysSinceActivity: diffDays };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => b.daysSinceActivity - a.daysSinceActivity) as any[],
+  [activeDeals, sevenDaysAgo]);
+
   // Burn-up
   const burnUpData: any[] = [];
   let cumulative = 0;
