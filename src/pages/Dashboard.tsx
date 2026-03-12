@@ -15,7 +15,6 @@ type ViewMode = 'kanban' | 'gantt';
 export default function Dashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>({});
-  const [onlyMine, setOnlyMine] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
   const { data: stats } = useQuery({
