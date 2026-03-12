@@ -26,6 +26,8 @@ interface Notification {
 const typeIcons: Record<string, typeof AtSign> = {
   mention: AtSign,
   deal_assigned: Briefcase,
+  deal_stage_changed: Briefcase,
+  deal_comment: Briefcase,
   task_due: ListTodo,
   approval_request: ShieldCheck,
   approval_result: ShieldCheck,
