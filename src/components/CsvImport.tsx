@@ -378,6 +378,12 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
             // Boolean fields — parse "sim", "yes", "true", "1" as true
             if (vals.deal_carbono_zero !== undefined) dealRecord.carbono_zero = parseBool(vals.deal_carbono_zero);
             if (vals.deal_cortex !== undefined) dealRecord.cortex = parseBool(vals.deal_cortex);
+            // Owner — resolve user by name/email or keep current user
+            const resolvedOwner = resolveUser(vals.deal_owner);
+            if (resolvedOwner) dealRecord.owner_id = resolvedOwner;
+            // Orcamentista — resolve user by name/email
+            const resolvedOrc = resolveUser(vals.deal_orcamentista);
+            if (resolvedOrc) dealRecord.orcamentista_id = resolvedOrc;
             const { error: dErr } = await supabase.from('deals').insert(dealRecord);
             if (dErr) {
               details.push(`Linha ${ri + 2}: Erro negócio "${vals.deal_name}"`);
