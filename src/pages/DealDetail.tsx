@@ -229,8 +229,8 @@ export default function DealDetail() {
     if (error) { toast.error('Erro ao salvar'); return; }
     await supabase.from('activities').insert({
       type: 'deal_lost', title: 'Negócio marcado como Perdido',
-      description: `Motivo: ${reason}`, company_id: deal.company_id, created_by: user.id,
-    });
+      description: `Motivo: ${reason}`, company_id: deal.company_id, deal_id: id || null, created_by: user.id,
+    } as any);
     setLossModalOpen(false);
     invalidateAll();
     toast.success('Negócio marcado como perdido.');
