@@ -323,7 +323,7 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Target className="h-5 w-5 text-primary" /></div>
               <div>
-                <p className="text-xs text-muted-foreground">Taxa de Fechamento</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Taxa de Fechamento <InfoTip text="Percentual de propostas enviadas que resultaram em fechamento no período selecionado. Fórmula: Negócios Fechados ÷ Propostas Enviadas × 100." /></p>
                 <p className="text-xl font-display font-bold text-foreground">{winRate.toFixed(1)}%</p>
                 <p className="text-[10px] text-muted-foreground">{closedInPeriod.length}/{proposalsSent.length} propostas</p>
               </div>
