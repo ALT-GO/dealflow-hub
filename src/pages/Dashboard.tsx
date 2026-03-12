@@ -89,31 +89,31 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Negócios</h1>
-          <p className="text-muted-foreground text-sm">Pipeline de vendas e negócios em andamento</p>
+          <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Negócios</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Pipeline de vendas e negócios em andamento</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* View Toggle */}
           <div className="flex items-center bg-muted rounded-lg p-0.5">
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"
-              className="h-8 px-3 text-xs gap-1.5 rounded-md"
+              className="h-8 px-2 sm:px-3 text-xs gap-1 sm:gap-1.5 rounded-md"
               onClick={() => setViewMode('kanban')}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              Kanban
+              <span className="hidden sm:inline">Kanban</span>
             </Button>
             <Button
               variant={viewMode === 'gantt' ? 'default' : 'ghost'}
               size="sm"
-              className="h-8 px-3 text-xs gap-1.5 rounded-md"
+              className="h-8 px-2 sm:px-3 text-xs gap-1 sm:gap-1.5 rounded-md"
               onClick={() => setViewMode('gantt')}
             >
               <GanttChart className="h-3.5 w-3.5" />
-              Visão Gantt
+              <span className="hidden sm:inline">Visão Gantt</span>
             </Button>
           </div>
           <NewDealModal />
