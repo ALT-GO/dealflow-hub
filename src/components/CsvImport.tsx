@@ -119,6 +119,11 @@ function parseCSV(text: string): string[][] {
   });
 }
 
+function parseBool(s: string): boolean {
+  const n = s.toLowerCase().trim();
+  return ['sim', 'yes', 'true', '1', 's', 'y', 'verdadeiro'].includes(n);
+}
+
 function normalize(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
