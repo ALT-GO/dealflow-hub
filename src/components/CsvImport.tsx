@@ -220,7 +220,7 @@ export function CsvImport({ entityType, onComplete }: CsvImportProps) {
     const { data: funnelStages } = await supabase.from('funnel_stages').select('key, label').order('sort_order');
     const stageList = funnelStages || [];
     const resolveStage = (input: string | undefined): string => {
-      if (!input?.trim()) return 'prospeccao';
+      if (!input?.trim()) return 'appointmentscheduled';
       const n = normalize(input);
       // Match by label (case-insensitive, accent-insensitive)
       const byLabel = stageList.find(s => normalize(s.label) === n);
