@@ -110,7 +110,7 @@ export function AdvancedFilters({ entityType, filters, onFiltersChange, activeVi
                 size="sm"
                 className="text-xs h-7"
                 onClick={() => {
-                  onViewSelect(v);
+                  onViewSelect?.(v);
                   onFiltersChange(v.filters);
                 }}
               >
