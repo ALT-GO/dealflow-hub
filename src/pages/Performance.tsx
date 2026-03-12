@@ -367,7 +367,7 @@ export default function Performance() {
                 <CheckSquare className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Negócios sem tarefas pendentes</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Negócios sem tarefas pendentes <InfoTip text="Negócios ativos que não possuem nenhuma tarefa pendente. Clique para ver a lista e agir." /></p>
                 <p className="text-2xl font-display font-bold text-warning">{dealsWithNoTasks.length}</p>
               </div>
             </div>
