@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,7 @@ export function NewDealModal() {
   const [form, setForm] = useState({
     name: '',
     value: '',
-    stage: 'prospeccao',
+    stage: '',
     close_date: '',
     company_id: '',
     contact_id: '',
@@ -70,6 +70,16 @@ export function NewDealModal() {
   const [loading, setLoading] = useState(false);
   const { data: customProps = [] } = useCustomProperties('deals');
   const { data: workloadMap = {} } = useEstimatorWorkload();
+  const isBudgetStage = useMemo(() => {
+    const selectedStage = stagesData.find(s => s.key === form.stage);
+    return !!(selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento'));
+  }, [stagesData, form.stage]);
+
+  useEffect(() => {
+    if (open && STAGES.length > 0 && !form.stage) {
+      setForm(f => ({ ...f, stage: STAGES[0].value }));
+    }
+  }, [open, STAGES]);
 
   useEffect(() => {
     if (open) {
@@ -183,7 +193,7 @@ export function NewDealModal() {
     toast.success('Negócio criado!');
     queryClient.invalidateQueries({ queryKey: ['deals'] });
     setOpen(false);
-    setForm({ name: '', value: '', stage: 'prospeccao', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '' });
+    setForm({ name: '', value: '', stage: '', close_date: '', company_id: '', contact_id: '', orcamentista_id: '', contract_type: '', market: '', business_area: '', origin_id: '', scope: '', budget_start_date: '', proposal_delivery_date: '', target_delivery_date: '' });
     setCustomValues({});
     setQualAnswers({});
   };
@@ -200,6 +210,9 @@ export function NewDealModal() {
         <DialogHeader>
           <DialogTitle>Novo Negócio</DialogTitle>
         </DialogHeader>
+        {STAGES.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">Carregando...</div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Proposal ID preview */}
           {selectedCompanyName && (
@@ -221,7 +234,7 @@ export function NewDealModal() {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Etapa</Label>
               <Select value={form.stage} onValueChange={(v) => setForm({ ...form, stage: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger>
                 <SelectContent>
                   {STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
@@ -322,21 +335,17 @@ export function NewDealModal() {
                 <Label className="text-xs text-muted-foreground">Data Entrega Proposta</Label>
                 <DatePickerField value={form.proposal_delivery_date} onChange={(v) => setForm({ ...form, proposal_delivery_date: v })} placeholder="Selecionar data" />
               </div>
-              {(() => {
-                const selectedStage = stagesData.find(s => s.key === form.stage);
-                const isBudgetStage = selectedStage?.key?.includes('orcamento') || selectedStage?.label?.toLowerCase().includes('orçamento');
-                return isBudgetStage ? (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
-                    <SmartDatePicker
-                      value={form.target_delivery_date}
-                      onChange={(v) => setForm({ ...form, target_delivery_date: v })}
-                      estimatorId={form.orcamentista_id || undefined}
-                      placeholder="Selecionar data"
-                    />
-                  </div>
-                ) : null;
-              })()}
+              {isBudgetStage && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Data de Entrega Desejada</Label>
+                  <SmartDatePicker
+                    value={form.target_delivery_date}
+                    onChange={(v) => setForm({ ...form, target_delivery_date: v })}
+                    estimatorId={form.orcamentista_id || undefined}
+                    placeholder="Selecionar data"
+                  />
+                </div>
+              )}
             </div>
             <div className="space-y-1.5 mt-3">
               <Label className="text-xs text-muted-foreground">Escopo</Label>
@@ -363,6 +372,7 @@ export function NewDealModal() {
             {loading ? 'Criando...' : 'Criar Negócio'}
           </Button>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
