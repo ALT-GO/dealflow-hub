@@ -12,8 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TrendingUp, TrendingDown, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake, CalendarIcon, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears, isWithinInterval } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, Cell, PieChart, Pie,
@@ -63,6 +69,92 @@ function linearRegression(data: number[]): { m: number; b: number } {
   return { m, b };
 }
 
+/** Get the close date reference for a deal */
+function getCloseRef(d: any): Date {
+  return d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+}
+
+/** Comparison badge component */
+function ComparisonBadge({ current, previous, isCurrency = false, isPercent = false }: { current: number; previous: number; isCurrency?: boolean; isPercent?: boolean }) {
+  if (previous === 0 && current === 0) return null;
+  const pctChange = previous === 0 ? (current > 0 ? 100 : 0) : ((current - previous) / previous) * 100;
+  const isUp = pctChange > 0;
+  const isNeutral = pctChange === 0;
+  
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-0.5 text-[10px] font-medium rounded-full px-1.5 py-0.5",
+      isUp ? "text-success bg-success/10" : isNeutral ? "text-muted-foreground bg-muted" : "text-destructive bg-destructive/10"
+    )}>
+      {isUp ? <ArrowUpRight className="h-3 w-3" /> : isNeutral ? <Minus className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+      {Math.abs(pctChange).toFixed(0)}%
+    </span>
+  );
+}
+
+type PeriodRange = { start: Date; end: Date };
+
+function getPeriodRange(filterPeriod: string, customStart?: Date, customEnd?: Date): PeriodRange {
+  const now = new Date();
+  switch (filterPeriod) {
+    case 'month': return { start: startOfMonth(now), end: now };
+    case 'prev_month': {
+      const prev = subMonths(now, 1);
+      return { start: startOfMonth(prev), end: endOfMonth(prev) };
+    }
+    case 'quarter': return { start: startOfQuarter(now), end: now };
+    case 'prev_quarter': {
+      const prev = subQuarters(now, 1);
+      return { start: startOfQuarter(prev), end: endOfQuarter(prev) };
+    }
+    case 'year': return { start: startOfYear(now), end: now };
+    case 'prev_year': {
+      const prev = subYears(now, 1);
+      return { start: startOfYear(prev), end: endOfYear(prev) };
+    }
+    case 'custom':
+      return { start: customStart || startOfMonth(now), end: customEnd || now };
+    case 'all': return { start: new Date(2000, 0, 1), end: now };
+    default: return { start: startOfMonth(now), end: now };
+  }
+}
+
+function getPreviousPeriodRange(range: PeriodRange): PeriodRange {
+  const duration = range.end.getTime() - range.start.getTime();
+  return {
+    start: new Date(range.start.getTime() - duration),
+    end: new Date(range.start.getTime() - 1),
+  };
+}
+
+function getPeriodLabel(filterPeriod: string, range: PeriodRange): string {
+  const MONTHS_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  switch (filterPeriod) {
+    case 'month':
+      return `${MONTHS_PT[range.start.getMonth()]} ${range.start.getFullYear()} · Dia ${new Date().getDate()} de ${endOfMonth(range.start).getDate()}`;
+    case 'prev_month':
+      return `${MONTHS_PT[range.start.getMonth()]} ${range.start.getFullYear()}`;
+    case 'quarter': {
+      const q = Math.floor(range.start.getMonth() / 3) + 1;
+      return `${q}º Trimestre ${range.start.getFullYear()} (em andamento)`;
+    }
+    case 'prev_quarter': {
+      const q = Math.floor(range.start.getMonth() / 3) + 1;
+      return `${q}º Trimestre ${range.start.getFullYear()}`;
+    }
+    case 'year':
+      return `${range.start.getFullYear()} (em andamento)`;
+    case 'prev_year':
+      return `${range.start.getFullYear()}`;
+    case 'custom':
+      return `${format(range.start, 'dd/MM/yyyy')} — ${format(range.end, 'dd/MM/yyyy')}`;
+    case 'all':
+      return 'Todo o período';
+    default:
+      return '';
+  }
+}
+
 export default function Performance() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -70,19 +162,24 @@ export default function Performance() {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
-  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  const currentDay = now.getDate();
 
   // Filters
   const [filterArea, setFilterArea] = useState<string>('all');
   const [filterMarket, setFilterMarket] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('month');
   const [filterValueRange, setFilterValueRange] = useState<string>('all');
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
 
   // Modals
   const [showNoTasks, setShowNoTasks] = useState(false);
   const [showOverdue, setShowOverdue] = useState(false);
   const [showNoActivity, setShowNoActivity] = useState(false);
+
+  // Period ranges
+  const periodRange = useMemo(() => getPeriodRange(filterPeriod, customStart, customEnd), [filterPeriod, customStart, customEnd]);
+  const prevPeriodRange = useMemo(() => getPreviousPeriodRange(periodRange), [periodRange]);
+  const periodLabel = useMemo(() => getPeriodLabel(filterPeriod, periodRange), [filterPeriod, periodRange]);
 
   const { data: allDeals = [] } = useQuery({
     queryKey: ['perf-deals'],
@@ -112,11 +209,9 @@ export default function Performance() {
   });
 
   const { data: activitiesCounts = [] } = useQuery({
-    queryKey: ['perf-activities', currentMonth, currentYear],
+    queryKey: ['perf-activities'],
     queryFn: async () => {
-      const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
-      const endOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${daysInMonth}T23:59:59`;
-      const { data } = await supabase.from('activities').select('created_by').gte('activity_date', startOfMonth).lte('activity_date', endOfMonth);
+      const { data } = await supabase.from('activities').select('created_by, activity_date');
       return data || [];
     },
   });
@@ -135,19 +230,7 @@ export default function Performance() {
     return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
   };
 
-  // Period filter logic
-  const getStartDate = () => {
-    if (filterPeriod === 'quarter') {
-      const q = Math.floor((currentMonth - 1) / 3) * 3;
-      return new Date(currentYear, q, 1);
-    }
-    if (filterPeriod === 'year') return new Date(currentYear, 0, 1);
-    if (filterPeriod === 'all') return new Date(2000, 0, 1);
-    return new Date(currentYear, currentMonth - 1, 1);
-  };
-  const periodStart = getStartDate();
-
-  // Apply global filters to ALL data
+  // Apply global filters (non-period) to ALL data
   const filteredDeals = useMemo(() => allDeals.filter(d => {
     if (filterArea !== 'all' && d.business_area !== filterArea) return false;
     if (filterMarket !== 'all' && d.market !== filterMarket) return false;
@@ -161,29 +244,45 @@ export default function Performance() {
     return true;
   }), [allDeals, filterArea, filterMarket, filterValueRange]);
 
-  const periodDeals = useMemo(() => filteredDeals.filter(d => {
-    const ref = d.stage === 'fechado' && d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
-    return ref >= periodStart;
-  }), [filteredDeals, periodStart]);
+  // Helper: filter deals by stage=fechado within a date range
+  const getClosedInRange = (deals: any[], range: PeriodRange) =>
+    deals.filter(d => {
+      if (d.stage !== 'fechado') return false;
+      const ref = getCloseRef(d);
+      return ref >= range.start && ref <= range.end;
+    });
 
-  const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-  const closedInPeriod = useMemo(() => filteredDeals.filter(d => {
-    if (d.stage !== 'fechado') return false;
-    const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
-    return closeRef >= periodStart;
-  }), [filteredDeals, periodStart]);
+  // Helper: filter deals updated within a range (for proposals sent etc)
+  const getDealsInRange = (deals: any[], range: PeriodRange) =>
+    deals.filter(d => {
+      const ref = d.stage === 'fechado' ? getCloseRef(d) : new Date(d.updated_at);
+      return ref >= range.start && ref <= range.end;
+    });
+
+  // Current period
+  const closedInPeriod = useMemo(() => getClosedInRange(filteredDeals, periodRange), [filteredDeals, periodRange]);
   const closedValue = closedInPeriod.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
+  const periodDeals = useMemo(() => getDealsInRange(filteredDeals, periodRange), [filteredDeals, periodRange]);
 
-  // Win Rate
+  // Previous period (for comparison)
+  const prevClosedInPeriod = useMemo(() => getClosedInRange(filteredDeals, prevPeriodRange), [filteredDeals, prevPeriodRange]);
+  const prevClosedValue = prevClosedInPeriod.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
+  const prevPeriodDeals = useMemo(() => getDealsInRange(filteredDeals, prevPeriodRange), [filteredDeals, prevPeriodRange]);
+
+  // Win Rate - current
   const proposalsSent = periodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
   const winRate = proposalsSent.length > 0 ? (closedInPeriod.length / proposalsSent.length) * 100 : 0;
+  
+  // Win Rate - previous
+  const prevProposalsSent = prevPeriodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
+  const prevWinRate = prevProposalsSent.length > 0 ? (prevClosedInPeriod.length / prevProposalsSent.length) * 100 : 0;
 
   // Historical probability (also filtered)
   const historicalWon = filteredDeals.filter(d => d.stage === 'fechado');
   const historicalTotal = filteredDeals.filter(d => d.stage === 'fechado' || d.stage === 'perdido');
   const historicalProb = historicalTotal.length > 0 ? (historicalWon.length / historicalTotal.length) * 100 : 0;
 
-  // Profit
+  // Profit - current
   const totalProfit = closedInPeriod.reduce((s: number, d: any) => {
     const margin = Number(d.profit_margin) || 0;
     const value = Number(d.value) || 0;
@@ -193,8 +292,20 @@ export default function Performance() {
     ? closedInPeriod.reduce((s: number, d: any) => s + (Number(d.profit_margin) || 0), 0) / closedInPeriod.length
     : 0;
 
+  // Profit - previous
+  const prevTotalProfit = prevClosedInPeriod.reduce((s: number, d: any) => {
+    const margin = Number(d.profit_margin) || 0;
+    const value = Number(d.value) || 0;
+    return s + (value * margin / 100);
+  }, 0);
+
   const totalGoalValue = goals.reduce((s: number, g: any) => s + (Number(g.target_value) || 0), 0);
   const goalPercent = totalGoalValue > 0 ? (closedValue / totalGoalValue) * 100 : 0;
+
+  // Forecast (filtered)
+  const pipelineDeals = filteredDeals.filter((d: any) => d.stage !== 'fechado' && d.stage !== 'perdido');
+  const forecast = closedValue + pipelineDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0) * (historicalProb / 100), 0);
+  const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
 
   // Actionable metrics (filtered)
   const activeDeals = filteredDeals.filter(d => d.stage !== 'fechado' && d.stage !== 'perdido');
@@ -219,18 +330,21 @@ export default function Performance() {
     .sort((a: any, b: any) => b.daysSinceActivity - a.daysSinceActivity) as any[],
   [activeDeals, sevenDaysAgo]);
 
-  // Burn-up
+  // Burn-up (uses current month always)
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const currentDay = now.getDate();
+  const monthStart = new Date(currentYear, currentMonth - 1, 1);
   const burnUpData: any[] = [];
   let cumulative = 0;
   const closedThisMonth = filteredDeals.filter(d => {
     if (d.stage !== 'fechado') return false;
-    const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
-    return closeRef >= startOfMonth;
+    const closeRef = getCloseRef(d);
+    return closeRef >= monthStart;
   });
   for (let day = 1; day <= daysInMonth; day++) {
     if (day <= currentDay) {
       const dayDeals = closedThisMonth.filter((d: any) => {
-        const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+        const closeRef = getCloseRef(d);
         return closeRef.getDate() <= day && closeRef.getMonth() === currentMonth - 1;
       });
       cumulative = dayDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
@@ -242,26 +356,32 @@ export default function Performance() {
     });
   }
 
-  // Leaderboard (filtered)
+  // Leaderboard (filtered, period-aware)
   const ownerIds = [...new Set(filteredDeals.map((d: any) => d.owner_id))];
+
+  // Activities in period
+  const activitiesInPeriod = activitiesCounts.filter((a: any) => {
+    const d = new Date(a.activity_date);
+    return d >= periodRange.start && d <= periodRange.end;
+  });
+
   const leaderboard = ownerIds.map(ownerId => {
     const userDeals = filteredDeals.filter((d: any) => d.owner_id === ownerId);
-    const closedDeals = userDeals.filter((d: any) => d.stage === 'fechado');
+    const closedDeals = getClosedInRange(userDeals, periodRange);
     const cv = closedDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
     const profit = closedDeals.reduce((s: number, d: any) => s + ((Number(d.value) || 0) * (Number(d.profit_margin) || 0) / 100), 0);
     const wr = userDeals.length > 0 ? Math.round((closedDeals.length / userDeals.length) * 100) : 0;
-    const userActivities = activitiesCounts.filter((a: any) => a.created_by === ownerId).length;
+    const userActivities = activitiesInPeriod.filter((a: any) => a.created_by === ownerId).length;
     const profile = getProfile(ownerId);
     return { userId: ownerId, name: profile?.full_name || 'Sem nome', closedValue: cv, profit, winRate: wr, activities: userActivities, totalDeals: userDeals.length };
   }).sort((a, b) => b.closedValue - a.closedValue);
 
-  // Forecast (filtered)
-  const pipelineDeals = filteredDeals.filter((d: any) => d.stage !== 'fechado' && d.stage !== 'perdido');
-  const forecast = closedValue + pipelineDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0) * (historicalProb / 100), 0);
-  const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
-
-  // Loss analysis (filtered)
-  const lostDeals = filteredDeals.filter((d: any) => d.stage === 'perdido' && d.loss_reason);
+  // Loss analysis (filtered, period-aware)
+  const lostDeals = filteredDeals.filter((d: any) => {
+    if (d.stage !== 'perdido' || !d.loss_reason) return false;
+    const ref = new Date(d.updated_at);
+    return ref >= periodRange.start && ref <= periodRange.end;
+  });
   const lossReasonCounts: Record<string, number> = {};
   lostDeals.forEach((d: any) => { lossReasonCounts[d.loss_reason!] = (lossReasonCounts[d.loss_reason!] || 0) + 1; });
   const lossData = Object.entries(lossReasonCounts).map(([key, count]) => {
@@ -271,20 +391,21 @@ export default function Performance() {
   }).sort((a, b) => b.value - a.value);
   const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
-  // Revenue by tipo_negocio (filtered)
+  // Revenue by tipo_negocio (filtered, period-aware)
   const revenueByTipo = useMemo(() => {
     const map: Record<string, number> = {};
-    filteredDeals.filter(d => d.stage === 'fechado').forEach((d: any) => {
+    closedInPeriod.forEach((d: any) => {
       const key = d.tipo_negocio || 'Não informado';
       map[key] = (map[key] || 0) + (Number(d.value) || 0);
     });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [filteredDeals]);
+  }, [closedInPeriod]);
 
-  // Ranking de Vendedores Externos (filtered)
+  // Ranking de Vendedores Externos (filtered, period-aware)
   const parceirosRanking = useMemo(() => {
+    const dealsInRange = getDealsInRange(filteredDeals, periodRange);
     const map: Record<string, { total: number; won: number; count: number }> = {};
-    filteredDeals.forEach((d: any) => {
+    dealsInRange.forEach((d: any) => {
       const v = d.vendedor_externo?.trim();
       if (!v) return;
       if (!map[v]) map[v] = { total: 0, won: 0, count: 0 };
@@ -297,7 +418,7 @@ export default function Performance() {
     return Object.entries(map)
       .map(([name, s]) => ({ name, total: s.total, winRate: s.count > 0 ? Math.round((s.won / s.count) * 100) : 0, deals: s.count, won: s.won }))
       .sort((a, b) => b.total - a.total);
-  }, [filteredDeals]);
+  }, [filteredDeals, periodRange]);
 
   const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
 
@@ -312,7 +433,7 @@ export default function Performance() {
       const m = d.getMonth();
       const closed = filteredDeals.filter((deal: any) => {
         if (deal.stage !== 'fechado') return false;
-        const u = deal.close_date ? new Date(deal.close_date) : new Date(deal.updated_at);
+        const u = getCloseRef(deal);
         return u.getFullYear() === y && u.getMonth() === m;
       });
       const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]}/${String(y).slice(2)}`;
@@ -340,6 +461,16 @@ export default function Performance() {
     </UITooltip>
   );
 
+  const handlePeriodChange = (val: string) => {
+    if (val === 'custom') {
+      setFilterPeriod('custom');
+      if (!customStart) setCustomStart(startOfMonth(now));
+      if (!customEnd) setCustomEnd(now);
+    } else {
+      setFilterPeriod(val);
+    }
+  };
+
   return (
     <TooltipProvider delayDuration={200}>
     <div className="space-y-6">
@@ -350,7 +481,7 @@ export default function Performance() {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">Performance</h1>
-            <p className="text-sm text-muted-foreground">{MONTHS_PT[currentMonth]} {currentYear} · Dia {currentDay} de {daysInMonth}</p>
+            <p className="text-sm text-muted-foreground">{periodLabel}</p>
           </div>
         </div>
         {/* Filters with Labels */}
@@ -378,16 +509,52 @@ export default function Performance() {
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Período</Label>
-            <Select value={filterPeriod} onValueChange={setFilterPeriod}>
-              <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+            <Select value={filterPeriod} onValueChange={handlePeriodChange}>
+              <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="month">Mês Atual</SelectItem>
-                <SelectItem value="quarter">Trimestre</SelectItem>
-                <SelectItem value="year">Ano</SelectItem>
+                <SelectItem value="prev_month">Mês Anterior</SelectItem>
+                <SelectItem value="quarter">Trimestre Atual</SelectItem>
+                <SelectItem value="prev_quarter">Trimestre Anterior</SelectItem>
+                <SelectItem value="year">Ano Atual</SelectItem>
+                <SelectItem value="prev_year">Ano Anterior</SelectItem>
                 <SelectItem value="all">Todo Período</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {filterPeriod === 'custom' && (
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">De</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-32 h-8 text-xs justify-start text-left font-normal", !customStart && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                      {customStart ? format(customStart, 'dd/MM/yyyy') : 'Início'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customStart} onSelect={(d) => d && setCustomStart(d)} locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Até</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-32 h-8 text-xs justify-start text-left font-normal", !customEnd && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                      {customEnd ? format(customEnd, 'dd/MM/yyyy') : 'Fim'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customEnd} onSelect={(d) => d && setCustomEnd(d)} locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          )}
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Faixa de Valor</Label>
             <Select value={filterValueRange} onValueChange={setFilterValueRange}>
@@ -411,8 +578,11 @@ export default function Performance() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">Fechado no Período <InfoTip text="Valor total dos negócios fechados (ganhos) no período selecionado. Reage a todos os filtros globais." /></p>
-                <p className="text-xl font-display font-bold text-foreground">{formatCurrency(closedValue)}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">Fechado no Período <InfoTip text="Valor total dos negócios fechados (ganhos) no período selecionado, baseado na Data de Fechamento." /></p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-display font-bold text-foreground">{formatCurrency(closedValue)}</p>
+                  <ComparisonBadge current={closedValue} previous={prevClosedValue} isCurrency />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -420,10 +590,13 @@ export default function Performance() {
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center"><Percent className="h-5 w-5 text-emerald-600" /></div>
+              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center"><Percent className="h-5 w-5 text-success" /></div>
               <div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">Lucro Total <InfoTip text="Soma do lucro estimado dos negócios fechados no período, calculado como Valor × Margem de Lucro (%)." /></p>
-                <p className="text-xl font-display font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-display font-bold text-success">{formatCurrency(totalProfit)}</p>
+                  <ComparisonBadge current={totalProfit} previous={prevTotalProfit} isCurrency />
+                </div>
                 {avgProfitMargin > 0 && <p className="text-[10px] text-muted-foreground">Margem média: {avgProfitMargin.toFixed(1)}%</p>}
               </div>
             </div>
@@ -435,7 +608,10 @@ export default function Performance() {
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Target className="h-5 w-5 text-primary" /></div>
               <div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">Taxa de Fechamento <InfoTip text="Percentual de propostas enviadas que resultaram em fechamento no período selecionado." /></p>
-                <p className="text-xl font-display font-bold text-foreground">{winRate.toFixed(1)}%</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-display font-bold text-foreground">{winRate.toFixed(1)}%</p>
+                  <ComparisonBadge current={winRate} previous={prevWinRate} isPercent />
+                </div>
                 <p className="text-[10px] text-muted-foreground">{closedInPeriod.length}/{proposalsSent.length} propostas</p>
               </div>
             </div>
@@ -498,15 +674,15 @@ export default function Performance() {
             </div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-orange-500/50 transition-colors" onClick={() => setShowNoActivity(true)}>
+        <Card className="cursor-pointer hover:border-warning/50 transition-colors" onClick={() => setShowNoActivity(true)}>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">Sem atividades recentes <InfoTip text="Negócios ativos que estão há mais de 7 dias sem nenhuma atividade registrada. Clique para ver a lista." /></p>
-                <p className="text-2xl font-display font-bold text-orange-500">{dealsNoRecentActivity.length}</p>
+                <p className="text-2xl font-display font-bold text-warning">{dealsNoRecentActivity.length}</p>
               </div>
             </div>
           </CardContent>
@@ -525,7 +701,7 @@ export default function Performance() {
               <p className="text-xs text-muted-foreground">
                 {goalPercent >= 100 ? '🎉 Meta batida!' : `Faltam ${formatCurrency(totalGoalValue - closedValue)}`}
               </p>
-              {totalProfit > 0 && <p className="text-xs text-emerald-600 font-medium">Lucro acumulado: {formatCurrency(totalProfit)}</p>}
+              {totalProfit > 0 && <p className="text-xs text-success font-medium">Lucro acumulado: {formatCurrency(totalProfit)}</p>}
             </div>
           </CardContent>
         </Card>
@@ -592,7 +768,7 @@ export default function Performance() {
                   <p className="text-sm font-medium text-foreground truncate">{seller.name}</p>
                   <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                     <span>Win Rate: <strong className="text-foreground">{seller.winRate}%</strong></span>
-                    <span>Lucro: <strong className="text-emerald-600">{formatCurrency(seller.profit)}</strong></span>
+                    <span>Lucro: <strong className="text-success">{formatCurrency(seller.profit)}</strong></span>
                   </div>
                 </div>
                 <p className="text-sm font-bold text-primary shrink-0">{formatCurrency(seller.closedValue)}</p>
@@ -709,7 +885,7 @@ export default function Performance() {
 
       {/* Loss Analysis */}
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios. Reage a todos os filtros globais." /></CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-destructive" />Análise de Perdas <InfoTip text="Distribuição dos motivos de perda de negócios no período selecionado." /></CardTitle></CardHeader>
         <CardContent>
           {lossData.length > 0 ? (
             <div className="flex flex-col lg:flex-row items-center gap-6">
@@ -745,7 +921,7 @@ export default function Performance() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio perdido com motivo registrado</div>
+            <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio perdido com motivo registrado no período</div>
           )}
         </CardContent>
       </Card>
@@ -806,7 +982,7 @@ export default function Performance() {
       {/* Modal: Deals without recent activity */}
       <Dialog open={showNoActivity} onOpenChange={setShowNoActivity}>
         <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-orange-500" />Negócios sem Atividades Recentes</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-warning" />Negócios sem Atividades Recentes</DialogTitle></DialogHeader>
           {dealsNoRecentActivity.length > 0 ? (
             <Table>
               <TableHeader>
