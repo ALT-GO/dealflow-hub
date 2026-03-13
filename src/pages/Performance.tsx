@@ -160,9 +160,18 @@ export default function Performance() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: lossReasonsList = [] } = useLossReasons();
+  const { data: funnelStages = [] } = useFunnelStages();
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
+
+  // Derive won/lost stage keys from funnel_stages
+  const wonStageKeys = useMemo(() => funnelStages.filter(s => s.stage_type === 'won').map(s => s.key), [funnelStages]);
+  const lostStageKeys = useMemo(() => funnelStages.filter(s => s.stage_type === 'lost').map(s => s.key), [funnelStages]);
+  const terminalStageKeys = useMemo(() => [...wonStageKeys, ...lostStageKeys], [wonStageKeys, lostStageKeys]);
+  const isWon = (stage: string) => wonStageKeys.includes(stage);
+  const isLost = (stage: string) => lostStageKeys.includes(stage);
+  const isTerminal = (stage: string) => terminalStageKeys.includes(stage);
 
   // Filters
   const [filterArea, setFilterArea] = useState<string>('all');
