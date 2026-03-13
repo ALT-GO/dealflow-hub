@@ -312,7 +312,7 @@ export default function Performance() {
       const m = d.getMonth();
       const closed = filteredDeals.filter((deal: any) => {
         if (deal.stage !== 'fechado') return false;
-        const u = new Date(deal.updated_at);
+        const u = deal.close_date ? new Date(deal.close_date) : new Date(deal.updated_at);
         return u.getFullYear() === y && u.getMonth() === m;
       });
       const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]}/${String(y).slice(2)}`;
