@@ -284,7 +284,7 @@ export default function Performance() {
   const winRate = proposalsSent.length > 0 ? (closedInPeriod.length / proposalsSent.length) * 100 : 0;
   
   // Win Rate - previous
-  const prevProposalsSent = prevPeriodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
+  const prevProposalsSent = prevPeriodDeals.filter(d => isTerminal(d.stage) || d.proposal_id);
   const prevWinRate = prevProposalsSent.length > 0 ? (prevClosedInPeriod.length / prevProposalsSent.length) * 100 : 0;
 
   // Historical probability (also filtered)
