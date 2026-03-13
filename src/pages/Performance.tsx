@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { CircularProgress } from '@/components/CircularProgress';
 import { useLossReasons } from '@/hooks/useLossReasons';
+import { useFunnelStages } from '@/hooks/useFunnelStages';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -159,9 +160,18 @@ export default function Performance() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: lossReasonsList = [] } = useLossReasons();
+  const { data: funnelStages = [] } = useFunnelStages();
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
+
+  // Derive won/lost stage keys from funnel_stages
+  const wonStageKeys = useMemo(() => funnelStages.filter(s => s.stage_type === 'won').map(s => s.key), [funnelStages]);
+  const lostStageKeys = useMemo(() => funnelStages.filter(s => s.stage_type === 'lost').map(s => s.key), [funnelStages]);
+  const terminalStageKeys = useMemo(() => [...wonStageKeys, ...lostStageKeys], [wonStageKeys, lostStageKeys]);
+  const isWon = (stage: string) => wonStageKeys.includes(stage);
+  const isLost = (stage: string) => lostStageKeys.includes(stage);
+  const isTerminal = (stage: string) => terminalStageKeys.includes(stage);
 
   // Filters
   const [filterArea, setFilterArea] = useState<string>('all');
@@ -247,7 +257,7 @@ export default function Performance() {
   // Helper: filter deals by stage=fechado within a date range
   const getClosedInRange = (deals: any[], range: PeriodRange) =>
     deals.filter(d => {
-      if (d.stage !== 'fechado') return false;
+      if (!isWon(d.stage)) return false;
       const ref = getCloseRef(d);
       return ref >= range.start && ref <= range.end;
     });
@@ -255,7 +265,7 @@ export default function Performance() {
   // Helper: filter deals updated within a range (for proposals sent etc)
   const getDealsInRange = (deals: any[], range: PeriodRange) =>
     deals.filter(d => {
-      const ref = d.stage === 'fechado' ? getCloseRef(d) : new Date(d.updated_at);
+      const ref = isWon(d.stage) ? getCloseRef(d) : new Date(d.updated_at);
       return ref >= range.start && ref <= range.end;
     });
 
@@ -270,16 +280,16 @@ export default function Performance() {
   const prevPeriodDeals = useMemo(() => getDealsInRange(filteredDeals, prevPeriodRange), [filteredDeals, prevPeriodRange]);
 
   // Win Rate - current
-  const proposalsSent = periodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
+  const proposalsSent = periodDeals.filter(d => isTerminal(d.stage) || d.proposal_id);
   const winRate = proposalsSent.length > 0 ? (closedInPeriod.length / proposalsSent.length) * 100 : 0;
   
   // Win Rate - previous
-  const prevProposalsSent = prevPeriodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
+  const prevProposalsSent = prevPeriodDeals.filter(d => isTerminal(d.stage) || d.proposal_id);
   const prevWinRate = prevProposalsSent.length > 0 ? (prevClosedInPeriod.length / prevProposalsSent.length) * 100 : 0;
 
   // Historical probability (also filtered)
-  const historicalWon = filteredDeals.filter(d => d.stage === 'fechado');
-  const historicalTotal = filteredDeals.filter(d => d.stage === 'fechado' || d.stage === 'perdido');
+  const historicalWon = filteredDeals.filter(d => isWon(d.stage));
+  const historicalTotal = filteredDeals.filter(d => isTerminal(d.stage));
   const historicalProb = historicalTotal.length > 0 ? (historicalWon.length / historicalTotal.length) * 100 : 0;
 
   // Profit - current
@@ -303,12 +313,12 @@ export default function Performance() {
   const goalPercent = totalGoalValue > 0 ? (closedValue / totalGoalValue) * 100 : 0;
 
   // Forecast (filtered)
-  const pipelineDeals = filteredDeals.filter((d: any) => d.stage !== 'fechado' && d.stage !== 'perdido');
+  const pipelineDeals = filteredDeals.filter((d: any) => !isTerminal(d.stage));
   const forecast = closedValue + pipelineDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0) * (historicalProb / 100), 0);
   const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
 
   // Actionable metrics (filtered)
-  const activeDeals = filteredDeals.filter(d => d.stage !== 'fechado' && d.stage !== 'perdido');
+  const activeDeals = filteredDeals.filter(d => !isTerminal(d.stage));
   const dealIdsWithPendingTasks = new Set(allTasks.filter(t => !t.completed && t.deal_id).map(t => t.deal_id));
   const dealsWithNoTasks = activeDeals.filter(d => !dealIdsWithPendingTasks.has(d.id));
 
@@ -337,7 +347,7 @@ export default function Performance() {
   const burnUpData: any[] = [];
   let cumulative = 0;
   const closedThisMonth = filteredDeals.filter(d => {
-    if (d.stage !== 'fechado') return false;
+    if (!isWon(d.stage)) return false;
     const closeRef = getCloseRef(d);
     return closeRef >= monthStart;
   });
@@ -378,7 +388,7 @@ export default function Performance() {
 
   // Loss analysis (filtered, period-aware)
   const lostDeals = filteredDeals.filter((d: any) => {
-    if (d.stage !== 'perdido' || !d.loss_reason) return false;
+    if (!isLost(d.stage) || !d.loss_reason) return false;
     const ref = new Date(d.updated_at);
     return ref >= periodRange.start && ref <= periodRange.end;
   });
@@ -410,7 +420,7 @@ export default function Performance() {
       if (!v) return;
       if (!map[v]) map[v] = { total: 0, won: 0, count: 0 };
       map[v].count++;
-      if (d.stage === 'fechado') {
+      if (isWon(d.stage)) {
         map[v].total += Number(d.value) || 0;
         map[v].won++;
       }
@@ -432,7 +442,7 @@ export default function Performance() {
       const y = d.getFullYear();
       const m = d.getMonth();
       const closed = filteredDeals.filter((deal: any) => {
-        if (deal.stage !== 'fechado') return false;
+        if (!isWon(deal.stage)) return false;
         const u = getCloseRef(deal);
         return u.getFullYear() === y && u.getMonth() === m;
       });
