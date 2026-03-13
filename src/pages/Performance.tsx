@@ -257,7 +257,7 @@ export default function Performance() {
   // Helper: filter deals by stage=fechado within a date range
   const getClosedInRange = (deals: any[], range: PeriodRange) =>
     deals.filter(d => {
-      if (d.stage !== 'fechado') return false;
+      if (!isWon(d.stage)) return false;
       const ref = getCloseRef(d);
       return ref >= range.start && ref <= range.end;
     });
