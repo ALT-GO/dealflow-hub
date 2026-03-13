@@ -265,7 +265,7 @@ export default function Performance() {
   // Helper: filter deals updated within a range (for proposals sent etc)
   const getDealsInRange = (deals: any[], range: PeriodRange) =>
     deals.filter(d => {
-      const ref = d.stage === 'fechado' ? getCloseRef(d) : new Date(d.updated_at);
+      const ref = isWon(d.stage) ? getCloseRef(d) : new Date(d.updated_at);
       return ref >= range.start && ref <= range.end;
     });
 
