@@ -388,7 +388,7 @@ export default function Performance() {
 
   // Loss analysis (filtered, period-aware)
   const lostDeals = filteredDeals.filter((d: any) => {
-    if (d.stage !== 'perdido' || !d.loss_reason) return false;
+    if (!isLost(d.stage) || !d.loss_reason) return false;
     const ref = new Date(d.updated_at);
     return ref >= periodRange.start && ref <= periodRange.end;
   });
