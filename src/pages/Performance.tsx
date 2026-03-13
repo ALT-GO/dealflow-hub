@@ -167,7 +167,11 @@ export default function Performance() {
   }), [filteredDeals, periodStart]);
 
   const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-  const closedInPeriod = useMemo(() => filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
+  const closedInPeriod = useMemo(() => filteredDeals.filter(d => {
+    if (d.stage !== 'fechado') return false;
+    const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+    return closeRef >= periodStart;
+  }), [filteredDeals, periodStart]);
   const closedValue = closedInPeriod.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
   // Win Rate
