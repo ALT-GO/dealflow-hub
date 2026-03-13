@@ -161,7 +161,10 @@ export default function Performance() {
     return true;
   }), [allDeals, filterArea, filterMarket, filterValueRange]);
 
-  const periodDeals = useMemo(() => filteredDeals.filter(d => new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
+  const periodDeals = useMemo(() => filteredDeals.filter(d => {
+    const ref = d.stage === 'fechado' && d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+    return ref >= periodStart;
+  }), [filteredDeals, periodStart]);
 
   const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
   const closedInPeriod = useMemo(() => filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
