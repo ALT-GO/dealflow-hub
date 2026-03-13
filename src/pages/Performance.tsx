@@ -318,7 +318,7 @@ export default function Performance() {
   const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
 
   // Actionable metrics (filtered)
-  const activeDeals = filteredDeals.filter(d => d.stage !== 'fechado' && d.stage !== 'perdido');
+  const activeDeals = filteredDeals.filter(d => !isTerminal(d.stage));
   const dealIdsWithPendingTasks = new Set(allTasks.filter(t => !t.completed && t.deal_id).map(t => t.deal_id));
   const dealsWithNoTasks = activeDeals.filter(d => !dealIdsWithPendingTasks.has(d.id));
 
