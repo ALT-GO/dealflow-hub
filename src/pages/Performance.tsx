@@ -89,7 +89,7 @@ export default function Performance() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, owner_id, created_at, updated_at, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, companies(name)');
+        .select('id, name, value, stage, owner_id, created_at, updated_at, close_date, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, companies(name)');
       if (error) throw error;
       return data as any[];
     },
@@ -161,10 +161,17 @@ export default function Performance() {
     return true;
   }), [allDeals, filterArea, filterMarket, filterValueRange]);
 
-  const periodDeals = useMemo(() => filteredDeals.filter(d => new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
+  const periodDeals = useMemo(() => filteredDeals.filter(d => {
+    const ref = d.stage === 'fechado' && d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+    return ref >= periodStart;
+  }), [filteredDeals, periodStart]);
 
   const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-  const closedInPeriod = useMemo(() => filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= periodStart), [filteredDeals, periodStart]);
+  const closedInPeriod = useMemo(() => filteredDeals.filter(d => {
+    if (d.stage !== 'fechado') return false;
+    const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+    return closeRef >= periodStart;
+  }), [filteredDeals, periodStart]);
   const closedValue = closedInPeriod.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
   // Win Rate
@@ -215,10 +222,17 @@ export default function Performance() {
   // Burn-up
   const burnUpData: any[] = [];
   let cumulative = 0;
-  const closedThisMonth = filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth);
+  const closedThisMonth = filteredDeals.filter(d => {
+    if (d.stage !== 'fechado') return false;
+    const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+    return closeRef >= startOfMonth;
+  });
   for (let day = 1; day <= daysInMonth; day++) {
     if (day <= currentDay) {
-      const dayDeals = closedThisMonth.filter((d: any) => new Date(d.updated_at).getDate() <= day && new Date(d.updated_at).getMonth() === currentMonth - 1);
+      const dayDeals = closedThisMonth.filter((d: any) => {
+        const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+        return closeRef.getDate() <= day && closeRef.getMonth() === currentMonth - 1;
+      });
       cumulative = dayDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
     }
     burnUpData.push({
@@ -298,7 +312,7 @@ export default function Performance() {
       const m = d.getMonth();
       const closed = filteredDeals.filter((deal: any) => {
         if (deal.stage !== 'fechado') return false;
-        const u = new Date(deal.updated_at);
+        const u = deal.close_date ? new Date(deal.close_date) : new Date(deal.updated_at);
         return u.getFullYear() === y && u.getMonth() === m;
       });
       const label = `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]}/${String(y).slice(2)}`;
