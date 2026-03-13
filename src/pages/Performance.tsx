@@ -280,7 +280,7 @@ export default function Performance() {
   const prevPeriodDeals = useMemo(() => getDealsInRange(filteredDeals, prevPeriodRange), [filteredDeals, prevPeriodRange]);
 
   // Win Rate - current
-  const proposalsSent = periodDeals.filter(d => ['proposta', 'negociacao', 'fechado', 'perdido'].includes(d.stage) || d.proposal_id);
+  const proposalsSent = periodDeals.filter(d => isTerminal(d.stage) || d.proposal_id);
   const winRate = proposalsSent.length > 0 ? (closedInPeriod.length / proposalsSent.length) * 100 : 0;
   
   // Win Rate - previous
