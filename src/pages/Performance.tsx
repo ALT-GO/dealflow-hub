@@ -313,7 +313,7 @@ export default function Performance() {
   const goalPercent = totalGoalValue > 0 ? (closedValue / totalGoalValue) * 100 : 0;
 
   // Forecast (filtered)
-  const pipelineDeals = filteredDeals.filter((d: any) => d.stage !== 'fechado' && d.stage !== 'perdido');
+  const pipelineDeals = filteredDeals.filter((d: any) => !isTerminal(d.stage));
   const forecast = closedValue + pipelineDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0) * (historicalProb / 100), 0);
   const forecastVsGoal = totalGoalValue > 0 ? Math.round((forecast / totalGoalValue) * 100) : 0;
 
