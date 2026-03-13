@@ -347,7 +347,7 @@ export default function Performance() {
   const burnUpData: any[] = [];
   let cumulative = 0;
   const closedThisMonth = filteredDeals.filter(d => {
-    if (d.stage !== 'fechado') return false;
+    if (!isWon(d.stage)) return false;
     const closeRef = getCloseRef(d);
     return closeRef >= monthStart;
   });
