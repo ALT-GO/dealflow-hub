@@ -222,10 +222,17 @@ export default function Performance() {
   // Burn-up
   const burnUpData: any[] = [];
   let cumulative = 0;
-  const closedThisMonth = filteredDeals.filter(d => d.stage === 'fechado' && new Date(d.updated_at) >= startOfMonth);
+  const closedThisMonth = filteredDeals.filter(d => {
+    if (d.stage !== 'fechado') return false;
+    const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+    return closeRef >= startOfMonth;
+  });
   for (let day = 1; day <= daysInMonth; day++) {
     if (day <= currentDay) {
-      const dayDeals = closedThisMonth.filter((d: any) => new Date(d.updated_at).getDate() <= day && new Date(d.updated_at).getMonth() === currentMonth - 1);
+      const dayDeals = closedThisMonth.filter((d: any) => {
+        const closeRef = d.close_date ? new Date(d.close_date) : new Date(d.updated_at);
+        return closeRef.getDate() <= day && closeRef.getMonth() === currentMonth - 1;
+      });
       cumulative = dayDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
     }
     burnUpData.push({
