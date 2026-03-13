@@ -420,7 +420,7 @@ export default function Performance() {
       if (!v) return;
       if (!map[v]) map[v] = { total: 0, won: 0, count: 0 };
       map[v].count++;
-      if (d.stage === 'fechado') {
+      if (isWon(d.stage)) {
         map[v].total += Number(d.value) || 0;
         map[v].won++;
       }
