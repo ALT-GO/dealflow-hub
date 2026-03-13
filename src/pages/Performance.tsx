@@ -288,8 +288,8 @@ export default function Performance() {
   const prevWinRate = prevProposalsSent.length > 0 ? (prevClosedInPeriod.length / prevProposalsSent.length) * 100 : 0;
 
   // Historical probability (also filtered)
-  const historicalWon = filteredDeals.filter(d => d.stage === 'fechado');
-  const historicalTotal = filteredDeals.filter(d => d.stage === 'fechado' || d.stage === 'perdido');
+  const historicalWon = filteredDeals.filter(d => isWon(d.stage));
+  const historicalTotal = filteredDeals.filter(d => isTerminal(d.stage));
   const historicalProb = historicalTotal.length > 0 ? (historicalWon.length / historicalTotal.length) * 100 : 0;
 
   // Profit - current
