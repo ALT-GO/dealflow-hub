@@ -442,7 +442,7 @@ export default function Performance() {
       const y = d.getFullYear();
       const m = d.getMonth();
       const closed = filteredDeals.filter((deal: any) => {
-        if (deal.stage !== 'fechado') return false;
+        if (!isWon(deal.stage)) return false;
         const u = getCloseRef(deal);
         return u.getFullYear() === y && u.getMonth() === m;
       });
