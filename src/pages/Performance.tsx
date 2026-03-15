@@ -479,7 +479,7 @@ export default function Performance() {
   }, [filteredDeals, periodRange]);
   const [top10Tab, setTop10Tab] = useState<string>('closedValue');
 
-  const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
+  
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
