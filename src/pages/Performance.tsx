@@ -196,9 +196,17 @@ export default function Performance() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, owner_id, created_at, updated_at, close_date, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, companies(name)');
+        .select('id, name, value, stage, owner_id, created_at, updated_at, close_date, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, origin_id, companies(name)');
       if (error) throw error;
       return data as any[];
+    },
+  });
+
+  const { data: dealOrigins = [] } = useQuery({
+    queryKey: ['deal-origins'],
+    queryFn: async () => {
+      const { data } = await supabase.from('deal_origins').select('*').order('sort_order');
+      return data || [];
     },
   });
 
