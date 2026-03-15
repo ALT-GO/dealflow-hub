@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TrendingUp, TrendingDown, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake, CalendarIcon, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake, CalendarIcon, ArrowUpRight, ArrowDownRight, Minus, Building2 } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
