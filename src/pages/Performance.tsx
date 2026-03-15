@@ -43,11 +43,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-xs space-y-1">
       {label && <p className="font-semibold text-foreground">{label}</p>}
-      {payload.map((entry: any, i: number) => (
-        <p key={i} style={{ color: entry.color }}>
-          {entry.name}: <strong>{typeof entry.value === 'number' ? (entry.name.includes('%') || entry.name.includes('Taxa') ? `${entry.value.toFixed(1)}%` : formatCurrency(entry.value)) : entry.value}</strong>
-        </p>
-      ))}
+      {payload.map((entry: any, i: number) => {
+        const isCount = entry.name === 'Negócios Fechados';
+        const isPct = entry.name.includes('%') || entry.name.includes('Taxa');
+        return (
+          <p key={i} style={{ color: entry.color }}>
+            {entry.name}: <strong>{typeof entry.value === 'number' ? (isPct ? `${entry.value.toFixed(1)}%` : isCount ? entry.value : formatCurrency(entry.value)) : entry.value}</strong>
+          </p>
+        );
+      })}
     </div>
   );
 };
