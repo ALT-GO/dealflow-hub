@@ -837,25 +837,59 @@ export default function Performance() {
           </CardContent>
         </Card>
 
-        {/* Bar chart */}
+        {/* Top 10 Clients */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor <InfoTip text="Comparativo visual entre o valor total fechado e o lucro estimado de cada vendedor." /></CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" />Top 10 Clientes <InfoTip text="Ranking dos clientes por diferentes métricas no período selecionado." /></CardTitle>
+            <Select value={top10Tab} onValueChange={setTop10Tab}>
+              <SelectTrigger className="w-52 h-7 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="closedValue">Maior Valor Fechado</SelectItem>
+                <SelectItem value="profit">Maior Lucro</SelectItem>
+                <SelectItem value="closeRate">Maior Taxa de Fechamento</SelectItem>
+                <SelectItem value="totalDeals">Mais Negociações</SelectItem>
+                <SelectItem value="lostDeals">Mais Negociações Perdidas</SelectItem>
+                <SelectItem value="lostValue">Maiores Valores Perdidos</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardHeader>
           <CardContent>
-            {barData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="valor" radius={[6, 6, 0, 0]} name="Valor Fechado" fill="hsl(var(--primary))" />
-                  <Bar dataKey="lucro" radius={[6, 6, 0, 0]} name="Lucro" fill="hsl(var(--success))" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Sem dados</div>
-            )}
+            {(() => {
+              const listMap: Record<string, typeof top10Clients.byClosedValue> = {
+                closedValue: top10Clients.byClosedValue,
+                profit: top10Clients.byProfit,
+                closeRate: top10Clients.byCloseRate,
+                totalDeals: top10Clients.byTotalDeals,
+                lostDeals: top10Clients.byLostDeals,
+                lostValue: top10Clients.byLostValue,
+              };
+              const list = listMap[top10Tab] || [];
+              if (list.length === 0) return <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Sem dados no período</div>;
+              return (
+                <div className="space-y-2">
+                  {list.map((client, idx) => {
+                    const metricMap: Record<string, string> = {
+                      closedValue: formatCurrency(client.closedValue),
+                      profit: formatCurrency(client.profit),
+                      closeRate: client.terminalDeals > 0 ? `${((client.wonDeals / client.terminalDeals) * 100).toFixed(0)}%` : '0%',
+                      totalDeals: `${client.totalDeals} negócio${client.totalDeals > 1 ? 's' : ''}`,
+                      lostDeals: `${client.lostDeals} perdido${client.lostDeals > 1 ? 's' : ''}`,
+                      lostValue: formatCurrency(client.lostValue),
+                    };
+                    return (
+                      <div key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${idx === 0 ? 'bg-warning/20 text-warning' : idx === 1 ? 'bg-muted text-muted-foreground' : idx === 2 ? 'bg-accent/20 text-accent-foreground' : 'bg-muted/50 text-muted-foreground'}`}>{idx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{client.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{client.totalDeals} negociações · {client.wonDeals} ganhos · {client.lostDeals} perdidos</p>
+                        </div>
+                        <p className={`text-sm font-bold shrink-0 ${top10Tab === 'lostDeals' || top10Tab === 'lostValue' ? 'text-destructive' : 'text-primary'}`}>{metricMap[top10Tab]}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
