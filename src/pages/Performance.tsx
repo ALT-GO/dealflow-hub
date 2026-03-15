@@ -898,14 +898,14 @@ export default function Performance() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: Origem de Receita */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por tipo de negócio (Novo Cliente vs Cliente Existente). Reage a todos os filtros globais." /></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por origem de negócio cadastrada. Reage a todos os filtros globais." /></CardTitle></CardHeader>
           <CardContent>
-            {revenueByTipo.length > 0 ? (
+            {revenueByOrigin.length > 0 ? (
               <div className="flex flex-col lg:flex-row items-center gap-6">
                 <ResponsiveContainer width={260} height={260}>
                   <PieChart>
-                    <Pie data={revenueByTipo} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={4} dataKey="value" nameKey="name" strokeWidth={0}>
-                      {revenueByTipo.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    <Pie data={revenueByOrigin} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={4} dataKey="value" nameKey="name" strokeWidth={0}>
+                      {revenueByOrigin.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
@@ -920,8 +920,8 @@ export default function Performance() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-2 flex-1">
-                  {revenueByTipo.map((item, i) => {
-                    const total = revenueByTipo.reduce((s, r) => s + r.value, 0);
+                  {revenueByOrigin.map((item, i) => {
+                    const total = revenueByOrigin.reduce((s, r) => s + r.value, 0);
                     const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
                     return (
                       <div key={item.name} className="flex items-center gap-2">
@@ -935,7 +935,7 @@ export default function Performance() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio fechado com tipo de negócio informado</div>
+              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio fechado com origem informada</div>
             )}
           </CardContent>
         </Card>
