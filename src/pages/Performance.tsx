@@ -16,14 +16,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TrendingUp, TrendingDown, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake, CalendarIcon, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trophy, Target, Zap, Activity, DollarSign, PieChart as PieIcon, Percent, AlertTriangle, CheckSquare, Clock, Info, Handshake, CalendarIcon, ArrowUpRight, ArrowDownRight, Minus, Building2 } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, Cell, PieChart, Pie,
+  Cell, PieChart, Pie,
 } from 'recharts';
 
 const PIE_COLORS = [
@@ -43,11 +43,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-xs space-y-1">
       {label && <p className="font-semibold text-foreground">{label}</p>}
-      {payload.map((entry: any, i: number) => (
-        <p key={i} style={{ color: entry.color }}>
-          {entry.name}: <strong>{typeof entry.value === 'number' ? (entry.name.includes('%') || entry.name.includes('Taxa') ? `${entry.value.toFixed(1)}%` : formatCurrency(entry.value)) : entry.value}</strong>
-        </p>
-      ))}
+      {payload.map((entry: any, i: number) => {
+        const isCount = entry.name === 'Negócios Fechados';
+        const isPct = entry.name.includes('%') || entry.name.includes('Taxa');
+        return (
+          <p key={i} style={{ color: entry.color }}>
+            {entry.name}: <strong>{typeof entry.value === 'number' ? (isPct ? `${entry.value.toFixed(1)}%` : isCount ? entry.value : formatCurrency(entry.value)) : entry.value}</strong>
+          </p>
+        );
+      })}
     </div>
   );
 };
@@ -196,9 +200,17 @@ export default function Performance() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, name, value, stage, owner_id, created_at, updated_at, close_date, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, companies(name)');
+        .select('id, name, value, stage, owner_id, created_at, updated_at, close_date, loss_reason, profit_margin, business_area, market, proposal_id, company_id, tipo_negocio, vendedor_externo, last_activity_at, origin_id, companies(name)');
       if (error) throw error;
       return data as any[];
+    },
+  });
+
+  const { data: dealOrigins = [] } = useQuery({
+    queryKey: ['deal-origins'],
+    queryFn: async () => {
+      const { data } = await supabase.from('deal_origins').select('*').order('sort_order');
+      return data || [];
     },
   });
 
@@ -401,15 +413,51 @@ export default function Performance() {
   }).sort((a, b) => b.value - a.value);
   const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
-  // Revenue by tipo_negocio (filtered, period-aware)
-  const revenueByTipo = useMemo(() => {
+  // Revenue by Origin (deal_origins) (filtered, period-aware)
+  const revenueByOrigin = useMemo(() => {
     const map: Record<string, number> = {};
     closedInPeriod.forEach((d: any) => {
-      const key = d.tipo_negocio || 'Não informado';
+      const origin = dealOrigins.find((o: any) => o.id === d.origin_id);
+      const key = origin?.label || 'Não informado';
       map[key] = (map[key] || 0) + (Number(d.value) || 0);
     });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [closedInPeriod]);
+  }, [closedInPeriod, dealOrigins]);
+
+  // Top 10 Clients indicators (filtered, period-aware)
+  const top10Clients = useMemo(() => {
+    const companyMap: Record<string, { name: string; closedValue: number; profit: number; totalDeals: number; wonDeals: number; lostDeals: number; lostValue: number; terminalDeals: number }> = {};
+    
+    // Process all filtered deals in period
+    const dealsInRange = getDealsInRange(filteredDeals, periodRange);
+    dealsInRange.forEach((d: any) => {
+      const compName = d.companies?.name || 'Sem empresa';
+      const compId = d.company_id;
+      if (!companyMap[compId]) companyMap[compId] = { name: compName, closedValue: 0, profit: 0, totalDeals: 0, wonDeals: 0, lostDeals: 0, lostValue: 0, terminalDeals: 0 };
+      companyMap[compId].totalDeals++;
+      if (isWon(d.stage)) {
+        companyMap[compId].wonDeals++;
+        companyMap[compId].closedValue += Number(d.value) || 0;
+        companyMap[compId].profit += ((Number(d.value) || 0) * (Number(d.profit_margin) || 0) / 100);
+        companyMap[compId].terminalDeals++;
+      }
+      if (isLost(d.stage)) {
+        companyMap[compId].lostDeals++;
+        companyMap[compId].lostValue += Number(d.value) || 0;
+        companyMap[compId].terminalDeals++;
+      }
+    });
+
+    const clients = Object.values(companyMap);
+    return {
+      byClosedValue: [...clients].sort((a, b) => b.closedValue - a.closedValue).slice(0, 10),
+      byProfit: [...clients].sort((a, b) => b.profit - a.profit).slice(0, 10),
+      byCloseRate: [...clients].filter(c => c.terminalDeals > 0).sort((a, b) => (b.wonDeals / b.terminalDeals) - (a.wonDeals / a.terminalDeals)).slice(0, 10),
+      byTotalDeals: [...clients].sort((a, b) => b.totalDeals - a.totalDeals).slice(0, 10),
+      byLostDeals: [...clients].filter(c => c.lostDeals > 0).sort((a, b) => b.lostDeals - a.lostDeals).slice(0, 10),
+      byLostValue: [...clients].filter(c => c.lostValue > 0).sort((a, b) => b.lostValue - a.lostValue).slice(0, 10),
+    };
+  }, [filteredDeals, periodRange]);
 
   // Ranking de Vendedores Externos (filtered, period-aware)
   const parceirosRanking = useMemo(() => {
@@ -429,8 +477,9 @@ export default function Performance() {
       .map(([name, s]) => ({ name, total: s.total, winRate: s.count > 0 ? Math.round((s.won / s.count) * 100) : 0, deals: s.count, won: s.won }))
       .sort((a, b) => b.total - a.total);
   }, [filteredDeals, periodRange]);
+  const [top10Tab, setTop10Tab] = useState<string>('closedValue');
 
-  const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
+  
 
   const MONTHS_PT = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -788,25 +837,59 @@ export default function Performance() {
           </CardContent>
         </Card>
 
-        {/* Bar chart */}
+        {/* Top 10 Clients */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><DollarSign className="h-4 w-4 text-success" />Receita e Lucro por Vendedor <InfoTip text="Comparativo visual entre o valor total fechado e o lucro estimado de cada vendedor." /></CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" />Top 10 Clientes <InfoTip text="Ranking dos clientes por diferentes métricas no período selecionado." /></CardTitle>
+            <Select value={top10Tab} onValueChange={setTop10Tab}>
+              <SelectTrigger className="w-52 h-7 text-xs mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="closedValue">Maior Valor Fechado</SelectItem>
+                <SelectItem value="profit">Maior Lucro</SelectItem>
+                <SelectItem value="closeRate">Maior Taxa de Fechamento</SelectItem>
+                <SelectItem value="totalDeals">Mais Negociações</SelectItem>
+                <SelectItem value="lostDeals">Mais Negociações Perdidas</SelectItem>
+                <SelectItem value="lostValue">Maiores Valores Perdidos</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardHeader>
           <CardContent>
-            {barData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="valor" radius={[6, 6, 0, 0]} name="Valor Fechado" fill="hsl(var(--primary))" />
-                  <Bar dataKey="lucro" radius={[6, 6, 0, 0]} name="Lucro" fill="hsl(var(--success))" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Sem dados</div>
-            )}
+            {(() => {
+              const listMap: Record<string, typeof top10Clients.byClosedValue> = {
+                closedValue: top10Clients.byClosedValue,
+                profit: top10Clients.byProfit,
+                closeRate: top10Clients.byCloseRate,
+                totalDeals: top10Clients.byTotalDeals,
+                lostDeals: top10Clients.byLostDeals,
+                lostValue: top10Clients.byLostValue,
+              };
+              const list = listMap[top10Tab] || [];
+              if (list.length === 0) return <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Sem dados no período</div>;
+              return (
+                <div className="space-y-2">
+                  {list.map((client, idx) => {
+                    const metricMap: Record<string, string> = {
+                      closedValue: formatCurrency(client.closedValue),
+                      profit: formatCurrency(client.profit),
+                      closeRate: client.terminalDeals > 0 ? `${((client.wonDeals / client.terminalDeals) * 100).toFixed(0)}%` : '0%',
+                      totalDeals: `${client.totalDeals} negócio${client.totalDeals > 1 ? 's' : ''}`,
+                      lostDeals: `${client.lostDeals} perdido${client.lostDeals > 1 ? 's' : ''}`,
+                      lostValue: formatCurrency(client.lostValue),
+                    };
+                    return (
+                      <div key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${idx === 0 ? 'bg-warning/20 text-warning' : idx === 1 ? 'bg-muted text-muted-foreground' : idx === 2 ? 'bg-accent/20 text-accent-foreground' : 'bg-muted/50 text-muted-foreground'}`}>{idx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{client.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{client.totalDeals} negociações · {client.wonDeals} ganhos · {client.lostDeals} perdidos</p>
+                        </div>
+                        <p className={`text-sm font-bold shrink-0 ${top10Tab === 'lostDeals' || top10Tab === 'lostValue' ? 'text-destructive' : 'text-primary'}`}>{metricMap[top10Tab]}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -815,14 +898,14 @@ export default function Performance() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: Origem de Receita */}
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por tipo de negócio (Novo Cliente vs Cliente Existente). Reage a todos os filtros globais." /></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" />Origem de Receita <InfoTip text="Distribuição da receita fechada por origem de negócio cadastrada. Reage a todos os filtros globais." /></CardTitle></CardHeader>
           <CardContent>
-            {revenueByTipo.length > 0 ? (
+            {revenueByOrigin.length > 0 ? (
               <div className="flex flex-col lg:flex-row items-center gap-6">
                 <ResponsiveContainer width={260} height={260}>
                   <PieChart>
-                    <Pie data={revenueByTipo} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={4} dataKey="value" nameKey="name" strokeWidth={0}>
-                      {revenueByTipo.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    <Pie data={revenueByOrigin} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={4} dataKey="value" nameKey="name" strokeWidth={0}>
+                      {revenueByOrigin.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
@@ -837,8 +920,8 @@ export default function Performance() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-2 flex-1">
-                  {revenueByTipo.map((item, i) => {
-                    const total = revenueByTipo.reduce((s, r) => s + r.value, 0);
+                  {revenueByOrigin.map((item, i) => {
+                    const total = revenueByOrigin.reduce((s, r) => s + r.value, 0);
                     const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
                     return (
                       <div key={item.name} className="flex items-center gap-2">
@@ -852,7 +935,7 @@ export default function Performance() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio fechado com tipo de negócio informado</div>
+              <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Nenhum negócio fechado com origem informada</div>
             )}
           </CardContent>
         </Card>
