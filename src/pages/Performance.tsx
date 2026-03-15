@@ -477,6 +477,7 @@ export default function Performance() {
       .map(([name, s]) => ({ name, total: s.total, winRate: s.count > 0 ? Math.round((s.won / s.count) * 100) : 0, deals: s.count, won: s.won }))
       .sort((a, b) => b.total - a.total);
   }, [filteredDeals, periodRange]);
+  const [top10Tab, setTop10Tab] = useState<string>('closedValue');
 
   const barData = leaderboard.slice(0, 8).map(l => ({ name: l.name.split(' ')[0], valor: l.closedValue, lucro: l.profit }));
 
