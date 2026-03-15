@@ -409,15 +409,51 @@ export default function Performance() {
   }).sort((a, b) => b.value - a.value);
   const totalLostValue = lostDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
 
-  // Revenue by tipo_negocio (filtered, period-aware)
-  const revenueByTipo = useMemo(() => {
+  // Revenue by Origin (deal_origins) (filtered, period-aware)
+  const revenueByOrigin = useMemo(() => {
     const map: Record<string, number> = {};
     closedInPeriod.forEach((d: any) => {
-      const key = d.tipo_negocio || 'Não informado';
+      const origin = dealOrigins.find((o: any) => o.id === d.origin_id);
+      const key = origin?.label || 'Não informado';
       map[key] = (map[key] || 0) + (Number(d.value) || 0);
     });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [closedInPeriod]);
+  }, [closedInPeriod, dealOrigins]);
+
+  // Top 10 Clients indicators (filtered, period-aware)
+  const top10Clients = useMemo(() => {
+    const companyMap: Record<string, { name: string; closedValue: number; profit: number; totalDeals: number; wonDeals: number; lostDeals: number; lostValue: number; terminalDeals: number }> = {};
+    
+    // Process all filtered deals in period
+    const dealsInRange = getDealsInRange(filteredDeals, periodRange);
+    dealsInRange.forEach((d: any) => {
+      const compName = d.companies?.name || 'Sem empresa';
+      const compId = d.company_id;
+      if (!companyMap[compId]) companyMap[compId] = { name: compName, closedValue: 0, profit: 0, totalDeals: 0, wonDeals: 0, lostDeals: 0, lostValue: 0, terminalDeals: 0 };
+      companyMap[compId].totalDeals++;
+      if (isWon(d.stage)) {
+        companyMap[compId].wonDeals++;
+        companyMap[compId].closedValue += Number(d.value) || 0;
+        companyMap[compId].profit += ((Number(d.value) || 0) * (Number(d.profit_margin) || 0) / 100);
+        companyMap[compId].terminalDeals++;
+      }
+      if (isLost(d.stage)) {
+        companyMap[compId].lostDeals++;
+        companyMap[compId].lostValue += Number(d.value) || 0;
+        companyMap[compId].terminalDeals++;
+      }
+    });
+
+    const clients = Object.values(companyMap);
+    return {
+      byClosedValue: [...clients].sort((a, b) => b.closedValue - a.closedValue).slice(0, 10),
+      byProfit: [...clients].sort((a, b) => b.profit - a.profit).slice(0, 10),
+      byCloseRate: [...clients].filter(c => c.terminalDeals > 0).sort((a, b) => (b.wonDeals / b.terminalDeals) - (a.wonDeals / a.terminalDeals)).slice(0, 10),
+      byTotalDeals: [...clients].sort((a, b) => b.totalDeals - a.totalDeals).slice(0, 10),
+      byLostDeals: [...clients].filter(c => c.lostDeals > 0).sort((a, b) => b.lostDeals - a.lostDeals).slice(0, 10),
+      byLostValue: [...clients].filter(c => c.lostValue > 0).sort((a, b) => b.lostValue - a.lostValue).slice(0, 10),
+    };
+  }, [filteredDeals, periodRange]);
 
   // Ranking de Vendedores Externos (filtered, period-aware)
   const parceirosRanking = useMemo(() => {
