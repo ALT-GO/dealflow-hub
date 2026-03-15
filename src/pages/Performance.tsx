@@ -23,7 +23,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, Cell, PieChart, Pie,
+  Cell, PieChart, Pie,
 } from 'recharts';
 
 const PIE_COLORS = [
